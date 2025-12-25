@@ -8,6 +8,7 @@ import { TicketList } from "@/components/ticket-list"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { User } from 'lucide-react'
+import { AdminNotificationsPanel } from "@/components/admin-notifications-panel"
 
 function DashboardContent() {
   const router = useRouter()
@@ -43,14 +44,16 @@ function DashboardContent() {
       <header className="border-b">
         <div className="max-w-6xl mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold">Dashboard</h1>
+          <div className="flex items-center gap-2">
+            <AdminNotificationsPanel token={token} />
           <Button
             onClick={() => setIsProfileOpen(true)}
             variant="outline"
-            className="gap-2"
-          >
+            className="gap-2">
             <User className="w-4 h-4" />
             Profil
           </Button>
+          </div>
         </div>
       </header>
 

@@ -18,7 +18,7 @@ function AdminDashboardContent() {
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [token, setToken] = useState("")
-
+  const [userDivision, setUserDivision] = useState<string | null>(null)
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
@@ -77,7 +77,9 @@ function AdminDashboardContent() {
           </TabsContent>
 
           <TabsContent value="tickets" className="space-y-4">
-            <AdminDivisionTickets token={token} />
+            <AdminDivisionTickets
+            userRole="super_admin" 
+            userDivision={userDivision} />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">

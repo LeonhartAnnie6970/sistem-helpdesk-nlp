@@ -4,10 +4,10 @@ import { useEffect, useState } from "react"
 import { Bell, X, CheckCheck } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card } from "@/components/ui/card"
-import Link from "next/link"
 
 interface Notification {
   id: number
+  ticket_id: number
   ticket_title: string
   user_name: string
   divisi: string
@@ -18,9 +18,10 @@ interface Notification {
 
 interface AdminNotificationsPanelProps {
   token: string
+  onTicketClick?: (ticketId: number) => void
 }
 
-export function AdminNotificationsPanel({ token }: AdminNotificationsPanelProps) {
+export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificationsPanelProps) {
   const [isOpen, setIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
@@ -42,7 +43,7 @@ export function AdminNotificationsPanel({ token }: AdminNotificationsPanelProps)
       setUnreadCount(data.unreadCount)
       setNotifications(data.notifications)
     } catch (error) {
-      console.error("[v0] Error fetching notifications:", error)
+      console.error("Error fetching notifications:", error)
     }
   }
 
@@ -58,7 +59,7 @@ export function AdminNotificationsPanel({ token }: AdminNotificationsPanelProps)
       })
       fetchNotifications()
     } catch (error) {
-      console.error("[v0] Error marking notification as read:", error)
+      console.error("Error marking notification as read:", error)
     }
   }
 
@@ -70,7 +71,32 @@ export function AdminNotificationsPanel({ token }: AdminNotificationsPanelProps)
       })
       fetchNotifications()
     } catch (error) {
-      console.error("[v0] Error marking all as read:", error)
+      console.error("Error marking all as read:", error)
+    }
+  }
+
+  const handleNotificationClick = (notification: Notification) => {
+    // Mark as read
+    handleMarkAsRead(notification.id)
+
+    // Close notification panel
+    setIsOpen(false)
+
+    // Normalize ticket id from different possible shapes (some backends use id_ticket)
+    const rawTicketId: any = (notification as any).ticket_id ?? (notification as any).id_ticket ?? (notification as any).ticketId ?? (notification as any).idTicket ?? (notification as any).ticketIdStr ?? null
+    // If the id is nested, support notification.ticket?.id
+    const nestedTicketId = (notification as any).ticket?.id ?? (notification as any).ticket?.ticket_id ?? null
+    const candidate = rawTicketId ?? nestedTicketId
+    const ticketId = candidate !== null && candidate !== undefined && candidate !== "" ? Number(candidate) : null
+
+    if (ticketId === null || Number.isNaN(ticketId)) {
+      console.warn('Notification has no valid ticket id:', notification)
+      return
+    }
+
+    // Navigate to ticket (only if valid id)
+    if (onTicketClick) {
+      onTicketClick(ticketId)
     }
   }
 
@@ -123,35 +149,28 @@ export function AdminNotificationsPanel({ token }: AdminNotificationsPanelProps)
               </div>
             ) : (
               notifications.map((notif) => (
-                <Link
+                <div
                   key={notif.id}
-                  href="/admin/dashboard"
-                  onClick={() => {
-                    handleMarkAsRead(notif.id)
-                    setIsOpen(false)
-                  }}
+                  onClick={() => handleNotificationClick(notif)}
+                  className={`p-3 hover:bg-accent cursor-pointer transition ${
+                    !notif.is_read ? "bg-blue-50 dark:bg-blue-950" : ""
+                  }`}
                 >
-                  <div
-                    className={`p-3 hover:bg-accent cursor-pointer transition ${
-                      !notif.is_read ? "bg-blue-50 dark:bg-blue-950" : ""
-                    }`}
-                  >
-                    <div className="flex justify-between items-start gap-2">
-                      <div className="flex-1">
-                        <p className="font-medium text-sm">{notif.ticket_title}</p>
-                        <p className="text-xs text-muted-foreground">
-                          Dari: {notif.user_name} ({notif.divisi})
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          {new Date(notif.created_at).toLocaleString("id-ID")}
-                        </p>
-                      </div>
-                      {!notif.is_read && (
-                        <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
-                      )}
+                  <div className="flex justify-between items-start gap-2">
+                    <div className="flex-1">
+                      <p className="font-medium text-sm">{notif.ticket_title}</p>
+                      <p className="text-xs text-muted-foreground">
+                        Dari: {notif.user_name} ({notif.divisi})
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        {new Date(notif.created_at).toLocaleString("id-ID")}
+                      </p>
                     </div>
+                    {!notif.is_read && (
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
+                    )}
                   </div>
-                </Link>
+                </div>
               ))
             )}
           </div>

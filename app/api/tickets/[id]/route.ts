@@ -64,7 +64,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 })
     }
 
-    const { status, category, imageAdminUrl, catatan_admin } = bodyData
+    const { status, category, imageAdminUrl, admin_notes } = bodyData
 
     // Only admin and super_admin can update tickets
     if (decoded.role !== "admin" && decoded.role !== "super_admin") {
@@ -106,9 +106,9 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       updates.push("image_admin_uploaded_at = NOW()")
       values.push(imageAdminUrl)
     }
-    if (catatan_admin !== undefined) {
-      updates.push("catatan_admin = ?")
-      values.push(catatan_admin)
+    if (admin_notes !== undefined) {
+      updates.push("admin_notes = ?")
+      values.push(admin_notes)
     }
 
     if (updates.length === 0) {
