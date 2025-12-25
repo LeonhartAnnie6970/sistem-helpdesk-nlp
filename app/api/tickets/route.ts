@@ -83,6 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     let category = null
+    let targetDivision = "IT & Teknologi" // Default fallback
     try {
       const nlpResponse = await fetch(`${NLP_API_URL}/classify`, {
         method: "POST",
@@ -93,14 +94,28 @@ export async function POST(request: NextRequest) {
       if (nlpResponse.ok) {
         const nlpResult = await nlpResponse.json()
         category = nlpResult.category
+        
+        // Map NLP category to target division
+        // For now, use category as-is; you may need to map it properly
+        const divisionMap: Record<string, string> = {
+          "IT": "IT & Teknologi",
+          "Finance": "ACC / FINANCE",
+          "Finance/ACC": "ACC / FINANCE",
+          "Operations": "OPERASIONAL",
+          "Sales": "SALES",
+          "Customer Service": "CUSTOMER SERVICE",
+          "HR": "HR",
+          "Management": "DIREKSI",
+        }
+        targetDivision = divisionMap[category] || "IT & Teknologi"
       }
     } catch (nlpError) {
       console.error("NLP classification error:", nlpError)
     }
 
     const result = await query(
-      "INSERT INTO tickets (id_user, title, description, image_user_url, category, status) VALUES (?, ?, ?, ?, ?, ?)",
-      [decoded.userId, title, description, imageUserUrl, category, "new"],
+      "INSERT INTO tickets (id_user, title, description, image_user_url, category, target_division, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
+      [decoded.userId, title, description, imageUserUrl, category, targetDivision, "new"],
     )
 
     const ticketId = (result as any).insertId

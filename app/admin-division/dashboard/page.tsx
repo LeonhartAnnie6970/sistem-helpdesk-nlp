@@ -12,6 +12,7 @@ export default function AdminDivisionDashboard() {
   const router = useRouter()
   const [userRole, setUserRole] = useState<string>("")
   const [userDivision, setUserDivision] = useState<string>("")
+  const [userToken, setUserToken] = useState<string>("")
   const [showProfile, setShowProfile] = useState(false)
 
   useEffect(() => {
@@ -20,6 +21,8 @@ export default function AdminDivisionDashboard() {
       router.push("/login")
       return
     }
+
+    setUserToken(token)
 
     // Verify user is admin
     fetch("/api/user/profile", {
@@ -59,7 +62,7 @@ export default function AdminDivisionDashboard() {
             <p className="text-sm text-muted-foreground">Kelola tiket divisi Anda</p>
           </div>
           <div className="flex items-center gap-2">
-            <AdminNotificationsPanel />
+            <AdminNotificationsPanel token={userToken} />
             <Button variant="outline" onClick={() => setShowProfile(true)}>
               Profil
             </Button>
@@ -79,7 +82,7 @@ export default function AdminDivisionDashboard() {
         </Tabs>
       </main>
 
-      <UserProfileModal open={showProfile} onClose={() => setShowProfile(false)} onLogout={handleLogout} />
+      {showProfile && <UserProfileModal isOpen={showProfile} token={userToken} onClose={() => setShowProfile(false)} />}
     </div>
   )
 }

@@ -10,8 +10,13 @@ export async function GET(request: NextRequest) {
   }
 
   const decoded = verifyToken(token)
-  if (!decoded || decoded.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (!decoded) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+  }
+
+  // Allow both 'admin' and 'super_admin' roles
+  if (decoded.role !== "admin" && decoded.role !== "super_admin") {
+    return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
   }
 
   try {
@@ -51,8 +56,13 @@ export async function PATCH(request: NextRequest) {
   }
 
   const decoded = verifyToken(token)
-  if (!decoded || decoded.role !== "admin") {
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+  if (!decoded) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+  }
+
+  // Allow both 'admin' and 'super_admin' roles
+  if (decoded.role !== "admin" && decoded.role !== "super_admin") {
+    return NextResponse.json({ error: "Forbidden: Admin access required" }, { status: 403 })
   }
 
   try {

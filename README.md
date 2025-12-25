@@ -20,24 +20,37 @@ Sistem helpdesk otomatis berbasis web dengan klasifikasi Natural Language Proces
 
 ## Setup
 
-### 1. Database Setup
+### 1. Environment Variables (REQUIRED)
 
-```bash
-mysql -u root -p < scripts/01-init-database.sql
-```
-
-### 2. Environment Variables
-
-Copy `.env.example` ke `.env.local` dan sesuaikan:
+Copy `.env.example` to `.env.local` and configure:
 
 ```bash
 cp .env.example .env.local
+```
+
+**Critical variables to set:**
+
+- `JWT_SECRET`: Generate a strong random secret. Example:
+  ```bash
+  # Windows PowerShell
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+  Then paste the output into `.env.local` as `JWT_SECRET=<output>`
+- `DATABASE_URL`: Your MySQL connection string
+- `NLP_API_URL`: Flask NLP service URL (if running separately)
+
+### 2. Database Setup
+
+```bash
+mysql -u root -p < scripts/01-init-database.sql
 ```
 
 ### 3. Install Dependencies
 
 ```bash
 npm install
+# or with pnpm
+pnpm install
 ```
 
 ### 4. Train NLP Model
@@ -47,6 +60,16 @@ cd nlp_api
 pip install -r requirements.txt
 python train_model.py
 ```
+
+### 5. Run Development Server
+
+```bash
+npm run dev
+# or with pnpm
+pnpm dev
+```
+
+Server runs at `http://localhost:3000`
 
 ### 5. Run Flask NLP Engine
 

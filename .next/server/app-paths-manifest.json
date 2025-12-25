@@ -1,3 +1,13 @@
 {
-  "/dashboard/page": "app/dashboard/page.js"
+  "/api/admin/notifications/route": "app/api/admin/notifications/route.js",
+  "/api/user/profile/route": "app/api/user/profile/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/super-admin/division-stats/route": "app/api/super-admin/division-stats/route.js",
+  "/api/super-admin/users/route": "app/api/super-admin/users/route.js",
+  "/api/tickets/by-division/route": "app/api/tickets/by-division/route.js",
+  "/page": "app/page.js",
+  "/login/page": "app/login/page.js",
+  "/dashboard/page": "app/dashboard/page.js",
+  "/admin-division/dashboard/page": "app/admin-division/dashboard/page.js",
+  "/super-admin/dashboard/page": "app/super-admin/dashboard/page.js"
 }

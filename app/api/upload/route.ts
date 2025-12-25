@@ -78,10 +78,38 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
-    const decoded: any = jwt.verify(token, process.env.JWT_SECRET!)
+    // Ensure JWT secret is configured
+    const jwtSecret = process.env.JWT_SECRET
+    if (!jwtSecret) {
+      console.error("JWT secret is not set. Set JWT_SECRET env var.")
+      return NextResponse.json({ error: "Server configuration error" }, { status: 500 })
+    }
+
+    // Verify token safely
+    let decoded: any
+    try {
+      decoded = jwt.verify(token, jwtSecret)
+    } catch (err) {
+      console.error("JWT verification failed:", err)
+      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+    }
+
+    // Validate upload type
+    if (!type || !["user_report", "admin_resolution"].includes(type)) {
+      return NextResponse.json({ error: "Invalid upload type" }, { status: 400 })
+    }
+
+    // Validate file is image and size (max 5MB)
+    if (!file.type || !file.type.startsWith("image/")) {
+      return NextResponse.json({ error: "File harus berupa gambar" }, { status: 400 })
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      return NextResponse.json({ error: "Ukuran file maksimum 5MB" }, { status: 400 })
+    }
 
     const timestamp = Date.now()
-    const fileName = `${type}_${decoded.userId}_${timestamp}_${file.name}`
+    const safeFilename = path.basename(file.name).replace(/\s+/g, "_")
+    const fileName = `${type}_${decoded.userId}_${timestamp}_${safeFilename}`
 
     const uploadDir = path.join(process.cwd(), "public/uploads")
     await mkdir(uploadDir, { recursive: true })
