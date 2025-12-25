@@ -1,3 +1,4 @@
+// app/api/tickets/[id]/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
@@ -16,10 +17,11 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   try {
     const tickets = await query(
-      `SELECT t.*, u.name, u.email FROM tickets t 
+      `SELECT t.*, u.name, u.email, u.divisi 
+       FROM tickets t 
        JOIN users u ON t.id_user = u.id 
        WHERE t.id = ?`,
-      [params.id],
+      [params.id]
     )
 
     if (!Array.isArray(tickets) || tickets.length === 0) {
@@ -29,7 +31,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
     const ticket = tickets[0] as any
 
     // Check authorization
-    if (decoded.role !== "admin" && ticket.id_user !== decoded.userId) {
+    if (decoded.role === "user" && ticket.id_user !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
@@ -62,11 +64,30 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 })
     }
 
-    const { status, category, imageAdminUrl } = bodyData
+    const { status, category, imageAdminUrl, catatan_admin } = bodyData
 
-    // Only admin can update status, category, and images
-    if (decoded.role !== "admin") {
+    // Only admin and super_admin can update tickets
+    if (decoded.role !== "admin" && decoded.role !== "super_admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
+    }
+
+    // For admin, verify they can only update tickets from their division
+    if (decoded.role === "admin") {
+      const adminInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
+      const adminDivision = (adminInfo as any)[0]?.divisi
+
+      const ticketInfo = await query(
+        `SELECT u.divisi FROM tickets t 
+         JOIN users u ON t.id_user = u.id 
+         WHERE t.id = ?`,
+        [params.id]
+      )
+      
+      const ticketUserDivision = (ticketInfo as any)[0]?.divisi
+
+      if (adminDivision !== ticketUserDivision) {
+        return NextResponse.json({ error: "You can only update tickets from your division" }, { status: 403 })
+      }
     }
 
     const updates = []
@@ -84,6 +105,10 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       updates.push("image_admin_url = ?")
       updates.push("image_admin_uploaded_at = NOW()")
       values.push(imageAdminUrl)
+    }
+    if (catatan_admin !== undefined) {
+      updates.push("catatan_admin = ?")
+      values.push(catatan_admin)
     }
 
     if (updates.length === 0) {

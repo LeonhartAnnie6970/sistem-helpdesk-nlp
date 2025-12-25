@@ -5,12 +5,13 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { AdminStats } from "@/components/admin-stats"
-import { AdminTickets } from "@/components/admin-tickets"
+import { AdminDivisionTickets } from "@/components/admin-division-tickets"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { AdminNotificationsPanel } from "@/components/admin-notifications-panel"
 import { NLPReportGenerator } from "@/components/nlp-report-generator"
 import { User } from "lucide-react"
+import { stringify } from "querystring"
 
 function AdminDashboardContent() {
   const router = useRouter()
@@ -76,7 +77,7 @@ function AdminDashboardContent() {
           </TabsContent>
 
           <TabsContent value="tickets" className="space-y-4">
-            <AdminTickets />
+            <AdminDivisionTickets token={token} />
           </TabsContent>
 
           <TabsContent value="reports" className="space-y-4">

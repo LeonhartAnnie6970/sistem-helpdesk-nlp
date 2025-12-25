@@ -6,6 +6,15 @@ if (!JWT_SECRET) {
   throw new Error("JWT_SECRET environment variable is not set. Please configure it in .env.local")
 }
 
+export function getAuthData() {
+  if (typeof window === "undefined") return null
+
+  return {
+    token: localStorage.getItem("token"),
+    role: localStorage.getItem("role"),
+    division: localStorage.getItem("division"),
+  }
+}
 
 export async function hashPassword(password: string) {
   return bcrypt.hash(password, 10)

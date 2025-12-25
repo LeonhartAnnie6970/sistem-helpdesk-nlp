@@ -1,3 +1,4 @@
+// app/api/tickets/route.ts
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
@@ -20,21 +21,41 @@ export async function GET(request: NextRequest) {
   try {
     let tickets
 
-    if (decoded.role === "admin") {
-      // Admin sees all tickets
+    if (decoded.role === "super_admin") {
+      // Super admin sees all tickets from all divisions
       tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi FROM tickets t 
+        `SELECT t.*, u.name, u.email, u.divisi 
+         FROM tickets t 
          JOIN users u ON t.id_user = u.id 
+         ORDER BY t.created_at DESC`
+      )
+    } else if (decoded.role === "admin") {
+      // Admin sees tickets from users in their division
+      const adminInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
+      const adminDivision = (adminInfo as any)[0]?.divisi
+
+      if (!adminDivision) {
+        return NextResponse.json({ error: "Admin division not found" }, { status: 404 })
+      }
+
+      // Get tickets from users who belong to admin's division
+      tickets = await query(
+        `SELECT t.*, u.name, u.email, u.divisi 
+         FROM tickets t 
+         JOIN users u ON t.id_user = u.id 
+         WHERE u.divisi = ?
          ORDER BY t.created_at DESC`,
+        [adminDivision]
       )
     } else {
       // User sees only their tickets
       tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi FROM tickets t 
+        `SELECT t.*, u.name, u.email, u.divisi 
+         FROM tickets t 
          JOIN users u ON t.id_user = u.id 
          WHERE t.id_user = ? 
          ORDER BY t.created_at DESC`,
-        [decoded.userId],
+        [decoded.userId]
       )
     }
 
@@ -64,16 +85,15 @@ export async function POST(request: NextRequest) {
     let imageUserUrl: string | null = null
 
     if (contentType.includes("application/json")) {
-      // Old JSON format for backward compatibility
       const body = await request.json()
       title = body.title
       description = body.description
+      imageUserUrl = body.imageUserUrl || null
     } else if (contentType.includes("multipart/form-data")) {
-      // New FormData format with optional image
       const formData = await request.formData()
       title = formData.get("title") as string
       description = formData.get("description") as string
-      imageUserUrl = formData.get("imageUserUrl") as string
+      imageUserUrl = formData.get("imageUserUrl") as string | null
     } else {
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 })
     }
@@ -82,8 +102,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Title and description required" }, { status: 400 })
     }
 
+    // Get user division
+    const userInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
+    const userDivision = (userInfo as any)[0]?.divisi || "General"
+
     let category = null
-    let targetDivision = "IT & Teknologi" // Default fallback
+    let targetDivision = userDivision // Use user's division as target
+    
     try {
       const nlpResponse = await fetch(`${NLP_API_URL}/classify`, {
         method: "POST",
@@ -94,20 +119,6 @@ export async function POST(request: NextRequest) {
       if (nlpResponse.ok) {
         const nlpResult = await nlpResponse.json()
         category = nlpResult.category
-        
-        // Map NLP category to target division
-        // For now, use category as-is; you may need to map it properly
-        const divisionMap: Record<string, string> = {
-          "IT": "IT & Teknologi",
-          "Finance": "ACC / FINANCE",
-          "Finance/ACC": "ACC / FINANCE",
-          "Operations": "OPERASIONAL",
-          "Sales": "SALES",
-          "Customer Service": "CUSTOMER SERVICE",
-          "HR": "HR",
-          "Management": "DIREKSI",
-        }
-        targetDivision = divisionMap[category] || "IT & Teknologi"
       }
     } catch (nlpError) {
       console.error("NLP classification error:", nlpError)
@@ -115,32 +126,47 @@ export async function POST(request: NextRequest) {
 
     const result = await query(
       "INSERT INTO tickets (id_user, title, description, image_user_url, category, target_division, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [decoded.userId, title, description, imageUserUrl, category, targetDivision, "new"],
+      [decoded.userId, title, description, imageUserUrl, category, targetDivision, "new"]
     )
 
     const ticketId = (result as any).insertId
 
     try {
-      const admins = await query("SELECT id, name, email, notification_email FROM users WHERE role = 'admin'")
-      const userInfo = await query("SELECT name, divisi FROM users WHERE id = ?", [decoded.userId])
+      // Get admins from the same division as user
+      const admins = await query(
+        "SELECT id, name, email, notification_email FROM users WHERE role = 'admin' AND divisi = ?",
+        [userDivision]
+      )
+      
+      // Also get super admins
+      const superAdmins = await query(
+        "SELECT id, name, email, notification_email FROM users WHERE role = 'super_admin'"
+      )
+
+      const allAdmins = [...(admins as any[]), ...(superAdmins as any[])]
       const user = (userInfo as any)[0]
 
       // Create notification untuk setiap admin dan send email
-      for (const admin of admins as any[]) {
-        // Insert notification ke database
+      for (const admin of allAdmins) {
         await query(
           "INSERT INTO notifications (id_admin, id_ticket, id_user, title, message, is_read) VALUES (?, ?, ?, ?, ?, ?)",
-          [admin.id, ticketId, decoded.userId, title, `Tiket baru dari ${user.name}`, false],
+          [admin.id, ticketId, decoded.userId, title, `Tiket baru dari ${user.name} (${userDivision})`, false]
         )
 
         const notificationEmailTarget = admin.notification_email || admin.email
-        await sendNotificationEmail(notificationEmailTarget, admin.name, title, user.name, user.divisi, ticketId)
+        await sendNotificationEmail(
+          notificationEmailTarget, 
+          admin.name, 
+          title, 
+          user.name, 
+          userDivision, 
+          ticketId
+        )
       }
 
-      console.log("[v0] Notifications created and emails sent for ticket", ticketId)
+      console.log("[Tickets] Notifications created and emails sent for ticket", ticketId)
     } catch (notificationError) {
-      console.error("[v0] Error creating notifications:", notificationError)
-      // Continue even if notification fails
+      console.error("[Tickets] Error creating notifications:", notificationError)
     }
 
     return NextResponse.json({ message: "Ticket created", ticketId }, { status: 201 })

@@ -1,362 +1,451 @@
 "use client"
 
-import type React from "react"
-
-import { useState, useEffect } from "react"
-import { Button } from "@/components/ui/button"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogTrigger,
-} from "@/components/ui/dialog"
 import { Badge } from "@/components/ui/badge"
-import { DIVISIONS } from "@/lib/divisions-refactor"
-import { ROLES, getRoleLabel, getRoleBadgeColor } from "@/lib/rbac"
-import { UserPlus, Pencil, Trash2 } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Textarea } from "@/components/ui/textarea"
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { AlertCircle, CheckCircle2, Clock, XCircle, ZoomIn } from "lucide-react"
 
-interface User {
+interface Ticket {
   id: number
+  title: string
+  description: string
+  divisi: string
+  target_division: string
+  status: string
+  category: string
+  image_user_url?: string
+  image_admin_url?: string
+  catatan_admin?: string
+  created_at: string
   name: string
   email: string
-  divisi: string
-  role: string
-  created_at: string
-  profile_image_url?: string
 }
 
 export function SuperAdminUserManagement() {
-  const [users, setUsers] = useState<User[]>([])
+  const [tickets, setTickets] = useState<Ticket[]>([])
+  const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
-  const [isCreateOpen, setIsCreateOpen] = useState(false)
-  const [isEditOpen, setIsEditOpen] = useState(false)
-  const [selectedUser, setSelectedUser] = useState<User | null>(null)
-
-  // Form states
-  const [formData, setFormData] = useState({
-    name: "",
-    email: "",
-    password: "",
-    divisi: "",
-    role: "user",
-  })
+  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
+  const [newStatus, setNewStatus] = useState("")
+  const [adminNote, setAdminNote] = useState("")
+  const [updating, setUpdating] = useState(false)
+  const [imageModalOpen, setImageModalOpen] = useState(false)
+  const [selectedImage, setSelectedImage] = useState("")
+  
+  // Filter states
+  const [filterDivision, setFilterDivision] = useState<string>("all")
+  const [filterStatus, setFilterStatus] = useState<string>("all")
+  const [filterCategory, setFilterCategory] = useState<string>("all")
+  const [searchQuery, setSearchQuery] = useState("")
 
   useEffect(() => {
-    fetchUsers()
+    fetchTickets()
   }, [])
 
-  const fetchUsers = async () => {
+  useEffect(() => {
+    applyFilters()
+  }, [tickets, filterDivision, filterStatus, filterCategory, searchQuery])
+
+  const fetchTickets = async () => {
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("/api/super-admin/users", {
+      const response = await fetch("/api/tickets", {
         headers: { Authorization: `Bearer ${token}` },
       })
-      const data = await response.json()
-      setUsers(data.users || [])
+
+      if (response.ok) {
+        const data = await response.json()
+        setTickets(data)
+      }
     } catch (error) {
-      console.error("Error fetching users:", error)
+      console.error("Error fetching tickets:", error)
     } finally {
       setLoading(false)
     }
   }
 
-  const handleCreateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch("/api/super-admin/users", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify(formData),
-      })
+  const applyFilters = () => {
+    let filtered = [...tickets]
 
-      if (response.ok) {
-        alert("User created successfully")
-        setIsCreateOpen(false)
-        setFormData({ name: "", email: "", password: "", divisi: "", role: "user" })
-        fetchUsers()
-      } else {
-        const error = await response.json()
-        alert(error.error || "Failed to create user")
-      }
-    } catch (error) {
-      console.error("Error creating user:", error)
-      alert("Failed to create user")
+    // Filter by user division
+    if (filterDivision !== "all") {
+      filtered = filtered.filter(
+        (ticket) => ticket.divisi?.toLowerCase() === filterDivision.toLowerCase()
+      )
     }
+
+    // Filter by status
+    if (filterStatus !== "all") {
+      filtered = filtered.filter(
+        (ticket) => ticket.status?.toLowerCase() === filterStatus.toLowerCase()
+      )
+    }
+
+    // Filter by category
+    if (filterCategory !== "all") {
+      filtered = filtered.filter(
+        (ticket) => ticket.category?.toLowerCase() === filterCategory.toLowerCase()
+      )
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      filtered = filtered.filter(
+        (ticket) =>
+          ticket.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ticket.description?.toLowerCase().includes(searchQuery.toLowerCase()) ||
+          ticket.name?.toLowerCase().includes(searchQuery.toLowerCase())
+      )
+    }
+
+    setFilteredTickets(filtered)
   }
 
-  const handleUpdateUser = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!selectedUser) return
+  const handleUpdateStatus = async () => {
+    if (!selectedTicket || !newStatus) return
 
+    setUpdating(true)
     try {
       const token = localStorage.getItem("token")
-      const response = await fetch("/api/super-admin/users", {
+      const response = await fetch(`/api/tickets/${selectedTicket.id}`, {
         method: "PATCH",
         headers: {
           "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: JSON.stringify({ userId: selectedUser.id, ...formData }),
+        body: JSON.stringify({
+          status: newStatus,
+          catatan_admin: adminNote,
+        }),
       })
 
       if (response.ok) {
-        alert("User updated successfully")
-        setIsEditOpen(false)
-        setSelectedUser(null)
-        setFormData({ name: "", email: "", password: "", divisi: "", role: "user" })
-        fetchUsers()
-      } else {
-        const error = await response.json()
-        alert(error.error || "Failed to update user")
+        await fetchTickets()
+        setSelectedTicket(null)
+        setNewStatus("")
+        setAdminNote("")
       }
     } catch (error) {
-      console.error("Error updating user:", error)
-      alert("Failed to update user")
+      console.error("Error updating ticket:", error)
+    } finally {
+      setUpdating(false)
     }
   }
 
-  const handleDeleteUser = async (userId: number) => {
-    if (!confirm("Are you sure you want to delete this user?")) return
-
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`/api/super-admin/users?userId=${userId}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      })
-
-      if (response.ok) {
-        alert("User deleted successfully")
-        fetchUsers()
-      } else {
-        alert("Failed to delete user")
-      }
-    } catch (error) {
-      console.error("Error deleting user:", error)
-      alert("Failed to delete user")
+  const getStatusIcon = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "selesai":
+      case "completed":
+        return <CheckCircle2 className="w-4 h-4" />
+      case "dalam proses":
+      case "in_progress":
+        return <Clock className="w-4 h-4" />
+      case "dibatalkan":
+      case "cancelled":
+        return <XCircle className="w-4 h-4" />
+      default:
+        return <AlertCircle className="w-4 h-4" />
     }
   }
 
-  const openEditDialog = (user: User) => {
-    setSelectedUser(user)
-    setFormData({
-      name: user.name,
-      email: user.email,
-      password: "",
-      divisi: user.divisi,
-      role: user.role,
-    })
-    setIsEditOpen(true)
+  const getStatusColor = (status: string) => {
+    switch (status?.toLowerCase()) {
+      case "selesai":
+      case "completed":
+        return "bg-green-500"
+      case "dalam proses":
+      case "in_progress":
+        return "bg-blue-500"
+      case "dibatalkan":
+      case "cancelled":
+        return "bg-red-500"
+      default:
+        return "bg-yellow-500"
+    }
   }
+
+  const openImageModal = (imageUrl: string) => {
+    setSelectedImage(imageUrl)
+    setImageModalOpen(true)
+  }
+
+  const uniqueDivisions = Array.from(new Set(tickets.map((t) => t.divisi).filter(Boolean)))
+  const uniqueCategories = Array.from(new Set(tickets.map((t) => t.category).filter(Boolean)))
 
   if (loading) {
-    return <div className="text-center py-8">Loading users...</div>
+    return (
+      <div className="flex items-center justify-center p-8">
+        <p>Memuat tiket...</p>
+      </div>
+    )
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">User Management</h2>
-          <p className="text-muted-foreground">Manage all users in the system</p>
-        </div>
-        <Dialog open={isCreateOpen} onOpenChange={setIsCreateOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <UserPlus className="mr-2 h-4 w-4" />
-              Create User
-            </Button>
-          </DialogTrigger>
-          <DialogContent>
-            <DialogHeader>
-              <DialogTitle>Create New User</DialogTitle>
-              <DialogDescription>Add a new user to the system</DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleCreateUser} className="space-y-4">
-              <div>
-                <Label htmlFor="name">Name</Label>
-                <Input
-                  id="name"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="email">Email</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="password">Password</Label>
-                <Input
-                  id="password"
-                  type="password"
-                  value={formData.password}
-                  onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                  required
-                />
-              </div>
-              <div>
-                <Label htmlFor="divisi">Division</Label>
-                <Select value={formData.divisi} onValueChange={(value) => setFormData({ ...formData, divisi: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select division" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {DIVISIONS.map((div) => (
-                      <SelectItem key={div} value={div}>
-                        {div}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div>
-                <Label htmlFor="role">Role</Label>
-                <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Select role" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value={ROLES.USER}>User</SelectItem>
-                    <SelectItem value={ROLES.ADMIN}>Admin Divisi</SelectItem>
-                    <SelectItem value={ROLES.SUPER_ADMIN}>Super Admin</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-              <Button type="submit" className="w-full">
-                Create User
-              </Button>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
-
+    <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>All Users ({users.length})</CardTitle>
-          <CardDescription>View and manage all system users</CardDescription>
+          <CardTitle>Semua Tiket (Super Admin)</CardTitle>
+          <CardDescription>
+            Menampilkan {filteredTickets.length} dari {tickets.length} tiket total
+          </CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="space-y-4">
-            {users.map((user) => (
-              <div key={user.id} className="flex items-center justify-between p-4 border rounded-lg">
-                <div className="flex items-center gap-4">
-                  <div className="h-12 w-12 rounded-full bg-gray-200 flex items-center justify-center">
-                    {user.profile_image_url ? (
-                      <img
-                        src={user.profile_image_url || "/placeholder.svg"}
-                        alt={user.name}
-                        className="h-12 w-12 rounded-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-lg font-semibold">{user.name.charAt(0).toUpperCase()}</span>
-                    )}
-                  </div>
-                  <div>
-                    <div className="font-semibold">{user.name}</div>
-                    <div className="text-sm text-muted-foreground">{user.email}</div>
-                    <div className="flex gap-2 mt-1">
-                      <Badge variant="outline">{user.divisi}</Badge>
-                      <Badge className={getRoleBadgeColor(user.role)}>{getRoleLabel(user.role)}</Badge>
-                    </div>
-                  </div>
-                </div>
-                <div className="flex gap-2">
-                  <Button variant="outline" size="sm" onClick={() => openEditDialog(user)}>
-                    <Pencil className="h-4 w-4" />
-                  </Button>
-                  <Button variant="destructive" size="sm" onClick={() => handleDeleteUser(user.id)}>
-                    <Trash2 className="h-4 w-4" />
-                  </Button>
-                </div>
-              </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
-
-      <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>Edit User</DialogTitle>
-            <DialogDescription>Update user information</DialogDescription>
-          </DialogHeader>
-          <form onSubmit={handleUpdateUser} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <Label htmlFor="edit-name">Name</Label>
+              <label className="text-sm font-medium mb-2 block">Cari</label>
               <Input
-                id="edit-name"
-                value={formData.name}
-                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Cari judul, deskripsi, atau nama..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
               />
             </div>
             <div>
-              <Label htmlFor="edit-email">Email</Label>
-              <Input
-                id="edit-email"
-                type="email"
-                value={formData.email}
-                onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-password">Password (leave blank to keep current)</Label>
-              <Input
-                id="edit-password"
-                type="password"
-                value={formData.password}
-                onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-              />
-            </div>
-            <div>
-              <Label htmlFor="edit-divisi">Division</Label>
-              <Select value={formData.divisi} onValueChange={(value) => setFormData({ ...formData, divisi: value })}>
+              <label className="text-sm font-medium mb-2 block">Divisi User</label>
+              <Select value={filterDivision} onValueChange={setFilterDivision}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  {DIVISIONS.map((div) => (
-                    <SelectItem key={div} value={div}>
-                      {div}
+                  <SelectItem value="all">Semua Divisi</SelectItem>
+                  {uniqueDivisions.map((division) => (
+                    <SelectItem key={division} value={division}>
+                      {division}
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
             </div>
             <div>
-              <Label htmlFor="edit-role">Role</Label>
-              <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+              <label className="text-sm font-medium mb-2 block">Kategori</label>
+              <Select value={filterCategory} onValueChange={setFilterCategory}>
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value={ROLES.USER}>User</SelectItem>
-                  <SelectItem value={ROLES.ADMIN}>Admin Divisi</SelectItem>
-                  <SelectItem value={ROLES.SUPER_ADMIN}>Super Admin</SelectItem>
+                  <SelectItem value="all">Semua Kategori</SelectItem>
+                  {uniqueCategories.map((category) => (
+                    <SelectItem key={category} value={category}>
+                      {category}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>
-            <Button type="submit" className="w-full">
-              Update User
-            </Button>
-          </form>
+            <div>
+              <label className="text-sm font-medium mb-2 block">Status</label>
+              <Select value={filterStatus} onValueChange={setFilterStatus}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Status</SelectItem>
+                  <SelectItem value="new">Baru</SelectItem>
+                  <SelectItem value="in_progress">Dalam Proses</SelectItem>
+                  <SelectItem value="completed">Selesai</SelectItem>
+                  <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {filteredTickets.length === 0 ? (
+        <Card>
+          <CardContent className="p-8 text-center text-muted-foreground">
+            Tidak ada tiket yang sesuai dengan filter
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="grid gap-4">
+          {filteredTickets.map((ticket) => (
+            <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      <h3 className="text-lg font-semibold">{ticket.title}</h3>
+                      {ticket.category && (
+                        <Badge variant="outline">{ticket.category}</Badge>
+                      )}
+                    </div>
+                    <p className="text-sm text-muted-foreground mb-2">
+                      Dari: {ticket.name} ({ticket.email}) - Divisi: {ticket.divisi}
+                    </p>
+                    <p className="text-sm mb-2">{ticket.description}</p>
+                    <p className="text-xs text-muted-foreground">
+                      Dibuat: {new Date(ticket.created_at).toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                  <div className="flex flex-col items-end gap-2">
+                    <Badge className={getStatusColor(ticket.status)} variant="default">
+                      <span className="flex items-center gap-1">
+                        {getStatusIcon(ticket.status)}
+                        {ticket.status}
+                      </span>
+                    </Badge>
+                    <Badge variant="secondary">{ticket.divisi}</Badge>
+                  </div>
+                </div>
+
+                {ticket.image_user_url && (
+                  <div className="mb-4">
+                    <p className="text-xs font-medium mb-2 text-muted-foreground">
+                      Gambar dari user:
+                    </p>
+                    <button
+                      onClick={() => openImageModal(ticket.image_user_url!)}
+                      className="relative group cursor-pointer"
+                    >
+                      <img
+                        src={ticket.image_user_url}
+                        alt="Lampiran tiket"
+                        className="w-32 h-32 object-cover rounded-lg border"
+                      />
+                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
+                        <ZoomIn className="w-8 h-8 text-white" />
+                      </div>
+                    </button>
+                  </div>
+                )}
+
+                {ticket.catatan_admin && (
+                  <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
+                    <p className="text-xs font-medium mb-1 text-blue-900 dark:text-blue-100">
+                      Catatan Admin:
+                    </p>
+                    <p className="text-sm text-blue-800 dark:text-blue-200">
+                      {ticket.catatan_admin}
+                    </p>
+                  </div>
+                )}
+
+                <div className="flex gap-2 mt-4">
+                  <Button
+                    onClick={() => {
+                      setSelectedTicket(ticket)
+                      setNewStatus(ticket.status)
+                      setAdminNote(ticket.catatan_admin || "")
+                    }}
+                    variant="outline"
+                    size="sm"
+                  >
+                    Kelola
+                  </Button>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+      )}
+
+      {/* Update Status Dialog */}
+      {selectedTicket && (
+        <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>Kelola Tiket</DialogTitle>
+              <DialogDescription>{selectedTicket.title}</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <p className="text-sm font-medium mb-1">Deskripsi:</p>
+                <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
+                  {selectedTicket.description}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <p className="text-sm font-medium mb-1">User:</p>
+                  <p className="text-sm">{selectedTicket.name}</p>
+                  <p className="text-xs text-muted-foreground">{selectedTicket.email}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium mb-1">Divisi User:</p>
+                  <Badge variant="outline">{selectedTicket.divisi}</Badge>
+                </div>
+              </div>
+
+              {selectedTicket.category && (
+                <div>
+                  <p className="text-sm font-medium mb-1">Kategori NLP:</p>
+                  <Badge>{selectedTicket.category}</Badge>
+                </div>
+              )}
+
+              {selectedTicket.image_user_url && (
+                <div>
+                  <p className="text-sm font-medium mb-2">Gambar dari User:</p>
+                  <img
+                    src={selectedTicket.image_user_url}
+                    alt="Lampiran tiket"
+                    className="w-full max-h-64 object-contain rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
+                    onClick={() => openImageModal(selectedTicket.image_user_url!)}
+                  />
+                </div>
+              )}
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Status</label>
+                <Select value={newStatus} onValueChange={setNewStatus}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="new">Baru</SelectItem>
+                    <SelectItem value="in_progress">Dalam Proses</SelectItem>
+                    <SelectItem value="completed">Selesai</SelectItem>
+                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium mb-2 block">Catatan Admin</label>
+                <Textarea
+                  value={adminNote}
+                  onChange={(e) => setAdminNote(e.target.value)}
+                  placeholder="Tambahkan catatan untuk user..."
+                  rows={4}
+                />
+              </div>
+
+              <div className="flex gap-2">
+                <Button onClick={handleUpdateStatus} disabled={updating} className="flex-1">
+                  {updating ? "Menyimpan..." : "Simpan"}
+                </Button>
+                <Button
+                  onClick={() => setSelectedTicket(null)}
+                  variant="outline"
+                  className="flex-1"
+                >
+                  Batal
+                </Button>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Image Modal */}
+      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
+        <DialogContent className="max-w-4xl">
+          <DialogHeader>
+            <DialogTitle>Gambar Lampiran</DialogTitle>
+          </DialogHeader>
+          <div className="flex items-center justify-center bg-muted rounded-lg p-4">
+            <img
+              src={selectedImage}
+              alt="Lampiran tiket"
+              className="max-w-full max-h-[70vh] object-contain"
+            />
+          </div>
         </DialogContent>
       </Dialog>
     </div>
