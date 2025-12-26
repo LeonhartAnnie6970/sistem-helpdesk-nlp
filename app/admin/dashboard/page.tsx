@@ -20,10 +20,13 @@ function AdminDashboardContent() {
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [notificationCount, setNotificationCount] = useState(0)
+  const [userRole, setUserRole] = useState("")
+  const [userDivision, setUserDivision] = useState("")
 
   useEffect(() => {
     const token = localStorage.getItem("token")
     const role = localStorage.getItem("role")
+    const division = localStorage.getItem("division") || ""
 
     if (!token || role !== "admin") {
       router.push("/login")
@@ -31,6 +34,8 @@ function AdminDashboardContent() {
     }
 
     setToken(token)
+    setUserRole(role)
+    setUserDivision(division)
     setIsAuthenticated(true)
 
     const ticketId = searchParams.get('ticketId')
@@ -125,7 +130,7 @@ function AdminDashboardContent() {
         {/* Content Area */}
         <div className="p-6 space-y-6">
           {activeTab === "analytics" && <AdminStats />}
-          {activeTab === "tickets" && <AdminDivisionTickets selectedTicketId={selectedTicketId} />}
+          {activeTab === "tickets" && <AdminDivisionTickets selectedTicketId={selectedTicketId} userRole={userRole} userDivision={userDivision} /> }
         </div>
       </main>
 

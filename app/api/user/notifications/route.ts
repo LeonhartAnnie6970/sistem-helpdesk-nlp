@@ -18,7 +18,7 @@ export async function GET(request: NextRequest) {
     // Get all notifications for user
     const notifications = await query(
       `SELECT * FROM user_notifications 
-       WHERE user_id = ? 
+       WHERE id_user = ? 
        ORDER BY created_at DESC 
        LIMIT 50`,
       [decoded.userId]
@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
     // Get unread count
     const unreadResult = await query(
       `SELECT COUNT(*) as count FROM user_notifications 
-       WHERE user_id = ? AND is_read = FALSE`,
+       WHERE id_user = ? AND is_read = FALSE`,
       [decoded.userId]
     )
 
@@ -65,7 +65,7 @@ export async function PATCH(request: NextRequest) {
 
     // Verify notification belongs to user
     const notif = await query(
-      "SELECT user_id FROM user_notifications WHERE id = ?",
+      "SELECT id_user FROM user_notifications WHERE id = ?",
       [notificationId]
     )
 
@@ -73,7 +73,7 @@ export async function PATCH(request: NextRequest) {
       return NextResponse.json({ error: "Notification not found" }, { status: 404 })
     }
 
-    if ((notif[0] as any).user_id !== decoded.userId) {
+    if ((notif[0] as any).id_user !== decoded.userId) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 

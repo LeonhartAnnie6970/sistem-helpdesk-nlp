@@ -13,6 +13,7 @@ import { Label } from "@/components/ui/label"
 import { Input } from "@/components/ui/input"
 import { Upload, X, Calendar, Pencil, Trash2,  Search, Filter, Hash } from "lucide-react"
 import Image from "next/image"
+import { JSX } from "react/jsx-runtime"
 
 interface Ticket {
   id: number
@@ -22,7 +23,7 @@ interface Ticket {
   status: string
   created_at: string
   name: string
-  image_user_url?: string
+  image_user_url?: string 
   image_admin_url?: string
   image_admin_uploaded_at?: string
   admin_notes?: string
@@ -30,14 +31,16 @@ interface Ticket {
 }
 
 interface AdminDivisionTicketsProps {
-  selectedTicketId?: number | null | undefined
-  userRole: string | null | undefined
-  userDivision: string | null | undefined
+  selectedTicketId: number | null;
+  userRole: string;
+  userDivision: string;
 }
 
-export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId }: AdminDivisionTicketsProps) {
+export function AdminDivisionTickets(
+  { userRole, userDivision, selectedTicketId }: AdminDivisionTicketsProps): JSX.Element {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
   const [newStatus, setNewStatus] = useState("")
   const [adminNote, setAdminNote] = useState("")
@@ -66,7 +69,7 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
 
   useEffect(() => {
     fetchTickets()
-  }, [])
+  }, [userDivision])
 
   // const fetchTickets = async () => {
   //   try {
@@ -85,6 +88,7 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
   //     setLoading(false)
   //   }
   // }
+  
 
   useEffect(() => {
     if (selectedTicketId && tickets.length > 0) {
@@ -123,14 +127,18 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
       }
 
       const data = await response.json()
-      setTickets(Array.isArray(data) ? data : [])
-    } catch (err) {
-      setError("An error occurred while fetching tickets")
-    } finally {
-      setIsLoading(false)
-    }
-  }
+      const filteredByDivision = Array.isArray(data)
+  ? data.filter((ticket: Ticket) => ticket.divisi === userDivision)
+  : []
 
+setTickets(filteredByDivision)
+    } catch (err) {
+    setError("Terjadi kesalahan saat mengambil data tiket")
+  } finally {
+    setLoading(false)
+  }
+}
+  
   // Filter tickets based on search query, date, and category
   const filteredTickets = useMemo(() => {
     let filtered = [...tickets]
@@ -216,38 +224,32 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
 
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
-      case "selesai":
-      case "completed":
-        return <CheckCircle2 className="w-4 h-4" />
-      case "dalam proses":
-      case "in_progress":
-        return <Clock className="w-4 h-4" />
-      case "dibatalkan":
-      case "cancelled":
-        return <XCircle className="w-4 h-4" />
-      default:
-        return <AlertCircle className="w-4 h-4" />
-    }
+  case "resolved":
+    return <CheckCircle2 className="w-4 h-4" />
+  case "in_progress":
+    return <Clock className="w-4 h-4" />
+  case "cancelled":
+    return <XCircle className="w-4 h-4" />
+  default:
+    return <AlertCircle className="w-4 h-4" />
+}
   }
 
   const getStatusColor = (status: string) => {
     switch (status?.toLowerCase()) {
-      case "selesai":
-      case "completed":
-        return "bg-green-500"
-      case "dalam proses":
-      case "in_progress":
-        return "bg-blue-500"
-      case "dibatalkan":
-      case "cancelled":
-        return "bg-red-500"
-      default:
-        return "bg-yellow-500"
-    }
+  case "resolved":
+    return "bg-green-500"
+  case "in_progress":
+    return "bg-blue-500"
+  case "cancelled":
+    return "bg-red-500"
+  default:
+    return "bg-yellow-500"
+}
   }
 
-  const openImageModal = (imageUrl: string) => {
-    setSelectedImage(imageUrl)
+  const openImageModal = (imageUrl: string ) => {
+    setSelectedImage({ url: String(imageUrl), title: "Lampiran Tiket", type: "user" })
     setImageModalOpen(true)
   }
 
@@ -258,6 +260,14 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
       </div>
     )
   }
+
+  if (error) {
+  return (
+    <div className="p-6 text-red-500">
+      {error}
+    </div>
+  )
+}
 
   return (
     <div className="space-y-4">
@@ -279,7 +289,12 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
       ) : (
         <div className="grid gap-4">
           {tickets.map((ticket) => (
-            <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+            <Card
+              key={ticket.id}
+              ref={(el) => { 
+              ticketRefs.current[ticket.id] = el}}
+              className="hover:shadow-md transition-shadow"
+              >
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex-1">
@@ -407,7 +422,7 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
                   <SelectContent>
                     <SelectItem value="new">Baru</SelectItem>
                     <SelectItem value="in_progress">Dalam Proses</SelectItem>
-                    <SelectItem value="completed">Selesai</SelectItem>
+                    <SelectItem value="resolved">Selesai</SelectItem>
                     <SelectItem value="cancelled">Dibatalkan</SelectItem>
                   </SelectContent>
                 </Select>
@@ -448,7 +463,7 @@ export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId 
           </DialogHeader>
           <div className="flex items-center justify-center bg-muted rounded-lg p-4">
             <img
-              src={selectedImage}
+              src={selectedImage ? selectedImage.url : ""} 
               alt="Lampiran tiket"
               className="max-w-full max-h-[70vh] object-contain"
             />

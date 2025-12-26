@@ -16,7 +16,7 @@ export async function PATCH(request: NextRequest) {
 
   try {
     await query(
-      "UPDATE user_notifications SET is_read = TRUE WHERE user_id = ? AND is_read = FALSE",
+      "UPDATE user_notifications SET is_read = TRUE WHERE id_user = ? AND is_read = FALSE",
       [decoded.userId]
     )
 
