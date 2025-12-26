@@ -73,19 +73,18 @@ export function TicketForm({ onSuccess }: TicketFormProps) {
     try {
       const token = localStorage.getItem("token")
 
-      const formData = new FormData()
-      formData.append("title", title)
-      formData.append("description", description)
-      if (imageUserUrl) {
-        formData.append("imageUserUrl", imageUserUrl)
-      }
-
+      // Send as JSON instead of FormData
       const response = await fetch("/api/tickets", {
         method: "POST",
         headers: {
+          "Content-Type": "application/json",
           Authorization: `Bearer ${token}`,
         },
-        body: formData,
+        body: JSON.stringify({
+          title,
+          description,
+          imageUserUrl: imageUserUrl || null,
+        }),
       })
 
       const data = await response.json()
@@ -106,6 +105,7 @@ export function TicketForm({ onSuccess }: TicketFormProps) {
         onSuccess()
       }
     } catch (err) {
+      console.error("Submit error:", err)
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)

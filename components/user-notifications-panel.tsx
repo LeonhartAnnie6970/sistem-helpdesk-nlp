@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X, CheckCheck, FileText, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react'
+import { X, CheckCheck, Bell, FileText, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -10,7 +10,7 @@ interface Notification {
   ticket_id: number
   ticket_title: string
   message: string
-  type: 'status_update' | 'admin_note' | 'admin_image' | 'ticket_resolved'
+  type: 'status_update' | 'super_admin_note' | 'admin_note' | 'super_admin_image' | 'admin_image' | 'ticket_resolved'
   is_read: boolean
   created_at: string
 }
@@ -110,17 +110,22 @@ export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
     <div className="flex flex-col h-full">
       {/* Header */}
       <div className="p-4 border-b flex items-center justify-between flex-shrink: 0 bg-background">
-        <h3 className="font-semibold">Notifikasi ({unreadCount})</h3>
+        <h3 className="font-semibold">Notifikasi({unreadCount})</h3>
         <div className="flex gap-2">
           {unreadCount > 0 && (
             <Button
               size="sm"
               variant="ghost"
               onClick={handleMarkAllAsRead}
-              className="text-xs"
-            >
+              className="text-xs">
               <CheckCheck className="w-4 h-4 mr-1" />
               Tandai Semua
+              <Bell className="w-5 h-5" />
+        {unreadCount > 0 && (
+          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
+            {unreadCount > 9 ? "9+" : unreadCount}
+          </span>
+        )}
             </Button>
           )}
         </div>

@@ -1,174 +1,126 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TicketImageModal } from "@/components/ticket-image-modal"
 import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TicketImageModal } from "./ticket-image-modal"
 
 interface TicketImage {
-  id: string
+  id: number
   title: string
   status: string
   image_user_url: string | null
   image_admin_url: string | null
   name: string
-  created_at: string
+  description: string
 }
 
 export function TicketImagesGalleryKelola() {
-  const [ticketImages, setTicketImages] = useState<TicketImage[]>([])
+  const [tickets, setTickets] = useState<TicketImage[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<{
-    url: string
+    url: string | null
     title: string
-    type: "user" | "admin"
+    userName?: string
+    type?: "user" | "admin"
+    description: string
   } | null>(null)
-  const [filterType, setFilterType] = useState<"all" | "user" | "admin">("all")
 
   useEffect(() => {
-    fetchTicketImages()
+    fetchTickets()
   }, [])
 
-  const fetchTicketImages = async () => {
+  const fetchTickets = async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      setIsLoading(true)
       const token = localStorage.getItem("token")
-
-      const response = await fetch("/api/admin/tickets-images", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await fetch("/api/admin/tickets-images", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
 
-      if (!response.ok) {
-        setError("Failed to fetch ticket images")
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "")
+        setError(`Failed to fetch images: ${res.status} ${txt}`)
+        setTickets([])
+        setIsLoading(false)
         return
       }
 
-      const data = await response.json()
-      setTicketImages(data.allTicketsWithImages)
+      const data = await res.json()
+      // endpoint returns { tickets: [...] } as implemented earlier
+      setTickets(Array.isArray(data.tickets) ? data.tickets : [])
     } catch (err) {
-      setError("An error occurred while fetching images")
+      console.error("fetchTickets error", err)
+      setError("Error fetching ticket images")
+      setTickets([])
     } finally {
       setIsLoading(false)
     }
   }
 
-  if (isLoading) {
-    return <div className="text-center py-8">Loading...</div>
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-destructive">{error}</div>
-  }
-
-  const filteredImages = ticketImages.filter((ticket) => {
-    if (filterType === "user") return ticket.image_user_url
-    if (filterType === "admin") return ticket.image_admin_url
-    return ticket.image_user_url || ticket.image_admin_url
-  })
-
-  if (filteredImages.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <p className="text-center text-muted-foreground">Tidak ada gambar untuk ditampilkan</p>
-        </CardContent>
-      </Card>
-    )
-  }
-
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Galeri Gambar Tiket</CardTitle>
-        <CardDescription>Semua gambar bukti laporan dan resolusi dari tiket</CardDescription>
-        <div className="flex gap-2 mt-4 flex-wrap">
-          <button
-            onClick={() => setFilterType("all")}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              filterType === "all" ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            Semua
-          </button>
-          <button
-            onClick={() => setFilterType("user")}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              filterType === "user" ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            Bukti Laporan
-          </button>
-          <button
-            onClick={() => setFilterType("admin")}
-            className={`px-3 py-1 rounded text-sm transition-colors ${
-              filterType === "admin" ? "bg-blue-500 text-white" : "bg-muted text-muted-foreground hover:bg-muted/80"
-            }`}
-          >
-            Bukti Resolved
-          </button>
-        </div>
+        <CardTitle>Galeri Ticket Images</CardTitle>
       </CardHeader>
+
       <CardContent>
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-3">
-          {filteredImages.map((ticket) => (
-            <div key={`${ticket.id}-wrapper`} className="space-y-2">
+        {isLoading && <div>Loading...</div>}
+        {error && <div className="text-red-600">{error}</div>}
+
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
+          {tickets.map((ticket) => (
+            <div key={ticket.id} className="space-y-2">
               {ticket.image_user_url && (
-                <div
-                  className="group relative overflow-hidden rounded-lg border cursor-pointer hover:shadow-lg transition-shadow bg-muted aspect-square"
+                <button
+                  type="button"
                   onClick={() =>
                     setSelectedImage({
-                      url: ticket.image_user_url!,
-                      title: ticket.title,
+                      url: ticket.image_user_url,
+                      title: `${ticket.title} — Bukti User`,
+                      userName: ticket.name,
                       type: "user",
+                      description: ticket.description
                     })
                   }
+                  className="relative aspect-square rounded-lg overflow-hidden block"
                 >
                   <Image
-                    src={ticket.image_user_url || "/placeholder.svg"}
-                    alt={`${ticket.title} - bukti laporan`}
+                    src={ticket.image_user_url}
+                    alt={ticket.title}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    className="object-cover"
+                    unoptimized
                   />
-                  <div className="absolute top-1 right-1 bg-blue-500 text-white text-xs px-2 py-1 rounded font-semibold">
-                    Laporan
-                  </div>
-                  <div className="absolute bottom-1 left-1 text-white text-xs bg-black/50 px-2 py-1 rounded truncate max-w-[calc(100%-8px)]">
-                    {ticket.name}
-                  </div>
-                </div>
+                  <div className="absolute bottom-2 left-2 text-xs text-white bg-blue-600 px-2 py-1 rounded">Bukti User</div>
+                </button>
               )}
 
               {ticket.image_admin_url && (
-                <div
-                  className="group relative overflow-hidden rounded-lg border cursor-pointer hover:shadow-lg transition-shadow bg-muted aspect-square"
+                <button
+                  type="button"
                   onClick={() =>
                     setSelectedImage({
-                      url: ticket.image_admin_url!,
-                      title: ticket.title,
+                      url: ticket.image_admin_url,
+                      title: `${ticket.title} — Bukti Admin`,
+                      userName: ticket.name,
                       type: "admin",
+                      description: ticket.description
                     })
                   }
+                  className="relative aspect-square rounded-lg overflow-hidden block"
                 >
                   <Image
-                    src={ticket.image_admin_url || "/placeholder.svg"}
-                    alt={`${ticket.title} - bukti resolved`}
+                    src={ticket.image_admin_url}
+                    alt={ticket.title}
                     fill
-                    className="object-cover group-hover:scale-105 transition-transform"
+                    className="object-cover"
+                    unoptimized
                   />
-                  <div className="absolute top-1 right-1 bg-green-500 text-white text-xs px-2 py-1 rounded font-semibold">
-                    Resolved
-                  </div>
-                  <div
-                    className={`absolute bottom-1 left-1 text-white text-xs px-2 py-1 rounded ${
-                      ticket.status === "resolved" ? "bg-green-500/70" : "bg-yellow-500/70"
-                    }`}
-                  >
-                    {ticket.status}
-                  </div>
-                </div>
+                  <div className="absolute bottom-2 left-2 text-xs text-white bg-green-600 px-2 py-1 rounded">Bukti Admin</div>
+                </button>
               )}
             </div>
           ))}
@@ -180,7 +132,9 @@ export function TicketImagesGalleryKelola() {
           image={{
             url: selectedImage.url,
             title: selectedImage.title,
-            userName: "",
+            userName: selectedImage.userName,
+            type: selectedImage.type,
+            description: selectedImage.description
           }}
           onClose={() => setSelectedImage(null)}
         />

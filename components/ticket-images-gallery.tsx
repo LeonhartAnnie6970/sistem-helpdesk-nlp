@@ -1,28 +1,27 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { TicketImageModal } from "@/components/ticket-image-modal"
 import Image from "next/image"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { TicketImageModal } from "./ticket-image-modal"
 
 interface TicketWithImage {
-  id: string
+  id: number
   title: string
-  status: string
-  category: string
-  created_at: string
-  image_user_url: string
+  image_user_url: string | null
   name: string
+  description: string 
 }
 
 export function TicketImagesGallery() {
-  const [ticketsWithImages, setTicketsWithImages] = useState<TicketWithImage[]>([])
+  const [tickets, setTickets] = useState<TicketWithImage[]>([])
   const [isLoading, setIsLoading] = useState(true)
-  const [error, setError] = useState("")
+  const [error, setError] = useState<string | null>(null)
   const [selectedImage, setSelectedImage] = useState<{
-    url: string
+    url: string | null
     title: string
-    userName: string
+    userName?: string
+    description: string
   } | null>(null)
 
   useEffect(() => {
@@ -30,94 +29,78 @@ export function TicketImagesGallery() {
   }, [])
 
   const fetchTicketsWithImages = async () => {
+    setIsLoading(true)
+    setError(null)
     try {
-      setIsLoading(true)
       const token = localStorage.getItem("token")
-
-      const response = await fetch("/api/admin/tickets-images", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+      const res = await fetch("/api/admin/tickets-images", {
+        headers: token ? { Authorization: `Bearer ${token}` } : undefined,
       })
 
-      if (!response.ok) {
-        setError("Failed to fetch ticket images")
+      if (!res.ok) {
+        const txt = await res.text().catch(() => "")
+        setError(`Failed to fetch images: ${res.status} ${txt}`)
+        setTickets([])
+        setIsLoading(false)
         return
       }
 
-      const data = await response.json()
-      console.log("[v0] Fetched images data:", data)
-      const filteredTickets = (data.ticketsWithImages || []).filter(
-        (ticket: TicketWithImage) => ticket.image_user_url && ticket.image_user_url.trim() !== "",
-      )
-      console.log("[v0] Filtered tickets with images:", filteredTickets)
-      setTicketsWithImages(filteredTickets)
+      const data = await res.json()
+      setTickets(Array.isArray(data.tickets) ? data.tickets : [])
     } catch (err) {
-      console.error("[v0] Error fetching images:", err)
-      setError("An error occurred while fetching images")
+      console.error("fetchTicketsWithImages error", err)
+      setError("Error fetching ticket images")
+      setTickets([])
     } finally {
       setIsLoading(false)
     }
-  }
-
-  if (isLoading) {
-    return <div className="text-center py-8">Loading...</div>
-  }
-
-  if (error) {
-    return <div className="text-center py-8 text-destructive">{error}</div>
-  }
-
-  if (ticketsWithImages.length === 0) {
-    return (
-      <Card>
-        <CardContent className="py-8">
-          <p className="text-center text-muted-foreground">Tidak ada gambar bukti laporan dari user</p>
-        </CardContent>
-      </Card>
-    )
   }
 
   return (
     <Card>
       <CardHeader>
         <CardTitle>Galeri Bukti Laporan User</CardTitle>
-        <CardDescription>Gambar-gambar bukti laporan yang diunggah oleh user saat membuat ticket</CardDescription>
       </CardHeader>
+
       <CardContent>
+        {isLoading && <div>Loading...</div>}
+        {error && <div className="text-red-600">{error}</div>}
+
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-          {ticketsWithImages.map((ticket) => (
-            <div
-              key={ticket.id}
-              className="group relative overflow-hidden rounded-lg border cursor-pointer hover:shadow-lg transition-shadow"
-              onClick={() =>
-                setSelectedImage({
-                  url: ticket.image_user_url,
-                  title: ticket.title,
-                  userName: ticket.name,
-                })
-              }
-            >
-              <div className="relative w-full aspect-square bg-muted">
-                <Image
-                  src={ticket.image_user_url || "/placeholder.svg"}
-                  alt={ticket.title}
-                  fill
-                  className="object-cover group-hover:scale-105 transition-transform"
-                />
-              </div>
-              <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex items-end p-2">
-                <div className="text-white text-xs">
-                  <p className="font-semibold truncate">{ticket.title}</p>
-                  <p className="text-gray-300 text-xs">{ticket.name}</p>
-                </div>
-              </div>
-            </div>
-          ))}
+          {tickets.map((ticket) =>
+            ticket.image_user_url ? (
+              <button
+                key={ticket.id}
+                type="button"
+                onClick={() =>
+                  setSelectedImage({
+                    url: ticket.image_user_url,
+                    title: ticket.title,
+                    userName: ticket.name,
+                    description: ticket.description,
+                  })
+                }
+                className="relative aspect-square rounded-lg overflow-hidden block"
+              >
+                <Image src={ticket.image_user_url} alt={ticket.title} fill className="object-cover" unoptimized />
+              </button>
+            ) : null
+          )}
         </div>
       </CardContent>
 
-      {selectedImage && <TicketImageModal image={selectedImage} onClose={() => setSelectedImage(null)} />}
+      {selectedImage && (
+        <TicketImageModal
+          image={{
+            url: selectedImage.url,
+            title: selectedImage.title,
+            userName: selectedImage.userName,
+            type: "user",
+            description: selectedImage.description
+          }}
+          onClose={() => setSelectedImage(null)}
+        />
+      )}
     </Card>
   )
 }

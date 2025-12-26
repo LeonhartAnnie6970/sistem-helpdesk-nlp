@@ -1,96 +1,110 @@
+import { type NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth"
 import { query } from "@/lib/db"
-import { NextRequest, NextResponse } from "next/server"
+import { isValidDivision } from "@/lib/divisions"
 
-export async function GET(req: NextRequest) {
+export async function GET(request: NextRequest) {
   try {
-    const token = req.headers.get("Authorization")?.split(" ")[1]
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const token = request.headers.get("authorization")?.replace("Bearer ", "")
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
-    }
+    if (!decoded) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const result = await query(
-      "SELECT id, username, email, divisi, role, profile_image_url, notification_email, created_at FROM users WHERE id = ?",
-      [decoded.userId]
-    )
+    const userId = decoded.userId
+    if (!userId) return NextResponse.json({ error: "Invalid token payload" }, { status: 400 })
 
-    if (!result || result.length === 0) {
+    const sql = `
+      SELECT 
+        id,
+        name AS username,
+        email,
+        divisi,
+        profile_image_url,
+        created_at
+      FROM users
+      WHERE id = ?
+      LIMIT 1
+    `
+    const result = await query(sql, [userId])
+    const rows = Array.isArray(result) ? result : []
+
+    if (rows.length === 0) {
       return NextResponse.json({ error: "User not found" }, { status: 404 })
     }
 
-    return NextResponse.json(result[0])
+    return NextResponse.json(rows[0])
   } catch (error) {
-    console.error("Profile fetch error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Profile GET error:", error)
+    return NextResponse.json(
+      { error: "Failed to fetch profile", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    )
   }
 }
 
-export async function PATCH(req: NextRequest) {
+export async function PATCH(request: NextRequest) {
   try {
-    const token = req.headers.get("Authorization")?.split(" ")[1]
-    if (!token) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
-    }
+    const token = request.headers.get("authorization")?.replace("Bearer ", "")
+    if (!token) return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
 
     const decoded = verifyToken(token)
-    if (!decoded) {
-      return NextResponse.json({ error: "Invalid token" }, { status: 401 })
-    }
+    if (!decoded) return NextResponse.json({ error: "Forbidden" }, { status: 403 })
 
-    const { username, profile_image_url, notification_email } = await req.json()
+    const userId = decoded.userId
+    if (!userId) return NextResponse.json({ error: "Invalid token payload" }, { status: 400 })
 
-    // Validate input
+    const body = await request.json()
+    const { username, divisi } = body
+
+    // Validation
     if (username && username.length < 3) {
       return NextResponse.json({ error: "Username harus minimal 3 karakter" }, { status: 400 })
     }
 
-    if (notification_email) {
-      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-      if (!emailRegex.test(notification_email)) {
-        return NextResponse.json({ error: "Format email tidak valid" }, { status: 400 })
-      }
+    if (divisi && !isValidDivision(divisi)) {
+      return NextResponse.json({ error: "Divisi tidak valid" }, { status: 400 })
     }
 
+    // Build update query
     const updates: string[] = []
-    const values: (string | number)[] = []
+    const values: any[] = []
 
     if (username) {
-      updates.push("username = ?")
+      updates.push("name = ?")
       values.push(username)
     }
 
-    if (profile_image_url) {
-      updates.push("profile_image_url = ?")
-      values.push(profile_image_url)
-    }
-
-    if (notification_email !== undefined) {
-      updates.push("notification_email = ?")
-      values.push(notification_email)
+    if (divisi) {
+      updates.push("divisi = ?")
+      values.push(divisi)
     }
 
     if (updates.length === 0) {
-      return NextResponse.json({ error: "Tidak ada data untuk diupdate" }, { status: 400 })
+      return NextResponse.json({ error: "No updates provided" }, { status: 400 })
     }
 
-    values.push(decoded.userId)
+    values.push(userId)
 
     await query(`UPDATE users SET ${updates.join(", ")} WHERE id = ?`, values)
 
     // Fetch updated profile
     const result = await query(
-      "SELECT id, username, email, divisi, role, profile_image_url, notification_email, created_at FROM users WHERE id = ?",
-      [decoded.userId]
+      `SELECT id, name AS username, email, divisi, profile_image_url, created_at FROM users WHERE id = ?`,
+      [userId]
     )
+    const rows = Array.isArray(result) ? result : []
 
-    return NextResponse.json(result[0])
+    if (rows.length === 0) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 })
+    }
+
+    return NextResponse.json(rows[0])
   } catch (error) {
-    console.error("Profile update error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    console.error("Profile PATCH error:", error)
+    return NextResponse.json(
+      { error: "Failed to update profile", details: error instanceof Error ? error.message : String(error) },
+      { status: 500 }
+    )
   }
 }

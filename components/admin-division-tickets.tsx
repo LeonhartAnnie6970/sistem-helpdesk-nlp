@@ -1,36 +1,41 @@
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, useRef, useMemo } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import { AlertCircle, CheckCircle2, Clock, XCircle, Image as ImageIcon, ZoomIn } from "lucide-react"
+import { Label } from "@/components/ui/label"
+import { Input } from "@/components/ui/input"
+import { Upload, X, Calendar, Pencil, Trash2,  Search, Filter, Hash } from "lucide-react"
+import Image from "next/image"
 
 interface Ticket {
   id: number
   title: string
   description: string
-  divisi: string
-  target_division: string
-  status: string
   category: string
-  image_user_url?: string
-  image_admin_url?: string
-  catatan_admin?: string
+  status: string
   created_at: string
   name: string
-  email: string
+  image_user_url?: string
+  image_admin_url?: string
+  image_admin_uploaded_at?: string
+  admin_notes?: string
+  divisi?: string | null
 }
 
 interface AdminDivisionTicketsProps {
-  userRole: string
-  userDivision: string
+  selectedTicketId?: number | null | undefined
+  userRole: string | null | undefined
+  userDivision: string | null | undefined
 }
 
-export function AdminDivisionTickets({ userRole, userDivision }: AdminDivisionTicketsProps) {
+export function AdminDivisionTickets({ userRole, userDivision, selectedTicketId }: AdminDivisionTicketsProps) {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
@@ -38,29 +43,145 @@ export function AdminDivisionTickets({ userRole, userDivision }: AdminDivisionTi
   const [adminNote, setAdminNote] = useState("")
   const [updating, setUpdating] = useState(false)
   const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState("")
+  const [selectedImage, setSelectedImage] = useState<{
+  url: string
+    title: string
+    type: "user" | "admin"
+    userName?: string
+    uploadedAt?: string
+  } | null>(null)
+  const [editingNotes, setEditingNotes] = useState<{
+    ticketId: number
+    notes: string
+  } | null>(null)
+  const [savingNotes, setSavingNotes] = useState(false)
+  const [activeTab, setActiveTab] = useState("new")
+  const ticketRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
+
+  // Search & Filter States
+  const [searchQuery, setSearchQuery] = useState("")
+  const [dateFilter, setDateFilter] = useState("")
+  const [categoryFilter, setCategoryFilter] = useState("all")
+
 
   useEffect(() => {
     fetchTickets()
   }, [])
 
+  // const fetchTickets = async () => {
+  //   try {
+  //     const token = localStorage.getItem("token")
+  //     const response = await fetch("/api/tickets", {
+  //       headers: { Authorization: `Bearer ${token}` },
+  //     })
+
+  //     if (response.ok) {
+  //       const data = await response.json()
+  //       setTickets(data)
+  //     }
+  //   } catch (error) {
+  //     console.error("Error fetching tickets:", error)
+  //   } finally {
+  //     setLoading(false)
+  //   }
+  // }
+
+  useEffect(() => {
+    if (selectedTicketId && tickets.length > 0) {
+      const ticket = tickets.find(t => t.id === selectedTicketId)
+      if (ticket) {
+        setActiveTab(ticket.status)
+        
+        setTimeout(() => {
+          const element = ticketRefs.current[selectedTicketId]
+          if (element) {
+            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
+            element.classList.add('ring-2', 'ring-primary', 'ring-offset-2')
+            setTimeout(() => {
+              element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2')
+            }, 3000)
+          }
+        }, 300)
+      }
+    }
+  }, [selectedTicketId, tickets])
+
   const fetchTickets = async () => {
     try {
+      setLoading(true)
       const token = localStorage.getItem("token")
+
       const response = await fetch("/api/tickets", {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setTickets(data)
+      if (!response.ok) {
+        setError("Failed to fetch tickets")
+        return
       }
-    } catch (error) {
-      console.error("Error fetching tickets:", error)
+
+      const data = await response.json()
+      setTickets(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError("An error occurred while fetching tickets")
     } finally {
-      setLoading(false)
+      setIsLoading(false)
     }
   }
+
+  // Filter tickets based on search query, date, and category
+  const filteredTickets = useMemo(() => {
+    let filtered = [...tickets]
+
+    // Search filter (keyword in title, description, name, or divisi)
+    if (searchQuery.trim()) {
+      const query = searchQuery.toLowerCase()
+      filtered = filtered.filter(ticket => 
+        ticket.title.toLowerCase().includes(query) ||
+        ticket.description.toLowerCase().includes(query) ||
+        ticket.name.toLowerCase().includes(query) ||
+        ticket.divisi?.toLowerCase().includes(query) ||
+        ticket.category?.toLowerCase().includes(query) ||
+        ticket.admin_notes?.toLowerCase().includes(query)
+      )
+    }
+
+    // Date filter
+    if (dateFilter) {
+      filtered = filtered.filter(ticket => {
+        const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0]
+        return ticketDate === dateFilter
+      })
+    }
+
+    // Category filter
+    if (categoryFilter !== "all") {
+      filtered = filtered.filter(ticket => ticket.category === categoryFilter)
+    }
+
+    return filtered
+  }, [tickets, searchQuery, dateFilter, categoryFilter])
+
+  // Group filtered tickets by status
+  const newTickets = filteredTickets.filter(t => t.status === "new")
+  const inProgressTickets = filteredTickets.filter(t => t.status === "in_progress")
+  const resolvedTickets = filteredTickets.filter(t => t.status === "resolved")
+
+  // Get unique categories for filter
+  const categories = useMemo(() => {
+    const cats = new Set(tickets.map(t => t.category).filter(Boolean))
+    return Array.from(cats)
+  }, [tickets])
+
+  const handleClearFilters = () => {
+    setSearchQuery("")
+    setDateFilter("")
+    setCategoryFilter("all")
+  }
+
+  const hasActiveFilters = searchQuery || dateFilter || categoryFilter !== "all"
 
   const handleUpdateStatus = async () => {
     if (!selectedTicket || !newStatus) return
@@ -169,7 +290,7 @@ export function AdminDivisionTickets({ userRole, userDivision }: AdminDivisionTi
                       )}
                     </div>
                     <p className="text-sm text-muted-foreground mb-2">
-                      Dari: {ticket.name} ({ticket.email}) - Divisi: {ticket.divisi}
+                      Dari: {ticket.name} ({ticket.category}) - Divisi: {ticket.divisi}
                     </p>
                     <p className="text-sm mb-2">{ticket.description}</p>
                     <p className="text-xs text-muted-foreground">
@@ -207,13 +328,13 @@ export function AdminDivisionTickets({ userRole, userDivision }: AdminDivisionTi
                   </div>
                 )}
 
-                {ticket.catatan_admin && (
+                {ticket.admin_notes && (
                   <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
                     <p className="text-xs font-medium mb-1 text-blue-900 dark:text-blue-100">
                       Catatan Admin:
                     </p>
                     <p className="text-sm text-blue-800 dark:text-blue-200">
-                      {ticket.catatan_admin}
+                      {ticket.admin_notes}
                     </p>
                   </div>
                 )}
@@ -223,7 +344,7 @@ export function AdminDivisionTickets({ userRole, userDivision }: AdminDivisionTi
                     onClick={() => {
                       setSelectedTicket(ticket)
                       setNewStatus(ticket.status)
-                      setAdminNote(ticket.catatan_admin || "")
+                      setAdminNote(ticket.admin_notes || "")
                     }}
                     variant="outline"
                     size="sm"
@@ -257,7 +378,7 @@ export function AdminDivisionTickets({ userRole, userDivision }: AdminDivisionTi
                 <div>
                   <p className="text-sm font-medium mb-1">User:</p>
                   <p className="text-sm">{selectedTicket.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedTicket.email}</p>
+                  <p className="text-xs text-muted-foreground">{selectedTicket.category}</p>
                 </div>
                 <div>
                   <p className="text-sm font-medium mb-1">Divisi User:</p>

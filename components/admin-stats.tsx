@@ -5,14 +5,23 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts"
 import { TicketImagesGallery } from "@/components/ticket-images-gallery"
 import { AdminReport } from "@/components/admin-report"
+import { Badge } from "@/components/ui/badge"
 
 interface Stats {
   totalTickets: number
   totalUsers: number
   byStatus: Array<{ status: string; count: number }>
   byCategory: Array<{ category: string; count: number }>
-  recentTickets: Array<any>
+  recentTickets: Array<{id: number
+    title: string
+    status: string
+    category: string
+    name: string
+    divisi: string | null
+    created_at: string
+  }>
 }
+
 
 export function AdminStats() {
   const [stats, setStats] = useState<Stats | null>(null)
@@ -142,7 +151,11 @@ export function AdminStats() {
               <div key={ticket.id} className="flex items-center justify-between p-3 border rounded">
                 <div>
                   <p className="font-medium">{ticket.title}</p>
-                  <p className="text-sm text-muted-foreground">{ticket.name}</p>
+                  <p className="text-sm text-muted-foreground">{ticket.name}
+                    {ticket.divisi && (
+                      <Badge variant="outline" className="text-xs"> Divisi : {ticket.divisi} </Badge>
+                    )}
+                  </p>
                 </div>
                 <div className="flex items-center gap-2">
                   {ticket.category && (

@@ -1,34 +1,32 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { Card, CardContent } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { AlertCircle, CheckCircle2, Clock, XCircle, ZoomIn } from "lucide-react"
+import { ImageIcon, Hash } from "lucide-react"
 
 interface Ticket {
   id: number
   title: string
   description: string
-  divisi: string
-  status: string
   category: string
-  image_user_url?: string
-  catatan_admin?: string
+  status: string
   created_at: string
-  updated_at: string
+  name: string
+  image_user_url?: string
+  image_admin_url?: string
+  admin_notes?: string
+  divisi?: string
 }
 
 interface TicketListProps {
-  refreshTrigger: number
+  refreshTrigger?: number
 }
 
 export function TicketList({ refreshTrigger }: TicketListProps) {
   const [tickets, setTickets] = useState<Ticket[]>([])
-  const [loading, setLoading] = useState(true)
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState("")
+  const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState("")
 
   useEffect(() => {
     fetchTickets()
@@ -36,243 +34,147 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
 
   const fetchTickets = async () => {
     try {
+      setIsLoading(true)
       const token = localStorage.getItem("token")
+
       const response = await fetch("/api/tickets", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
-      if (response.ok) {
-        const data = await response.json()
-        setTickets(data)
+      if (!response.ok) {
+        setError("Failed to fetch tickets")
+        return
       }
-    } catch (error) {
-      console.error("Error fetching tickets:", error)
-    } finally {
-      setLoading(false)
-    }
-  }
 
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "selesai":
-      case "completed":
-        return <CheckCircle2 className="w-4 h-4" />
-      case "dalam proses":
-      case "in_progress":
-        return <Clock className="w-4 h-4" />
-      case "dibatalkan":
-      case "cancelled":
-        return <XCircle className="w-4 h-4" />
-      default:
-        return <AlertCircle className="w-4 h-4" />
+      const data = await response.json()
+      setTickets(Array.isArray(data) ? data : [])
+    } catch (err) {
+      setError("An error occurred while fetching tickets")
+    } finally {
+      setIsLoading(false)
     }
   }
 
   const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-      case "selesai":
-      case "completed":
-        return "bg-green-500"
-      case "dalam proses":
+    switch (status) {
+      case "new":
+        return "bg-blue-100 text-blue-800"
       case "in_progress":
-        return "bg-blue-500"
-      case "dibatalkan":
-      case "cancelled":
-        return "bg-red-500"
+        return "bg-yellow-100 text-yellow-800"
+      case "resolved":
+        return "bg-green-100 text-green-800"
       default:
-        return "bg-yellow-500"
+        return "bg-gray-100 text-gray-800"
     }
   }
 
   const getStatusLabel = (status: string) => {
-    const statusMap: Record<string, string> = {
-      new: "Baru",
-      in_progress: "Dalam Proses",
-      completed: "Selesai",
-      cancelled: "Dibatalkan",
+    switch (status) {
+      case "new":
+        return "Baru"
+      case "in_progress":
+        return "Diproses"
+      case "resolved":
+        return "Selesai"
+      default:
+        return status
     }
-    return statusMap[status?.toLowerCase()] || status
   }
 
-  const openImageModal = (imageUrl: string) => {
-    setSelectedImage(imageUrl)
-    setImageModalOpen(true)
+  if (isLoading) {
+    return <div className="text-center py-8">Loading...</div>
   }
 
-  if (loading) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center">
-          <p>Memuat tiket...</p>
-        </CardContent>
-      </Card>
-    )
+  if (error) {
+    return <div className="text-center py-8 text-destructive">{error}</div>
   }
 
   if (tickets.length === 0) {
-    return (
-      <Card>
-        <CardContent className="p-8 text-center text-muted-foreground">
-          Belum ada tiket. Buat tiket pertama Anda!
-        </CardContent>
-      </Card>
-    )
+    return <div className="text-center py-8 text-muted-foreground">Belum ada tiket</div>
   }
 
   return (
-    <>
-      <div className="space-y-4">
-        {tickets.map((ticket) => (
-          <Card
-            key={ticket.id}
-            className="hover:shadow-md transition-shadow cursor-pointer"
-            onClick={() => setSelectedTicket(ticket)}
-          >
-            <CardContent className="p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    <h3 className="text-lg font-semibold">{ticket.title}</h3>
-                    {ticket.category && (
-                      <Badge variant="outline" className="text-xs">
-                        {ticket.category}
-                      </Badge>
-                    )}
-                  </div>
-                  <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
-                    {ticket.description}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    Dibuat: {new Date(ticket.created_at).toLocaleString("id-ID")}
-                  </p>
-                </div>
-                <div className="flex flex-col items-end gap-2">
-                  <Badge className={getStatusColor(ticket.status)} variant="default">
-                    <span className="flex items-center gap-1">
-                      {getStatusIcon(ticket.status)}
-                      {getStatusLabel(ticket.status)}
-                    </span>
+    <div className="space-y-4">
+      {tickets.map((ticket) => (
+        <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+          <CardHeader>
+            <div className="flex items-start justify-between">
+              <div className="flex-1">
+                <div className="flex items-center gap-2 mb-2">
+                  <Badge variant="outline" className="font-mono text-xs">
+                    <Hash className="w-3 h-3 mr-1" />
+                    {ticket.id}
                   </Badge>
                 </div>
-              </div>
-
-              {ticket.image_user_url && (
-                <div className="mb-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      openImageModal(ticket.image_user_url!)
-                    }}
-                    className="relative group"
-                  >
-                    <img
-                      src={ticket.image_user_url}
-                      alt="Lampiran tiket"
-                      className="w-24 h-24 object-cover rounded-lg border"
-                    />
-                    <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                      <ZoomIn className="w-6 h-6 text-white" />
-                    </div>
-                  </button>
+                <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                <div className="flex gap-2 items-center mt-1">
+                  <CardDescription>{ticket.name}</CardDescription>
+                  {ticket.divisi && (
+                    <Badge variant="secondary" className="text-xs">
+                      {ticket.divisi}
+                    </Badge>
+                  )}
                 </div>
-              )}
-
-              {ticket.catatan_admin && (
-                <div className="mt-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                  <p className="text-xs font-medium mb-1 text-blue-900 dark:text-blue-100">
-                    Catatan Admin:
-                  </p>
-                  <p className="text-sm text-blue-800 dark:text-blue-200">
-                    {ticket.catatan_admin}
-                  </p>
-                </div>
-              )}
-            </CardContent>
-          </Card>
-        ))}
-      </div>
-
-      {/* Detail Modal */}
-      {selectedTicket && (
-        <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle className="flex items-center gap-2">
-                {selectedTicket.title}
-                {selectedTicket.category && (
-                  <Badge variant="outline">{selectedTicket.category}</Badge>
-                )}
-              </DialogTitle>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-1">Deskripsi:</p>
-                <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
-                  {selectedTicket.description}
-                </p>
               </div>
-
-              <div>
-                <p className="text-sm font-medium mb-1">Status:</p>
-                <Badge className={getStatusColor(selectedTicket.status)}>
-                  <span className="flex items-center gap-1">
-                    {getStatusIcon(selectedTicket.status)}
-                    {getStatusLabel(selectedTicket.status)}
-                  </span>
-                </Badge>
-              </div>
-
-              {selectedTicket.image_user_url && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Lampiran Gambar:</p>
-                  <img
-                    src={selectedTicket.image_user_url}
-                    alt="Lampiran tiket"
-                    className="w-full max-h-96 object-contain rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => openImageModal(selectedTicket.image_user_url!)}
-                  />
-                </div>
-              )}
-
-              {selectedTicket.catatan_admin && (
-                <div>
-                  <p className="text-sm font-medium mb-1">Catatan Admin:</p>
-                  <div className="p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      {selectedTicket.catatan_admin}
-                    </p>
-                  </div>
-                </div>
-              )}
-
-              <div className="text-xs text-muted-foreground space-y-1 pt-2 border-t">
-                <p>Dibuat: {new Date(selectedTicket.created_at).toLocaleString("id-ID")}</p>
-                {selectedTicket.updated_at && (
-                  <p>Diperbarui: {new Date(selectedTicket.updated_at).toLocaleString("id-ID")}</p>
-                )}
-              </div>
+              <Badge className={getStatusColor(ticket.status)}>
+                {getStatusLabel(ticket.status)}
+              </Badge>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
+          </CardHeader>
+          <CardContent>
+            <p className="text-sm text-muted-foreground mb-3">
+              <span className="font-semibold">User Notes:</span> {ticket.description}
+            </p>
+            
+            {ticket.image_user_url && (
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                  <ImageIcon size={14} />
+                  Bukti Laporan:
+                </p>
+                <img
+                  src={ticket.image_user_url}
+                  alt="User report"
+                  className="max-w-full max-h-48 rounded border object-cover"
+                />
+              </div>
+            )}
 
-      {/* Image Modal */}
-      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Gambar Lampiran</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center bg-muted rounded-lg p-4">
-            <img
-              src={selectedImage}
-              alt="Lampiran tiket"
-              className="max-w-full max-h-[70vh] object-contain"
-            />
-          </div>
-        </DialogContent>
-      </Dialog>
-    </>
+            {ticket.image_admin_url && (
+              <div className="mb-3">
+                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                  <ImageIcon size={14} />
+                  Bukti Penyelesaian Admin:
+                </p>
+                <img
+                  src={ticket.image_admin_url}
+                  alt="Admin resolution"
+                  className="max-w-full max-h-48 rounded border object-cover"
+                />
+              </div>
+            )}
+
+            {ticket.admin_notes && (
+              <p className="text-sm text-muted-foreground mb-3 bg-muted/50 p-3 rounded-md">
+                <span className="font-semibold">Admin Notes:</span> {ticket.admin_notes}
+              </p>
+            )}
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground">
+              {ticket.category && <Badge variant="outline">{ticket.category}</Badge>}
+              <span>{new Date(ticket.created_at).toLocaleDateString("id-ID", {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+              })}</span>
+            </div>
+          </CardContent>
+        </Card>
+      ))}
+    </div>
   )
 }
