@@ -25,7 +25,7 @@ export async function GET(request: NextRequest) {
       // Super admin can see all tickets, optionally filtered by division
       if (division) {
         tickets = await query(
-          `SELECT t.*, u.name, u.email, u.divisi 
+          `SELECT t.*, u.name, u.email, u.division 
            FROM tickets t 
            JOIN users u ON t.id_user = u.id 
            WHERE t.target_division = ?
@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
         )
       } else {
         tickets = await query(
-          `SELECT t.*, u.name, u.email, u.divisi 
+          `SELECT t.*, u.name, u.email, u.division 
            FROM tickets t 
            JOIN users u ON t.id_user = u.id 
            ORDER BY t.created_at DESC`,
@@ -42,15 +42,15 @@ export async function GET(request: NextRequest) {
       }
     } else if (decoded.role === "admin") {
       // Admin can only see tickets assigned to their division
-      const adminInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
-      const adminDivision = (adminInfo as any)[0]?.divisi
+      const adminInfo = await query("SELECT division FROM users WHERE id = ?", [decoded.userId])
+      const adminDivision = (adminInfo as any)[0]?.division
 
       if (!adminDivision) {
         return NextResponse.json({ error: "Admin division not found" }, { status: 404 })
       }
 
       tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi 
+        `SELECT t.*, u.name, u.email, u.division 
          FROM tickets t 
          JOIN users u ON t.id_user = u.id 
          WHERE t.target_division = ?
@@ -60,7 +60,7 @@ export async function GET(request: NextRequest) {
     } else {
       // User sees only their own tickets
       tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi 
+        `SELECT t.*, u.name, u.email, u.division
          FROM tickets t 
          JOIN users u ON t.id_user = u.id 
          WHERE t.id_user = ? 

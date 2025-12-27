@@ -24,25 +24,31 @@ function DashboardContent() {
   const [showNewTicketForm, setShowNewTicketForm] = useState(false)
 
   useEffect(() => {
-    const token = localStorage.getItem("token")
-    const role = localStorage.getItem("role")
+  const storedToken = localStorage.getItem("token")
+  if (!storedToken) {
+    router.push("/login")
+    return
+  }
 
-    if (!token) {
-      router.push("/login")
-      return
-    }
+  setToken(storedToken)
 
-    if (role === "admin") {
-      router.push("/admin/dashboard")
-      return
-    }
+  fetch("/api/user/profile", {
+    headers: { Authorization: `Bearer ${storedToken}` },
+  })
+    .then(res => res.json())
+    .then(data => {
+      if (data.role === "admin") {
+        router.push("/admin/dashboard")
+        return
+      }
 
-    setToken(token)
-    setIsAuthenticated(true)
+      // user biasa
+      setIsAuthenticated(true)
+      fetchNotificationCount(storedToken)
+    })
+    .catch(() => router.push("/login"))
+}, [router])
 
-    // Fetch notification count
-    fetchNotificationCount(token)
-  }, [router])
 
   const fetchNotificationCount = async (token: string) => {
     try {

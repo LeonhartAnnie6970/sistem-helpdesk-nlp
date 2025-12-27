@@ -1,9 +1,11 @@
 {
-  "/api/user/notifications/route": "app/api/user/notifications/route.js",
   "/api/tickets/route": "app/api/tickets/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
   "/api/user/profile/route": "app/api/user/profile/route.js",
-  "/api/user/profile-image/route": "app/api/user/profile-image/route.js",
-  "/page": "app/page.js",
+  "/api/admin/notifications/route": "app/api/admin/notifications/route.js",
+  "/api/admin/stats/route": "app/api/admin/stats/route.js",
+  "/api/admin/tickets-images/route": "app/api/admin/tickets-images/route.js",
   "/login/page": "app/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/dashboard/page": "app/dashboard/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js"
 }

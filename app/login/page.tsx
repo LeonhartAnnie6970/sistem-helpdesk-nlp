@@ -44,7 +44,7 @@ function LoginContent() {
       if (data.role === "super_admin") {
         router.push("/super-admin/dashboard")
       } else if (data.role === "admin") {
-        router.push("/admin-division/dashboard")
+        router.push("/admin/dashboard")
       } else {
         router.push("/dashboard")
       }

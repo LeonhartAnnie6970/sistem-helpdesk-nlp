@@ -1910,9 +1910,6 @@ video {
 .pt-0 {
   padding-top: 0px;
 }
-.pt-2 {
-  padding-top: 0.5rem;
-}
 .pt-3 {
   padding-top: 0.75rem;
 }
@@ -2538,11 +2535,6 @@ video {
 
 .hover\:opacity-100:hover {
   opacity: 1;
-}
-
-
-.hover\:opacity-75:hover {
-  opacity: 0.75;
 }
 
 

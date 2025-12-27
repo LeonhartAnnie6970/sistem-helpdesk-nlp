@@ -2,7 +2,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
-import { sendNotificationEmail } from "@/lib/email"
+// import { sendNotificationEmail } from "@/lib/email.tsx"
 
 const NLP_API_URL = process.env.NLP_API_URL || "http://localhost:8000"
 
@@ -21,40 +21,52 @@ export async function GET(request: NextRequest) {
   try {
     let tickets
 
+    // 🔴 SUPER ADMIN → lihat semua
     if (decoded.role === "super_admin") {
-      // Super admin sees all tickets from all divisions
-      tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi 
-         FROM tickets t 
-         JOIN users u ON t.id_user = u.id 
-         ORDER BY t.created_at DESC`
+      tickets = await query(`
+        SELECT t.*, u.name, u.email, u.division AS user_division
+        FROM tickets t
+        JOIN users u ON t.id_user = u.id
+        ORDER BY t.created_at DESC
+      `)
+    }
+
+    // 🟠 ADMIN → lihat ticket sesuai TARGET_DIVISION
+    else if (decoded.role === "admin") {
+      // Ambil divisi admin dari users
+      const adminInfo = await query(
+        "SELECT division FROM users WHERE id = ?",
+        [decoded.userId]
       )
-    } else if (decoded.role === "admin") {
-      // Admin sees tickets from users in their division
-      const adminInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
-      const adminDivision = (adminInfo as any)[0]?.divisi
+
+      const adminDivision = (adminInfo as any)[0]?.division
 
       if (!adminDivision) {
         return NextResponse.json({ error: "Admin division not found" }, { status: 404 })
       }
 
-      // Get tickets from users who belong to admin's division
       tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi 
-         FROM tickets t 
-         JOIN users u ON t.id_user = u.id 
-         WHERE u.divisi = ?
-         ORDER BY t.created_at DESC`,
+        `
+        SELECT t.*, u.name, u.email, u.division AS user_division
+        FROM tickets t
+        JOIN users u ON t.id_user = u.id
+        WHERE t.target_division = ?
+        ORDER BY t.created_at DESC
+        `,
         [adminDivision]
       )
-    } else {
-      // User sees only their tickets
+    }
+
+    // 🟢 USER → lihat ticket sendiri
+    else {
       tickets = await query(
-        `SELECT t.*, u.name, u.email, u.divisi 
-         FROM tickets t 
-         JOIN users u ON t.id_user = u.id 
-         WHERE t.id_user = ? 
-         ORDER BY t.created_at DESC`,
+        `
+        SELECT t.*, u.name, u.email, u.division AS user_division
+        FROM tickets t
+        JOIN users u ON t.id_user = u.id
+        WHERE t.id_user = ?
+        ORDER BY t.created_at DESC
+        `,
         [decoded.userId]
       )
     }
@@ -66,7 +78,9 @@ export async function GET(request: NextRequest) {
   }
 }
 
+
 export async function POST(request: NextRequest) {
+  try {
   const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
   if (!token) {
@@ -78,7 +92,7 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 })
   }
 
-  try {
+  
     const contentType = request.headers.get("content-type") || ""
     let title: string
     let description: string
@@ -103,39 +117,76 @@ export async function POST(request: NextRequest) {
     }
 
     // Get user division
-    const userInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
-    const userDivision = (userInfo as any)[0]?.divisi || "General"
+    const userInfo = await query(
+  "SELECT name, division FROM users WHERE id = ?",
+  [decoded.userId]
+)
 
-    let category = null
-    let targetDivision = userDivision // Use user's division as target
-    
-    try {
-      const nlpResponse = await fetch(`${NLP_API_URL}/classify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: `${title} ${description}` }),
-      })
+const user = (userInfo as any)[0]
+const userDivision = user.division
 
-      if (nlpResponse.ok) {
-        const nlpResult = await nlpResponse.json()
-        category = nlpResult.category
-      }
-    } catch (nlpError) {
-      console.error("NLP classification error:", nlpError)
-    }
+let category : string | null = null
+let targetDivision : string = userDivision
+let nlpConfidence : number = 0
+let nlpKeywords : string | null = null
+let originalNlpDivision : string | null = null
+
+try {
+   const nlpResponse = await fetch(`${NLP_API_URL}/classify`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text: `${title} ${description}` }),
+  })
+
+  if (nlpResponse.ok) {
+    const nlpResult = await nlpResponse.json()
+
+    category = nlpResult.category ?? null
+    targetDivision = nlpResult.division ?? userDivision
+    originalNlpDivision = nlpResult.division ?? null
+    nlpConfidence = typeof nlpResult.confidence === "number" ? nlpResult.confidence : 0
+    nlpKeywords = nlpResult.keywords ? JSON.stringify(nlpResult.keywords) : null
+  }
+} catch (e) {
+  console.error("NLP error:", e)
+}
+
 
     const result = await query(
-      "INSERT INTO tickets (id_user, title, description, image_user_url, category, target_division, status) VALUES (?, ?, ?, ?, ?, ?, ?)",
-      [decoded.userId, title, description, imageUserUrl, category, targetDivision, "new"]
-    )
+  `
+  INSERT INTO tickets (
+    id_user,
+    title,
+    description,
+    image_user_url,
+    category,
+    target_division,
+    original_nlp_division,
+    nlp_confidence,
+    nlp_keywords,
+    status
+  ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'new')
+  `,
+  [
+    decoded.userId,
+  title,
+  description,
+  imageUserUrl ?? null,
+  category ?? null,
+  targetDivision,
+  originalNlpDivision ?? null,
+  nlpConfidence ?? 0,
+  nlpKeywords ?? null
+  ]
+)
 
     const ticketId = (result as any).insertId
 
     try {
       // Get admins from the same division as user
       const admins = await query(
-        "SELECT id, name, email, notification_email FROM users WHERE role = 'admin' AND divisi = ?",
-        [userDivision]
+        "SELECT id, name, email, notification_email FROM users WHERE role = 'admin' AND division = ?",
+        [targetDivision]
       )
       
       // Also get super admins
@@ -153,15 +204,15 @@ export async function POST(request: NextRequest) {
           [admin.id, ticketId, decoded.userId, title, `Tiket baru dari ${user.name} (${userDivision})`, false]
         )
 
-        const notificationEmailTarget = admin.notification_email || admin.email
-        await sendNotificationEmail(
-          notificationEmailTarget, 
-          admin.name, 
-          title, 
-          user.name, 
-          userDivision, 
-          ticketId
-        )
+        // const notificationEmailTarget = admin.notification_email || admin.email
+        // await sendNotificationEmail(
+        //   notificationEmailTarget, 
+        //   admin.name, 
+        //   title, 
+        //   user.name, 
+        //   userDivision, 
+        //   ticketId
+        // )
       }
 
       console.log("[Tickets] Notifications created and emails sent for ticket", ticketId)

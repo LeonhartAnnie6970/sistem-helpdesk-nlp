@@ -31,13 +31,13 @@ interface Ticket {
 }
 
 interface AdminDivisionTicketsProps {
-  selectedTicketId: number | null;
-  userRole: string;
-  userDivision: string;
+  selectedTicketId: number | null
+  selecteduserRole: string
+  selecteduserDivision: string
 }
 
 export function AdminDivisionTickets(
-  { userRole, userDivision, selectedTicketId }: AdminDivisionTicketsProps): JSX.Element {
+  { selecteduserRole, selecteduserDivision, selectedTicketId }: AdminDivisionTicketsProps): JSX.Element {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -69,7 +69,7 @@ export function AdminDivisionTickets(
 
   useEffect(() => {
     fetchTickets()
-  }, [userDivision])
+  }, [selecteduserDivision])
 
   // const fetchTickets = async () => {
   //   try {
@@ -128,7 +128,7 @@ export function AdminDivisionTickets(
 
       const data = await response.json()
       const filteredByDivision = Array.isArray(data)
-  ? data.filter((ticket: Ticket) => ticket.divisi === userDivision)
+  ? data.filter((ticket: Ticket) => ticket.divisi === selecteduserDivision)
   : []
 
 setTickets(filteredByDivision)
@@ -273,7 +273,7 @@ setTickets(filteredByDivision)
     <div className="space-y-4">
       <Card>
         <CardHeader>
-          <CardTitle>Tiket Divisi {userDivision}</CardTitle>
+          <CardTitle>Tiket Divisi {selecteduserDivision}</CardTitle>
           <CardDescription>
             Total: {tickets.length} tiket dari user divisi Anda
           </CardDescription>

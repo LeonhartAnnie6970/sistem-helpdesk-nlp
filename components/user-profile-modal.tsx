@@ -15,7 +15,7 @@ interface UserProfile {
   id: number
   username: string
   email: string
-  divisi: string
+  division: string
   profile_image_url?: string
   created_at: string
 }
@@ -35,7 +35,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
   const [success, setSuccess] = useState("")
 
   const [username, setUsername] = useState("")
-  const [divisi, setDivisi] = useState("")
+  const [division, setDivisi] = useState("")
   const [isEditing, setIsEditing] = useState(false)
 
   const [currentPassword, setCurrentPassword] = useState("")
@@ -69,7 +69,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
       const data = await response.json()
       setProfile(data)
       setUsername(data.username)
-      setDivisi(data.divisi)
+      setDivisi(data.division)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Terjadi kesalahan")
     } finally {
@@ -137,7 +137,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
       return
     }
 
-    if (!divisi) {
+    if (!division) {
       setError("Divisi harus dipilih")
       return
     }
@@ -153,7 +153,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
           Authorization: `Bearer ${token}`,
           "Content-Type": "application/json",
         },
-        body: JSON.stringify({ username, divisi }),
+        body: JSON.stringify({ username, division }),
       })
 
       if (!response.ok) {
@@ -233,7 +233,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
   const handleCancelEdit = () => {
     if (profile) {
       setUsername(profile.username)
-      setDivisi(profile.divisi)
+      setDivisi(profile.division)
     }
     setIsEditing(false)
     setError("")
@@ -354,7 +354,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                   <div>
                     <Label className="text-sm font-medium">Divisi</Label>
                     {isEditing ? (
-                      <Select value={divisi} onValueChange={setDivisi} disabled={loading}>
+                      <Select value={division} onValueChange={setDivisi} disabled={loading}>
                         <SelectTrigger className="mt-1">
                           <SelectValue placeholder="Pilih divisi" />
                         </SelectTrigger>
@@ -369,7 +369,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                     ) : (
                       <div className="mt-1 p-3 bg-gray-50 rounded-md border">
                         <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
-                          {profile.divisi}
+                          {profile.division}
                         </span>
                       </div>
                     )}

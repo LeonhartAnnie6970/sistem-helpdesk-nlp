@@ -17,7 +17,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   try {
     const tickets = await query(
-      `SELECT t.*, u.name, u.email, u.divisi 
+      `SELECT t.*, u.name, u.email, u.division 
        FROM tickets t 
        JOIN users u ON t.id_user = u.id 
        WHERE t.id = ?`,
@@ -73,17 +73,17 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
 
     // For admin, verify they can only update tickets from their division
     if (decoded.role === "admin") {
-      const adminInfo = await query("SELECT divisi FROM users WHERE id = ?", [decoded.userId])
-      const adminDivision = (adminInfo as any)[0]?.divisi
+      const adminInfo = await query("SELECT division FROM users WHERE id = ?", [decoded.userId])
+      const adminDivision = (adminInfo as any)[0]?.division
 
       const ticketInfo = await query(
-        `SELECT u.divisi FROM tickets t 
+        `SELECT u.division FROM tickets t 
          JOIN users u ON t.id_user = u.id 
          WHERE t.id = ?`,
         [params.id]
       )
       
-      const ticketUserDivision = (ticketInfo as any)[0]?.divisi
+      const ticketUserDivision = (ticketInfo as any)[0]?.division
 
       if (adminDivision !== ticketUserDivision) {
         return NextResponse.json({ error: "You can only update tickets from your division" }, { status: 403 })

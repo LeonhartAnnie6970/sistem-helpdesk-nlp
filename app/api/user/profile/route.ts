@@ -19,7 +19,7 @@ export async function GET(request: NextRequest) {
         id,
         name AS username,
         email,
-        divisi,
+        division,
         profile_image_url,
         created_at
       FROM users
@@ -55,14 +55,14 @@ export async function PATCH(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Invalid token payload" }, { status: 400 })
 
     const body = await request.json()
-    const { username, divisi } = body
+    const { username, division } = body
 
     // Validation
     if (username && username.length < 3) {
       return NextResponse.json({ error: "Username harus minimal 3 karakter" }, { status: 400 })
     }
 
-    if (divisi && !isValidDivision(divisi)) {
+    if (division && !isValidDivision(division)) {
       return NextResponse.json({ error: "Divisi tidak valid" }, { status: 400 })
     }
 
@@ -75,9 +75,9 @@ export async function PATCH(request: NextRequest) {
       values.push(username)
     }
 
-    if (divisi) {
-      updates.push("divisi = ?")
-      values.push(divisi)
+    if (division) {
+      updates.push("division = ?")
+      values.push(division)
     }
 
     if (updates.length === 0) {
@@ -90,7 +90,7 @@ export async function PATCH(request: NextRequest) {
 
     // Fetch updated profile
     const result = await query(
-      `SELECT id, name AS username, email, divisi, profile_image_url, created_at FROM users WHERE id = ?`,
+      `SELECT id, name AS username, email, division, profile_image_url, created_at FROM users WHERE id = ?`,
       [userId]
     )
     const rows = Array.isArray(result) ? result : []

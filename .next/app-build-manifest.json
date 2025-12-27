@@ -26,6 +26,11 @@
       "static/chunks/main-app.js",
       "static/chunks/app/dashboard/page.js"
     ],
+    "/api/user/profile/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/user/profile/route.js"
+    ],
     "/api/user/notifications/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -36,15 +41,35 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/tickets/route.js"
     ],
-    "/api/user/profile/route": [
+    "/admin/dashboard/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/user/profile/route.js"
+      "static/chunks/app/admin/dashboard/page.js"
     ],
-    "/api/user/profile-image/route": [
+    "/api/admin/notifications/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/user/profile-image/route.js"
+      "static/chunks/app/api/admin/notifications/route.js"
+    ],
+    "/api/admin/stats/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/admin/stats/route.js"
+    ],
+    "/api/admin/tickets-images/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/admin/tickets-images/route.js"
+    ],
+    "/api/nlp/classify/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/nlp/classify/route.js"
+    ],
+    "/api/upload/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/upload/route.js"
     ]
   }
 }

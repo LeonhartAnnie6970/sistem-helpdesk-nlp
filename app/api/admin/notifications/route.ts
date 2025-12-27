@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Get latest notifications (limit 10)
     const notifications = await query(
-      `SELECT n.*, t.title as ticket_title, u.name as user_name, u.divisi 
+      `SELECT n.*, t.title as ticket_title, u.name as user_name, u.division as user_division
        FROM notifications n
        JOIN tickets t ON n.id_ticket = t.id
        JOIN users u ON n.id_user = u.id
