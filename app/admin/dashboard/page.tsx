@@ -308,8 +308,6 @@ function AdminDashboardContent() {
           {activeTab === "tickets" && (
             <AdminDivisionTickets
               selectedTicketId={selectedTicketId}
-              selecteduserRole={userRole}
-              selecteduserDivision={userDivision}
             />
           )}
         </div>

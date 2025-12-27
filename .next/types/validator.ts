@@ -47,15 +47,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 }
 
 
-// Validate ../../app/admin-division/dashboard/page.tsx
-{
-  type __IsExpected<Specific extends AppPageConfig<"/admin-division/dashboard">> = Specific
-  const handler = {} as typeof import("../../app/admin-division/dashboard/page.js")
-  type __Check = __IsExpected<typeof handler>
-  // @ts-ignore
-  type __Unused = __Check
-}
-
 // Validate ../../app/admin/dashboard/page.tsx
 {
   type __IsExpected<Specific extends AppPageConfig<"/admin/dashboard">> = Specific
@@ -105,6 +96,15 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   type __IsExpected<Specific extends AppPageConfig<"/super-admin/dashboard">> = Specific
   const handler = {} as typeof import("../../app/super-admin/dashboard/page.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/admin/category-mapping/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/admin/category-mapping">> = Specific
+  const handler = {} as typeof import("../../app/api/admin/category-mapping/route.js")
   type __Check = __IsExpected<typeof handler>
   // @ts-ignore
   type __Unused = __Check

@@ -1,475 +1,426 @@
+// components/admin-division-tickets.tsx (updated)
+
 "use client"
 
-import { useEffect, useState, useRef, useMemo } from "react"
+import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { AlertCircle, CheckCircle2, Clock, XCircle, Image as ImageIcon, ZoomIn } from "lucide-react"
-import { Label } from "@/components/ui/label"
-import { Input } from "@/components/ui/input"
-import { Upload, X, Calendar, Pencil, Trash2,  Search, Filter, Hash } from "lucide-react"
-import Image from "next/image"
-import { JSX } from "react/jsx-runtime"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { 
+  Filter, 
+  AlertCircle, 
+  CheckCircle2, 
+  Clock, 
+  XCircle,
+  Users,
+  Building2,
+  Tag
+} from 'lucide-react'
 
 interface Ticket {
   id: number
   title: string
   description: string
-  category: string
   status: string
+  user_division: string
+  nlp_category: string
+  target_divisions: string // JSON string
+  name: string // user name
+  email: string
   created_at: string
-  name: string
-  image_user_url?: string 
-  image_admin_url?: string
-  image_admin_uploaded_at?: string
-  admin_notes?: string
-  divisi?: string | null
+  nlp_confidence: number
 }
 
-interface AdminDivisionTicketsProps {
-  selectedTicketId: number | null
-  selecteduserRole: string
-  selecteduserDivision: string
-}
-
-export function AdminDivisionTickets(
-  { selecteduserRole, selecteduserDivision, selectedTicketId }: AdminDivisionTicketsProps): JSX.Element {
+export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: number | null }) {
   const [tickets, setTickets] = useState<Ticket[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
+  const [isLoading, setIsLoading] = useState(true)
   const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const [newStatus, setNewStatus] = useState("")
-  const [adminNote, setAdminNote] = useState("")
-  const [updating, setUpdating] = useState(false)
-  const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState<{
-  url: string
-    title: string
-    type: "user" | "admin"
-    userName?: string
-    uploadedAt?: string
-  } | null>(null)
-  const [editingNotes, setEditingNotes] = useState<{
-    ticketId: number
-    notes: string
-  } | null>(null)
-  const [savingNotes, setSavingNotes] = useState(false)
-  const [activeTab, setActiveTab] = useState("new")
-  const ticketRefs = useRef<{ [key: number]: HTMLDivElement | null }>({})
-
-  // Search & Filter States
-  const [searchQuery, setSearchQuery] = useState("")
-  const [dateFilter, setDateFilter] = useState("")
-  const [categoryFilter, setCategoryFilter] = useState("all")
-
+  const [statusFilter, setStatusFilter] = useState<string>("all")
+  const [sourceFilter, setSourceFilter] = useState<string>("all") // user_division | nlp_category | all
+  const [adminDivision, setAdminDivision] = useState<string>("")
 
   useEffect(() => {
+    const token = localStorage.getItem("token")
+    const division = localStorage.getItem("division")
+    
+    if (division) {
+      setAdminDivision(division)
+    }
+
     fetchTickets()
-  }, [selecteduserDivision])
+  }, [])
 
-  // const fetchTickets = async () => {
-  //   try {
-  //     const token = localStorage.getItem("token")
-  //     const response = await fetch("/api/tickets", {
-  //       headers: { Authorization: `Bearer ${token}` },
-  //     })
-
-  //     if (response.ok) {
-  //       const data = await response.json()
-  //       setTickets(data)
-  //     }
-  //   } catch (error) {
-  //     console.error("Error fetching tickets:", error)
-  //   } finally {
-  //     setLoading(false)
-  //   }
-  // }
-  
+  useEffect(() => {
+    applyFilters()
+  }, [tickets, statusFilter, sourceFilter])
 
   useEffect(() => {
     if (selectedTicketId && tickets.length > 0) {
       const ticket = tickets.find(t => t.id === selectedTicketId)
       if (ticket) {
-        setActiveTab(ticket.status)
-        
-        setTimeout(() => {
-          const element = ticketRefs.current[selectedTicketId]
-          if (element) {
-            element.scrollIntoView({ behavior: 'smooth', block: 'center' })
-            element.classList.add('ring-2', 'ring-primary', 'ring-offset-2')
-            setTimeout(() => {
-              element.classList.remove('ring-2', 'ring-primary', 'ring-offset-2')
-            }, 3000)
-          }
-        }, 300)
+        setSelectedTicket(ticket)
       }
     }
   }, [selectedTicketId, tickets])
 
   const fetchTickets = async () => {
     try {
-      setLoading(true)
       const token = localStorage.getItem("token")
-
       const response = await fetch("/api/tickets", {
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
       })
-
-      if (!response.ok) {
-        setError("Failed to fetch tickets")
-        return
-      }
-
       const data = await response.json()
-      const filteredByDivision = Array.isArray(data)
-  ? data.filter((ticket: Ticket) => ticket.divisi === selecteduserDivision)
-  : []
-
-setTickets(filteredByDivision)
-    } catch (err) {
-    setError("Terjadi kesalahan saat mengambil data tiket")
-  } finally {
-    setLoading(false)
-  }
-}
-  
-  // Filter tickets based on search query, date, and category
-  const filteredTickets = useMemo(() => {
-    let filtered = [...tickets]
-
-    // Search filter (keyword in title, description, name, or divisi)
-    if (searchQuery.trim()) {
-      const query = searchQuery.toLowerCase()
-      filtered = filtered.filter(ticket => 
-        ticket.title.toLowerCase().includes(query) ||
-        ticket.description.toLowerCase().includes(query) ||
-        ticket.name.toLowerCase().includes(query) ||
-        ticket.divisi?.toLowerCase().includes(query) ||
-        ticket.category?.toLowerCase().includes(query) ||
-        ticket.admin_notes?.toLowerCase().includes(query)
-      )
-    }
-
-    // Date filter
-    if (dateFilter) {
-      filtered = filtered.filter(ticket => {
-        const ticketDate = new Date(ticket.created_at).toISOString().split('T')[0]
-        return ticketDate === dateFilter
-      })
-    }
-
-    // Category filter
-    if (categoryFilter !== "all") {
-      filtered = filtered.filter(ticket => ticket.category === categoryFilter)
-    }
-
-    return filtered
-  }, [tickets, searchQuery, dateFilter, categoryFilter])
-
-  // Group filtered tickets by status
-  const newTickets = filteredTickets.filter(t => t.status === "new")
-  const inProgressTickets = filteredTickets.filter(t => t.status === "in_progress")
-  const resolvedTickets = filteredTickets.filter(t => t.status === "resolved")
-
-  // Get unique categories for filter
-  const categories = useMemo(() => {
-    const cats = new Set(tickets.map(t => t.category).filter(Boolean))
-    return Array.from(cats)
-  }, [tickets])
-
-  const handleClearFilters = () => {
-    setSearchQuery("")
-    setDateFilter("")
-    setCategoryFilter("all")
-  }
-
-  const hasActiveFilters = searchQuery || dateFilter || categoryFilter !== "all"
-
-  const handleUpdateStatus = async () => {
-    if (!selectedTicket || !newStatus) return
-
-    setUpdating(true)
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`/api/tickets/${selectedTicket.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          catatan_admin: adminNote,
-        }),
-      })
-
-      if (response.ok) {
-        await fetchTickets()
-        setSelectedTicket(null)
-        setNewStatus("")
-        setAdminNote("")
-      }
+      
+      // Parse target_divisions from JSON string
+      const parsedTickets = data.map((ticket: any) => ({
+        ...ticket,
+        target_divisions: ticket.target_divisions 
+          ? (typeof ticket.target_divisions === 'string' 
+              ? ticket.target_divisions 
+              : JSON.stringify(ticket.target_divisions))
+          : '[]'
+      }))
+      
+      setTickets(parsedTickets)
     } catch (error) {
-      console.error("Error updating ticket:", error)
+      console.error("Error fetching tickets:", error)
     } finally {
-      setUpdating(false)
+      setIsLoading(false)
     }
   }
 
-  const getStatusIcon = (status: string) => {
-    switch (status?.toLowerCase()) {
-  case "resolved":
-    return <CheckCircle2 className="w-4 h-4" />
-  case "in_progress":
-    return <Clock className="w-4 h-4" />
-  case "cancelled":
-    return <XCircle className="w-4 h-4" />
-  default:
-    return <AlertCircle className="w-4 h-4" />
-}
+  const applyFilters = () => {
+    let filtered = tickets
+
+    // Filter by status
+    if (statusFilter !== "all") {
+      filtered = filtered.filter(t => t.status === statusFilter)
+    }
+
+    // Filter by source (why admin gets this ticket)
+    if (sourceFilter !== "all" && adminDivision) {
+      filtered = filtered.filter(ticket => {
+        const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+        
+        if (sourceFilter === "user_division") {
+          return ticket.user_division === adminDivision
+        } else if (sourceFilter === "nlp_category") {
+          // Ticket yang masuk karena NLP category
+          return targetDivs.includes(adminDivision) && ticket.user_division !== adminDivision
+        }
+        return true
+      })
+    }
+
+    setFilteredTickets(filtered)
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status?.toLowerCase()) {
-  case "resolved":
-    return "bg-green-500"
-  case "in_progress":
-    return "bg-blue-500"
-  case "cancelled":
-    return "bg-red-500"
-  default:
-    return "bg-yellow-500"
-}
-  }
+  const getStatusBadge = (status: string) => {
+    const variants: Record<string, { label: string; variant: any; icon: any }> = {
+      new: { label: "Baru", variant: "default", icon: AlertCircle },
+      in_progress: { label: "Diproses", variant: "secondary", icon: Clock },
+      resolved: { label: "Selesai", variant: "outline", icon: CheckCircle2 },
+      closed: { label: "Ditutup", variant: "destructive", icon: XCircle },
+    }
 
-  const openImageModal = (imageUrl: string ) => {
-    setSelectedImage({ url: String(imageUrl), title: "Lampiran Tiket", type: "user" })
-    setImageModalOpen(true)
-  }
+    const config = variants[status] || variants.new
+    const Icon = config.icon
 
-  if (loading) {
     return (
-      <div className="flex items-center justify-center p-8">
-        <p>Memuat tiket...</p>
-      </div>
+      <Badge variant={config.variant} className="gap-1">
+        <Icon className="w-3 h-3" />
+        {config.label}
+      </Badge>
     )
   }
 
-  if (error) {
-  return (
-    <div className="p-6 text-red-500">
-      {error}
-    </div>
-  )
-}
+  const getTicketSource = (ticket: Ticket): "user_division" | "nlp_category" | "both" => {
+    const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+    const fromUserDiv = ticket.user_division === adminDivision
+    const fromNlpCat = targetDivs.includes(adminDivision) && ticket.user_division !== adminDivision
+
+    if (fromUserDiv && fromNlpCat) return "both"
+    if (fromUserDiv) return "user_division"
+    if (fromNlpCat) return "nlp_category"
+    return "user_division" // fallback
+  }
+
+  const stats = {
+    total: filteredTickets.length,
+    new: filteredTickets.filter(t => t.status === "new").length,
+    inProgress: filteredTickets.filter(t => t.status === "in_progress").length,
+    resolved: filteredTickets.filter(t => t.status === "resolved").length,
+    fromUserDivision: filteredTickets.filter(t => t.user_division === adminDivision).length,
+    fromNlpCategory: filteredTickets.filter(t => {
+      const targetDivs = JSON.parse(t.target_divisions || '[]')
+      return targetDivs.includes(adminDivision) && t.user_division !== adminDivision
+    }).length
+  }
+
+  if (isLoading) {
+    return <div>Loading tickets...</div>
+  }
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Statistics Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Total Tiket</CardDescription>
+            <CardTitle className="text-3xl">{stats.total}</CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription className="flex items-center gap-1">
+              <Users className="w-4 h-4" />
+              Dari User Divisi
+            </CardDescription>
+            <CardTitle className="text-3xl text-blue-600">{stats.fromUserDivision}</CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription className="flex items-center gap-1">
+              <Tag className="w-4 h-4" />
+              Dari Kategori NLP
+            </CardDescription>
+            <CardTitle className="text-3xl text-purple-600">{stats.fromNlpCategory}</CardTitle>
+          </CardHeader>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardDescription>Tiket Baru</CardDescription>
+            <CardTitle className="text-3xl text-orange-600">{stats.new}</CardTitle>
+          </CardHeader>
+        </Card>
+      </div>
+
+      {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Tiket Divisi {selecteduserDivision}</CardTitle>
-          <CardDescription>
-            Total: {tickets.length} tiket dari user divisi Anda
-          </CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle>Filter Tiket</CardTitle>
+              <CardDescription>Filter berdasarkan status dan sumber</CardDescription>
+            </div>
+            <Filter className="w-5 h-5 text-muted-foreground" />
+          </div>
         </CardHeader>
-      </Card>
-
-      {tickets.length === 0 ? (
-        <Card>
-          <CardContent className="p-8 text-center text-muted-foreground">
-            Belum ada tiket untuk divisi ini
-          </CardContent>
-        </Card>
-      ) : (
-        <div className="grid gap-4">
-          {tickets.map((ticket) => (
-            <Card
-              key={ticket.id}
-              ref={(el) => { 
-              ticketRefs.current[ticket.id] = el}}
-              className="hover:shadow-md transition-shadow"
-              >
-              <CardContent className="p-6">
-                <div className="flex items-start justify-between mb-4">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-2">
-                      <h3 className="text-lg font-semibold">{ticket.title}</h3>
-                      {ticket.category && (
-                        <Badge variant="outline">{ticket.category}</Badge>
-                      )}
-                    </div>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Dari: {ticket.name} ({ticket.category}) - Divisi: {ticket.divisi}
-                    </p>
-                    <p className="text-sm mb-2">{ticket.description}</p>
-                    <p className="text-xs text-muted-foreground">
-                      Dibuat: {new Date(ticket.created_at).toLocaleString("id-ID")}
-                    </p>
-                  </div>
-                  <div className="flex flex-col items-end gap-2">
-                    <Badge className={getStatusColor(ticket.status)} variant="default">
-                      <span className="flex items-center gap-1">
-                        {getStatusIcon(ticket.status)}
-                        {ticket.status}
-                      </span>
-                    </Badge>
-                  </div>
-                </div>
-
-                {ticket.image_user_url && (
-                  <div className="mb-4">
-                    <p className="text-xs font-medium mb-2 text-muted-foreground">
-                      Gambar dari user:
-                    </p>
-                    <button
-                      onClick={() => openImageModal(ticket.image_user_url!)}
-                      className="relative group cursor-pointer"
-                    >
-                      <img
-                        src={ticket.image_user_url}
-                        alt="Lampiran tiket"
-                        className="w-32 h-32 object-cover rounded-lg border"
-                      />
-                      <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded-lg flex items-center justify-center">
-                        <ZoomIn className="w-8 h-8 text-white" />
-                      </div>
-                    </button>
-                  </div>
-                )}
-
-                {ticket.admin_notes && (
-                  <div className="mb-3 p-3 bg-blue-50 dark:bg-blue-950 rounded-lg border border-blue-200 dark:border-blue-800">
-                    <p className="text-xs font-medium mb-1 text-blue-900 dark:text-blue-100">
-                      Catatan Admin:
-                    </p>
-                    <p className="text-sm text-blue-800 dark:text-blue-200">
-                      {ticket.admin_notes}
-                    </p>
-                  </div>
-                )}
-
-                <div className="flex gap-2 mt-4">
-                  <Button
-                    onClick={() => {
-                      setSelectedTicket(ticket)
-                      setNewStatus(ticket.status)
-                      setAdminNote(ticket.admin_notes || "")
-                    }}
-                    variant="outline"
-                    size="sm"
-                  >
-                    Kelola
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
-      )}
-
-      {/* Update Status Dialog */}
-      {selectedTicket && (
-        <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Kelola Tiket</DialogTitle>
-              <DialogDescription>{selectedTicket.title}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-1">Deskripsi:</p>
-                <p className="text-sm text-muted-foreground p-3 bg-muted rounded-lg">
-                  {selectedTicket.description}
-                </p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium mb-1">User:</p>
-                  <p className="text-sm">{selectedTicket.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedTicket.category}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1">Divisi User:</p>
-                  <Badge variant="outline">{selectedTicket.divisi}</Badge>
-                </div>
-              </div>
-
-              {selectedTicket.image_user_url && (
-                <div>
-                  <p className="text-sm font-medium mb-2">Gambar dari User:</p>
-                  <img
-                    src={selectedTicket.image_user_url}
-                    alt="Lampiran tiket"
-                    className="w-full max-h-64 object-contain rounded-lg border cursor-pointer hover:opacity-90 transition-opacity"
-                    onClick={() => openImageModal(selectedTicket.image_user_url!)}
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Status</label>
-                <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">Baru</SelectItem>
-                    <SelectItem value="in_progress">Dalam Proses</SelectItem>
-                    <SelectItem value="resolved">Selesai</SelectItem>
-                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block">Catatan Admin</label>
-                <Textarea
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  placeholder="Tambahkan catatan untuk user..."
-                  rows={4}
-                />
-              </div>
-
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-4">
+            {/* Status Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Status</label>
               <div className="flex gap-2">
-                <Button onClick={handleUpdateStatus} disabled={updating} className="flex-1">
-                  {updating ? "Menyimpan..." : "Simpan"}
+                <Button
+                  size="sm"
+                  variant={statusFilter === "all" ? "default" : "outline"}
+                  onClick={() => setStatusFilter("all")}
+                >
+                  Semua
                 </Button>
                 <Button
-                  onClick={() => setSelectedTicket(null)}
-                  variant="outline"
-                  className="flex-1"
+                  size="sm"
+                  variant={statusFilter === "new" ? "default" : "outline"}
+                  onClick={() => setStatusFilter("new")}
                 >
-                  Batal
+                  Baru
+                </Button>
+                <Button
+                  size="sm"
+                  variant={statusFilter === "in_progress" ? "default" : "outline"}
+                  onClick={() => setStatusFilter("in_progress")}
+                >
+                  Diproses
+                </Button>
+                <Button
+                  size="sm"
+                  variant={statusFilter === "resolved" ? "default" : "outline"}
+                  onClick={() => setStatusFilter("resolved")}
+                >
+                  Selesai
                 </Button>
               </div>
             </div>
-          </DialogContent>
-        </Dialog>
-      )}
 
-      {/* Image Modal */}
-      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-        <DialogContent className="max-w-4xl">
-          <DialogHeader>
-            <DialogTitle>Gambar Lampiran</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center bg-muted rounded-lg p-4">
-            <img
-              src={selectedImage ? selectedImage.url : ""} 
-              alt="Lampiran tiket"
-              className="max-w-full max-h-[70vh] object-contain"
-            />
+            {/* Source Filter */}
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Sumber Tiket</label>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "all" ? "default" : "outline"}
+                  onClick={() => setSourceFilter("all")}
+                >
+                  Semua
+                </Button>
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "user_division" ? "default" : "outline"}
+                  onClick={() => setSourceFilter("user_division")}
+                  className="gap-1"
+                >
+                  <Users className="w-4 h-4" />
+                  User Divisi
+                </Button>
+                <Button
+                  size="sm"
+                  variant={sourceFilter === "nlp_category" ? "default" : "outline"}
+                  onClick={() => setSourceFilter("nlp_category")}
+                  className="gap-1"
+                >
+                  <Tag className="w-4 h-4" />
+                  Kategori NLP
+                </Button>
+              </div>
+            </div>
           </div>
-        </DialogContent>
-      </Dialog>
+        </CardContent>
+      </Card>
+
+      {/* Tickets List */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Daftar Tiket ({filteredTickets.length})</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="space-y-3">
+            {filteredTickets.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                Tidak ada tiket ditemukan
+              </div>
+            ) : (
+              filteredTickets.map((ticket) => {
+                const source = getTicketSource(ticket)
+                const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+
+                return (
+                  <Card
+                    key={ticket.id}
+                    className={`cursor-pointer transition-all hover:shadow-md ${
+                      selectedTicket?.id === ticket.id ? 'border-primary' : ''
+                    }`}
+                    onClick={() => setSelectedTicket(ticket)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-4">
+                        <div className="flex-1 space-y-2">
+                          <div className="flex items-center gap-2">
+                            <h3 className="font-semibold">{ticket.title}</h3>
+                            {getStatusBadge(ticket.status)}
+                          </div>
+
+                          <p className="text-sm text-muted-foreground line-clamp-2">
+                            {ticket.description}
+                          </p>
+
+                          <div className="flex flex-wrap gap-2 text-xs">
+                            {/* User Info */}
+                            <Badge variant="outline" className="gap-1">
+                              <Users className="w-3 h-3" />
+                              {ticket.name} ({ticket.user_division})
+                            </Badge>
+
+                            {/* NLP Category */}
+                            <Badge variant="secondary" className="gap-1">
+                              <Tag className="w-3 h-3" />
+                              {ticket.nlp_category}
+                            </Badge>
+
+                            {/* Source Indicator */}
+                            {source === "user_division" && (
+                              <Badge variant="default" className="bg-blue-500">
+                                Divisi User
+                              </Badge>
+                            )}
+                            {source === "nlp_category" && (
+                              <Badge variant="default" className="bg-purple-500">
+                                Kategori NLP
+                              </Badge>
+                            )}
+                            {source === "both" && (
+                              <Badge variant="default" className="bg-green-500">
+                                Divisi & Kategori
+                              </Badge>
+                            )}
+
+                            {/* Target Divisions */}
+                            {targetDivs.length > 0 && (
+                              <Badge variant="outline" className="gap-1">
+                                <Building2 className="w-3 h-3" />
+                                {targetDivs.join(", ")}
+                              </Badge>
+                            )}
+                          </div>
+
+                          <div className="text-xs text-muted-foreground">
+                            {new Date(ticket.created_at).toLocaleString("id-ID")}
+                          </div>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })
+            )}
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Selected Ticket Detail */}
+      {selectedTicket && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Detail Tiket #{selectedTicket.id}</CardTitle>
+            <CardDescription>Informasi lengkap tiket</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <label className="text-sm font-medium">Status</label>
+                <div className="mt-1">{getStatusBadge(selectedTicket.status)}</div>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">User</label>
+                <p className="text-sm mt-1">{selectedTicket.name}</p>
+                <p className="text-xs text-muted-foreground">{selectedTicket.email}</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Divisi User</label>
+                <p className="text-sm mt-1">{selectedTicket.user_division}</p>
+              </div>
+
+              <div>
+                <label className="text-sm font-medium">Kategori NLP</label>
+                <p className="text-sm mt-1">{selectedTicket.nlp_category}</p>
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Target Divisions</label>
+                <div className="flex flex-wrap gap-1 mt-1">
+                  {JSON.parse(selectedTicket.target_divisions || '[]').map((div: string) => (
+                    <Badge key={div} variant="outline">{div}</Badge>
+                  ))}
+                </div>
+              </div>
+
+              <div className="col-span-2">
+                <label className="text-sm font-medium">Deskripsi</label>
+                <p className="text-sm mt-1 whitespace-pre-wrap">{selectedTicket.description}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
     </div>
   )
 }
