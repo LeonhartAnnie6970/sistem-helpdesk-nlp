@@ -130,28 +130,32 @@
 "use client"
 
 import { useState } from "react"
-import { 
-  LayoutDashboard, 
-  Ticket, 
-  BarChart3, 
-  LogOut, 
-  ChevronLeft, 
+import {
+  LayoutDashboard,
+  Ticket,
+  BarChart3,
+  LogOut,
+  ChevronLeft,
   ChevronRight,
   User,
   Bell,
-  FileText
+  FileText,
+  Shield,
+  Users
 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 interface SidebarProps {
-  role: "admin" | "user"
+  role: "admin" | "user" | "super_admin"
   activeTab: string
   onTabChange: (tab: string) => void
   onLogout: () => void
   onOpenProfile: () => void
   onOpenNotifications: () => void
   notificationCount?: number
+  collapsed?: boolean
+  onCollapsedChange?: (collapsed: boolean) => void
 }
 
 export function Sidebar({
@@ -161,9 +165,23 @@ export function Sidebar({
   onLogout,
   onOpenProfile,
   onOpenNotifications,
-  notificationCount = 0
+  notificationCount = 0,
+  collapsed: externalCollapsed,
+  onCollapsedChange
 }: SidebarProps) {
-  const [collapsed, setCollapsed] = useState(false)
+  const [internalCollapsed, setInternalCollapsed] = useState(false)
+
+  // Use external collapsed state if provided, otherwise use internal state
+  const collapsed = externalCollapsed !== undefined ? externalCollapsed : internalCollapsed
+
+  const handleToggleCollapsed = () => {
+    const newCollapsed = !collapsed
+    if (onCollapsedChange) {
+      onCollapsedChange(newCollapsed)
+    } else {
+      setInternalCollapsed(newCollapsed)
+    }
+  }
 
   const adminMenuItems = [
     { id: "analytics", label: "Analytics", icon: BarChart3 },
@@ -175,7 +193,16 @@ export function Sidebar({
     { id: "my-tickets", label: "Tiket Saya", icon: FileText },
   ]
 
-  const menuItems = role === "admin" ? adminMenuItems : userMenuItems
+  const superAdminMenuItems = [
+    { id: "monitoring", label: "Division Monitoring", icon: Shield },
+    { id: "tickets", label: "All Tickets", icon: Ticket },
+    { id: "users", label: "User Management", icon: Users },
+  ]
+
+  const menuItems =
+    role === "super_admin" ? superAdminMenuItems :
+    role === "admin" ? adminMenuItems :
+    userMenuItems
 
   return (
     <aside
@@ -188,13 +215,15 @@ export function Sidebar({
       <div className="flex items-center justify-between h-16 px-4 border-b flex-shrink: 0">
         {!collapsed && (
           <h2 className="text-lg font-bold">
-            {role === "admin" ? "Admin Panel" : "User Dashboard"}
+            {role === "super_admin" ? "Super Admin" :
+             role === "admin" ? "Admin Panel" :
+             "User Dashboard"}
           </h2>
         )}
         <Button
           variant="ghost"
           size="icon"
-          onClick={() => setCollapsed(!collapsed)}
+          onClick={handleToggleCollapsed}
           className={cn("", collapsed ? "" : "ml-auto")}
         >
           {collapsed ? (
@@ -251,11 +280,6 @@ export function Sidebar({
             )}
           </div>
           {!collapsed && <span>Notifikasi</span>}
-          {!collapsed && notificationCount > 0 && (
-            <span className="ml-auto bg-red-500 text-white text-xs px-2 py-0.5 rounded-full">
-              {notificationCount > 9 ? "9+" : notificationCount}
-            </span>
-          )}
         </Button>
 
         {/* Profile */}

@@ -95,46 +95,42 @@ export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
   const getNotificationColor = (type: string) => {
     switch (type) {
       case 'ticket_resolved':
-        return 'bg-green-50 dark:bg-green-950 border-l-4 border-l-green-500'
+        return 'bg-green-50 dark:bg-green-950/50 border-l-4 border-l-green-500'
       case 'status_update':
-        return 'bg-blue-50 dark:bg-blue-950 border-l-4 border-l-blue-500'
+        return 'bg-blue-50 dark:bg-blue-950/50 border-l-4 border-l-blue-500'
       case 'admin_note':
-        return 'bg-purple-50 dark:bg-purple-950 border-l-4 border-l-purple-500'
+        return 'bg-purple-50 dark:bg-purple-950/50 border-l-4 border-l-purple-500'
       case 'admin_image':
-        return 'bg-green-50 dark:bg-green-950 border-l-4 border-l-green-500'
+        return 'bg-green-50 dark:bg-green-950/50 border-l-4 border-l-green-500'
       default:
         return ''
     }
   }
+
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full bg-white dark:bg-gray-900">
       {/* Header */}
-      <div className="p-4 border-b flex items-center justify-between flex-shrink: 0 bg-background">
-        <h3 className="font-semibold">Notifikasi({unreadCount})</h3>
+      <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between flex-shrink-0 bg-white dark:bg-gray-900">
+        <h3 className="font-semibold text-gray-900 dark:text-white">Notifikasi ({unreadCount})</h3>
         <div className="flex gap-2">
           {unreadCount > 0 && (
             <Button
               size="sm"
               variant="ghost"
               onClick={handleMarkAllAsRead}
-              className="text-xs">
+              className="text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
               <CheckCheck className="w-4 h-4 mr-1" />
               Tandai Semua
-              <Bell className="w-5 h-5" />
-        {unreadCount > 0 && (
-          <span className="absolute top-0 right-0 bg-red-500 text-white text-xs rounded-full w-5 h-5 flex items-center justify-center">
-            {unreadCount > 9 ? "9+" : unreadCount}
-          </span>
-        )}
             </Button>
           )}
         </div>
       </div>
 
       {/* Notifications List */}
-      <div className="flex-1 overflow-y-auto divide-y">
+      <div className="flex-1 overflow-y-auto divide-y divide-gray-200 dark:divide-gray-700">
         {notifications.length === 0 ? (
-          <div className="p-4 text-center text-muted-foreground">
+          <div className="p-4 text-center text-gray-500 dark:text-gray-400">
             Tidak ada notifikasi
           </div>
         ) : (
@@ -142,23 +138,23 @@ export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
             <div
               key={notif.id}
               onClick={() => handleNotificationClick(notif)}
-              className={`p-3 hover:bg-accent cursor-pointer transition ${
-                !notif.is_read ? getNotificationColor(notif.type) : ''
+              className={`p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition ${
+                !notif.is_read ? getNotificationColor(notif.type) : 'bg-white dark:bg-gray-900'
               }`}
             >
               <div className="flex gap-3">
-                <div className="flex-shrink: 0 mt-1">
+                <div className="flex-shrink-0 mt-1">
                   {getNotificationIcon(notif.type)}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="font-medium text-sm line-clamp-1">{notif.ticket_title}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{notif.message}</p>
+                  <p className="font-medium text-sm line-clamp-1 text-gray-900 dark:text-white">{notif.ticket_title}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">{notif.message}</p>
                   <div className="flex items-center justify-between mt-2">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-500 dark:text-gray-500">
                       {new Date(notif.created_at).toLocaleString("id-ID")}
                     </p>
                     {!notif.is_read && (
-                      <Badge variant="secondary" className="text-xs">Baru</Badge>
+                      <Badge variant="secondary" className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-900 dark:text-blue-100">Baru</Badge>
                     )}
                   </div>
                 </div>

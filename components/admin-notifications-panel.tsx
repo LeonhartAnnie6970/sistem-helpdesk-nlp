@@ -19,13 +19,38 @@ interface Notification {
 interface AdminNotificationsPanelProps {
   token: string
   onTicketClick?: (ticketId: number) => void
+  isOpen?: boolean
+  onClose?: () => void
+  onUnreadCountChange?: (count: number) => void
 }
 
-export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificationsPanelProps) {
-  const [isOpen, setIsOpen] = useState(false)
+export function AdminNotificationsPanel({
+  token,
+  onTicketClick,
+  isOpen: externalIsOpen,
+  onClose,
+  onUnreadCountChange
+}: AdminNotificationsPanelProps) {
+  const [internalIsOpen, setInternalIsOpen] = useState(false)
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
-  const [isLoading, setIsLoading] = useState(false)
+
+  // Use external isOpen if provided, otherwise use internal state
+  const isOpen = externalIsOpen !== undefined ? externalIsOpen : internalIsOpen
+  const handleClose = () => {
+    if (onClose) {
+      onClose()
+    } else {
+      setInternalIsOpen(false)
+    }
+  }
+  const handleToggle = () => {
+    if (onClose) {
+      onClose()
+    } else {
+      setInternalIsOpen(!internalIsOpen)
+    }
+  }
 
   useEffect(() => {
     fetchNotifications()
@@ -42,6 +67,11 @@ export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificat
       const data = await response.json()
       setUnreadCount(data.unreadCount)
       setNotifications(data.notifications)
+
+      // Notify parent component of unread count change
+      if (onUnreadCountChange) {
+        onUnreadCountChange(data.unreadCount)
+      }
     } catch (error) {
       console.error("Error fetching notifications:", error)
     }
@@ -80,7 +110,7 @@ export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificat
     handleMarkAsRead(notification.id)
 
     // Close notification panel
-    setIsOpen(false)
+    handleClose()
 
     // Normalize ticket id from different possible shapes (some backends use id_ticket)
     const rawTicketId: any = (notification as any).ticket_id ?? (notification as any).id_ticket ?? (notification as any).ticketId ?? (notification as any).idTicket ?? (notification as any).ticketIdStr ?? null
@@ -100,12 +130,78 @@ export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificat
     }
   }
 
+  // If external control is provided, render only the panel content
+  if (externalIsOpen !== undefined) {
+    return (
+      <Card className="w-full h-full overflow-y-auto shadow-lg bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+        <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-900">
+          <h3 className="font-semibold text-gray-900 dark:text-white">Notifikasi ({unreadCount})</h3>
+          <div className="flex gap-2">
+            {unreadCount > 0 && (
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleMarkAllAsRead}
+                className="text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <CheckCheck className="w-4 h-4 mr-1" />
+                Tandai Semua
+              </Button>
+            )}
+            <Button
+              size="sm"
+              variant="ghost"
+              onClick={handleClose}
+              className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
+            >
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="divide-y divide-gray-200 dark:divide-gray-700">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-center text-gray-500 dark:text-gray-400">
+              Tidak ada notifikasi
+            </div>
+          ) : (
+            notifications.map((notif) => (
+              <div
+                key={notif.id}
+                onClick={() => handleNotificationClick(notif)}
+                className={`p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition ${
+                  !notif.is_read ? "bg-blue-50 dark:bg-blue-950/50" : "bg-white dark:bg-gray-900"
+                }`}
+              >
+                <div className="flex justify-between items-start gap-2">
+                  <div className="flex-1">
+                    <p className="font-medium text-sm text-gray-900 dark:text-white">{notif.ticket_title}</p>
+                    <p className="text-xs text-gray-600 dark:text-gray-400">
+                      Dari: {notif.user_name} ({notif.divisi})
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
+                      {new Date(notif.created_at).toLocaleString("id-ID")}
+                    </p>
+                  </div>
+                  {!notif.is_read && (
+                    <div className="w-2 h-2 bg-blue-500 rounded-full mt-1"></div>
+                  )}
+                </div>
+              </div>
+            ))
+          )}
+        </div>
+      </Card>
+    )
+  }
+
+  // Default render with Bell button (for backward compatibility)
   return (
     <div className="relative">
       <Button
         variant="ghost"
         size="icon"
-        onClick={() => setIsOpen(!isOpen)}
+        onClick={handleToggle}
         className="relative"
       >
         <Bell className="w-5 h-5" />
@@ -117,16 +213,16 @@ export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificat
       </Button>
 
       {isOpen && (
-        <Card className="absolute right-0 top-12 w-96 max-h-96 overflow-y-auto shadow-lg z-50">
-          <div className="p-4 border-b flex items-center justify-between">
-            <h3 className="font-semibold">Notifikasi ({unreadCount})</h3>
+        <Card className="absolute right-0 top-12 w-96 max-h-96 overflow-y-auto shadow-lg z-50 bg-white dark:bg-gray-900 border-gray-200 dark:border-gray-700">
+          <div className="p-4 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between bg-white dark:bg-gray-900">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Notifikasi ({unreadCount})</h3>
             <div className="flex gap-2">
               {unreadCount > 0 && (
                 <Button
                   size="sm"
                   variant="ghost"
                   onClick={handleMarkAllAsRead}
-                  className="text-xs"
+                  className="text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
                 >
                   <CheckCheck className="w-4 h-4 mr-1" />
                   Tandai Semua
@@ -135,16 +231,17 @@ export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificat
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => setIsOpen(false)}
+                onClick={handleClose}
+                className="text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800"
               >
                 <X className="w-4 h-4" />
               </Button>
             </div>
           </div>
 
-          <div className="divide-y">
+          <div className="divide-y divide-gray-200 dark:divide-gray-700">
             {notifications.length === 0 ? (
-              <div className="p-4 text-center text-muted-foreground">
+              <div className="p-4 text-center text-gray-500 dark:text-gray-400">
                 Tidak ada notifikasi
               </div>
             ) : (
@@ -152,17 +249,17 @@ export function AdminNotificationsPanel({ token, onTicketClick }: AdminNotificat
                 <div
                   key={notif.id}
                   onClick={() => handleNotificationClick(notif)}
-                  className={`p-3 hover:bg-accent cursor-pointer transition ${
-                    !notif.is_read ? "bg-blue-50 dark:bg-blue-950" : ""
+                  className={`p-3 hover:bg-gray-100 dark:hover:bg-gray-800 cursor-pointer transition ${
+                    !notif.is_read ? "bg-blue-50 dark:bg-blue-950/50" : "bg-white dark:bg-gray-900"
                   }`}
                 >
                   <div className="flex justify-between items-start gap-2">
                     <div className="flex-1">
-                      <p className="font-medium text-sm">{notif.ticket_title}</p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="font-medium text-sm text-gray-900 dark:text-white">{notif.ticket_title}</p>
+                      <p className="text-xs text-gray-600 dark:text-gray-400">
                         Dari: {notif.user_name} ({notif.divisi})
                       </p>
-                      <p className="text-xs text-muted-foreground mt-1">
+                      <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                         {new Date(notif.created_at).toLocaleString("id-ID")}
                       </p>
                     </div>

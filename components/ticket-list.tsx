@@ -84,33 +84,33 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
   }
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading...</div>
+    return <div className="text-center py-8 text-gray-600 dark:text-gray-300">Loading...</div>
   }
 
   if (error) {
-    return <div className="text-center py-8 text-destructive">{error}</div>
+    return <div className="text-center py-8 text-red-600 dark:text-red-400">{error}</div>
   }
 
   if (tickets.length === 0) {
-    return <div className="text-center py-8 text-muted-foreground">Belum ada tiket</div>
+    return <div className="text-center py-8 text-gray-600 dark:text-gray-300">Belum ada tiket</div>
   }
 
   return (
     <div className="space-y-4">
       {tickets.map((ticket) => (
-        <Card key={ticket.id} className="hover:shadow-md transition-shadow">
-          <CardHeader>
+        <Card key={ticket.id} className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+          <CardHeader className="bg-white dark:bg-black">
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="font-mono text-xs">
+                  <Badge variant="outline" className="font-mono text-xs border-gray-300 dark:border-gray-600 text-black dark:text-white">
                     <Hash className="w-3 h-3 mr-1" />
                     {ticket.id}
                   </Badge>
                 </div>
-                <CardTitle className="text-lg">{ticket.title}</CardTitle>
+                <CardTitle className="text-lg text-black dark:text-white">{ticket.title}</CardTitle>
                 <div className="flex gap-2 items-center mt-1">
-                  <CardDescription>{ticket.name}</CardDescription>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">{ticket.name}</CardDescription>
                   {ticket.divisi && (
                     <Badge variant="secondary" className="text-xs">
                       {ticket.divisi}
@@ -123,47 +123,47 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
               </Badge>
             </div>
           </CardHeader>
-          <CardContent>
-            <p className="text-sm text-muted-foreground mb-3">
+          <CardContent className="bg-white dark:bg-black">
+            <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
               <span className="font-semibold">User Notes:</span> {ticket.description}
             </p>
             
             {ticket.image_user_url && (
               <div className="mb-3">
-                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <p className="text-xs text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1">
                   <ImageIcon size={14} />
                   Bukti Laporan:
                 </p>
                 <img
                   src={ticket.image_user_url}
                   alt="User report"
-                  className="max-w-full max-h-48 rounded border object-cover"
+                  className="max-w-full max-h-48 rounded border border-gray-300 dark:border-gray-600 object-cover"
                 />
               </div>
             )}
 
             {ticket.image_admin_url && (
               <div className="mb-3">
-                <p className="text-xs text-muted-foreground mb-2 flex items-center gap-1">
+                <p className="text-xs text-gray-600 dark:text-gray-300 mb-2 flex items-center gap-1">
                   <ImageIcon size={14} />
                   Bukti Penyelesaian Admin:
                 </p>
                 <img
                   src={ticket.image_admin_url}
                   alt="Admin resolution"
-                  className="max-w-full max-h-48 rounded border object-cover"
+                  className="max-w-full max-h-48 rounded border border-gray-300 dark:border-gray-600 object-cover"
                 />
               </div>
             )}
 
             {ticket.admin_notes && (
-              <p className="text-sm text-muted-foreground mb-3 bg-muted/50 p-3 rounded-md">
+              <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 bg-gray-100 dark:bg-gray-800 p-3 rounded-md">
                 <span className="font-semibold">Admin Notes:</span> {ticket.admin_notes}
               </p>
             )}
 
-            <div className="flex items-center justify-between text-xs text-muted-foreground">
-              {ticket.category && <Badge variant="outline">{ticket.category}</Badge>}
+            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+              {ticket.category && <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-black dark:text-white">{ticket.category}</Badge>}
               <span>{new Date(ticket.created_at).toLocaleDateString("id-ID", {
                 year: 'numeric',
                 month: 'long',

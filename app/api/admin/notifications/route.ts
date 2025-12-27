@@ -10,7 +10,7 @@ export async function GET(request: NextRequest) {
   }
 
   const decoded = verifyToken(token)
-  if (!decoded || decoded.role !== "admin") {
+  if (!decoded || (decoded.role !== "admin" && decoded.role !== "super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 
@@ -23,7 +23,7 @@ export async function GET(request: NextRequest) {
 
     // Get latest notifications (limit 10)
     const notifications = await query(
-      `SELECT n.*, t.title as ticket_title, u.name as user_name, u.division as user_division
+      `SELECT n.*, t.title as ticket_title, u.name as user_name, u.division as divisi
        FROM notifications n
        JOIN tickets t ON n.id_ticket = t.id
        JOIN users u ON n.id_user = u.id
@@ -51,7 +51,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const decoded = verifyToken(token)
-  if (!decoded || decoded.role !== "admin") {
+  if (!decoded || (decoded.role !== "admin" && decoded.role !== "super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

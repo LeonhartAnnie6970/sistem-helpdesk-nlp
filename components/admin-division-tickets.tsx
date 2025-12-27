@@ -160,23 +160,23 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
   }
 
   if (isLoading) {
-    return <div>Loading tickets...</div>
+    return <div className="text-center py-8 text-gray-600 dark:text-gray-300">Loading tickets...</div>
   }
 
   return (
     <div className="space-y-6">
       {/* Statistics Cards */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Tiket</CardDescription>
-            <CardTitle className="text-3xl">{stats.total}</CardTitle>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-3 bg-white dark:bg-black">
+            <CardDescription className="text-gray-600 dark:text-gray-300">Total Tiket</CardDescription>
+            <CardTitle className="text-3xl text-black dark:text-white">{stats.total}</CardTitle>
           </CardHeader>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-1">
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-3 bg-white dark:bg-black">
+            <CardDescription className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
               <Users className="w-4 h-4" />
               Dari User Divisi
             </CardDescription>
@@ -184,9 +184,9 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
           </CardHeader>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription className="flex items-center gap-1">
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-3 bg-white dark:bg-black">
+            <CardDescription className="flex items-center gap-1 text-gray-600 dark:text-gray-300">
               <Tag className="w-4 h-4" />
               Dari Kategori NLP
             </CardDescription>
@@ -194,30 +194,30 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
           </CardHeader>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Tiket Baru</CardDescription>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-3 bg-white dark:bg-black">
+            <CardDescription className="text-gray-600 dark:text-gray-300">Tiket Baru</CardDescription>
             <CardTitle className="text-3xl text-orange-600">{stats.new}</CardTitle>
           </CardHeader>
         </Card>
       </div>
 
       {/* Filters */}
-      <Card>
-        <CardHeader>
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Filter Tiket</CardTitle>
-              <CardDescription>Filter berdasarkan status dan sumber</CardDescription>
+              <CardTitle className="text-black dark:text-white">Filter Tiket</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Filter berdasarkan status dan sumber</CardDescription>
             </div>
-            <Filter className="w-5 h-5 text-muted-foreground" />
+            <Filter className="w-5 h-5 text-gray-600 dark:text-gray-300" />
           </div>
         </CardHeader>
-        <CardContent className="space-y-4">
+        <CardContent className="space-y-4 bg-white dark:bg-black">
           <div className="flex flex-wrap gap-4">
             {/* Status Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Status</label>
+              <label className="text-sm font-medium text-black dark:text-white">Status</label>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -252,7 +252,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
 
             {/* Source Filter */}
             <div className="space-y-2">
-              <label className="text-sm font-medium">Sumber Tiket</label>
+              <label className="text-sm font-medium text-black dark:text-white">Sumber Tiket</label>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -286,14 +286,14 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
       </Card>
 
       {/* Tickets List */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Daftar Tiket ({filteredTickets.length})</CardTitle>
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black">
+          <CardTitle className="text-black dark:text-white">Daftar Tiket ({filteredTickets.length})</CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="bg-white dark:bg-black">
           <div className="space-y-3">
             {filteredTickets.length === 0 ? (
-              <div className="text-center py-8 text-muted-foreground">
+              <div className="text-center py-8 text-gray-600 dark:text-gray-300">
                 Tidak ada tiket ditemukan
               </div>
             ) : (
@@ -304,20 +304,20 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
                 return (
                   <Card
                     key={ticket.id}
-                    className={`cursor-pointer transition-all hover:shadow-md ${
+                    className={`cursor-pointer transition-all hover:shadow-md bg-white dark:bg-black border-gray-200 dark:border-gray-700 ${
                       selectedTicket?.id === ticket.id ? 'border-primary' : ''
                     }`}
                     onClick={() => setSelectedTicket(ticket)}
                   >
-                    <CardContent className="p-4">
+                    <CardContent className="p-4 bg-white dark:bg-black">
                       <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
-                            <h3 className="font-semibold">{ticket.title}</h3>
+                            <h3 className="font-semibold text-black dark:text-white">{ticket.title}</h3>
                             {getStatusBadge(ticket.status)}
                           </div>
 
-                          <p className="text-sm text-muted-foreground line-clamp-2">
+                          <p className="text-sm text-gray-600 dark:text-gray-300 line-clamp-2">
                             {ticket.description}
                           </p>
 
@@ -360,7 +360,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
                             )}
                           </div>
 
-                          <div className="text-xs text-muted-foreground">
+                          <div className="text-xs text-gray-600 dark:text-gray-300">
                             {new Date(ticket.created_at).toLocaleString("id-ID")}
                           </div>
                         </div>
@@ -376,46 +376,46 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
 
       {/* Selected Ticket Detail */}
       {selectedTicket && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Detail Tiket #{selectedTicket.id}</CardTitle>
-            <CardDescription>Informasi lengkap tiket</CardDescription>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="bg-white dark:bg-black">
+            <CardTitle className="text-black dark:text-white">Detail Tiket #{selectedTicket.id}</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">Informasi lengkap tiket</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 bg-white dark:bg-black">
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Status</label>
+                <label className="text-sm font-medium text-black dark:text-white">Status</label>
                 <div className="mt-1">{getStatusBadge(selectedTicket.status)}</div>
               </div>
 
               <div>
-                <label className="text-sm font-medium">User</label>
-                <p className="text-sm mt-1">{selectedTicket.name}</p>
-                <p className="text-xs text-muted-foreground">{selectedTicket.email}</p>
+                <label className="text-sm font-medium text-black dark:text-white">User</label>
+                <p className="text-sm mt-1 text-black dark:text-white">{selectedTicket.name}</p>
+                <p className="text-xs text-gray-600 dark:text-gray-300">{selectedTicket.email}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Divisi User</label>
-                <p className="text-sm mt-1">{selectedTicket.user_division}</p>
+                <label className="text-sm font-medium text-black dark:text-white">Divisi User</label>
+                <p className="text-sm mt-1 text-black dark:text-white">{selectedTicket.user_division}</p>
               </div>
 
               <div>
-                <label className="text-sm font-medium">Kategori NLP</label>
-                <p className="text-sm mt-1">{selectedTicket.nlp_category}</p>
+                <label className="text-sm font-medium text-black dark:text-white">Kategori NLP</label>
+                <p className="text-sm mt-1 text-black dark:text-white">{selectedTicket.nlp_category}</p>
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium">Target Divisions</label>
+                <label className="text-sm font-medium text-black dark:text-white">Target Divisions</label>
                 <div className="flex flex-wrap gap-1 mt-1">
                   {JSON.parse(selectedTicket.target_divisions || '[]').map((div: string) => (
-                    <Badge key={div} variant="outline">{div}</Badge>
+                    <Badge key={div} variant="outline" className="border-gray-300 dark:border-gray-600 text-black dark:text-white">{div}</Badge>
                   ))}
                 </div>
               </div>
 
               <div className="col-span-2">
-                <label className="text-sm font-medium">Deskripsi</label>
-                <p className="text-sm mt-1 whitespace-pre-wrap">{selectedTicket.description}</p>
+                <label className="text-sm font-medium text-black dark:text-white">Deskripsi</label>
+                <p className="text-sm mt-1 whitespace-pre-wrap text-black dark:text-white">{selectedTicket.description}</p>
               </div>
             </div>
           </CardContent>

@@ -1,4 +1,12 @@
 {
+  "/api/user/notifications/route": "app/api/user/notifications/route.js",
+  "/api/auth/login/route": "app/api/auth/login/route.js",
+  "/api/admin/notifications/route": "app/api/admin/notifications/route.js",
+  "/api/tickets/route": "app/api/tickets/route.js",
+  "/api/super-admin/users/route": "app/api/super-admin/users/route.js",
+  "/api/user/profile/route": "app/api/user/profile/route.js",
+  "/api/admin/stats/route": "app/api/admin/stats/route.js",
+  "/api/admin/tickets-images/route": "app/api/admin/tickets-images/route.js",
   "/login/page": "app/login/page.js",
   "/dashboard/page": "app/dashboard/page.js",
   "/super-admin/dashboard/page": "app/super-admin/dashboard/page.js",

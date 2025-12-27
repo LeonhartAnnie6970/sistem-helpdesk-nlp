@@ -122,7 +122,6 @@
     outline-color: rgb(var(--ring) / 0.5);
   }
   body {
-    background-color: var(--background);
-    color: var(--foreground);
+    @apply bg-white dark:bg-black text-black dark:text-white;
   }
 }

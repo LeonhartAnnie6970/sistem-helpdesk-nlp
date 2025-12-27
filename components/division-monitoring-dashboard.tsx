@@ -173,7 +173,7 @@ export function DivisionMonitoringDashboard() {
     : tickets.filter(t => t.divisi === selectedDivision)
 
   if (loading) {
-    return <div className="flex items-center justify-center p-8">Memuat data...</div>
+    return <div className="flex items-center justify-center p-8 text-black dark:text-white">Memuat data...</div>
   }
 
   return (
@@ -181,32 +181,32 @@ export function DivisionMonitoringDashboard() {
       {/* Division Statistics */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
         {divisionStats.map((stat) => (
-          <Card key={stat.division} className="hover:shadow-md transition-shadow cursor-pointer"
+          <Card key={stat.division} className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow cursor-pointer"
                 onClick={() => setSelectedDivision(stat.division)}>
-            <CardHeader className="pb-3">
-              <CardTitle className="text-sm font-medium flex items-center gap-2">
+            <CardHeader className="pb-3 bg-white dark:bg-black">
+              <CardTitle className="text-sm font-medium flex items-center gap-2 text-black dark:text-white">
                 <Users className="w-4 h-4" />
                 {stat.division}
               </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="bg-white dark:bg-black">
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold">{stat.totalTickets}</span>
-                  <TicketIcon className="w-5 h-5 text-muted-foreground" />
+                  <span className="text-2xl font-bold text-black dark:text-white">{stat.totalTickets}</span>
+                  <TicketIcon className="w-5 h-5 text-gray-600 dark:text-gray-300" />
                 </div>
                 <div className="grid grid-cols-3 gap-2 text-xs">
                   <div className="text-center">
-                    <div className="font-semibold text-yellow-600">{stat.newTickets}</div>
-                    <div className="text-muted-foreground">Baru</div>
+                    <div className="font-semibold text-yellow-600 dark:text-yellow-400">{stat.newTickets}</div>
+                    <div className="text-gray-600 dark:text-gray-300">Baru</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-semibold text-blue-600">{stat.inProgressTickets}</div>
-                    <div className="text-muted-foreground">Proses</div>
+                    <div className="font-semibold text-blue-600 dark:text-blue-400">{stat.inProgressTickets}</div>
+                    <div className="text-gray-600 dark:text-gray-300">Proses</div>
                   </div>
                   <div className="text-center">
-                    <div className="font-semibold text-green-600">{stat.completedTickets}</div>
-                    <div className="text-muted-foreground">Selesai</div>
+                    <div className="font-semibold text-green-600 dark:text-green-400">{stat.completedTickets}</div>
+                    <div className="text-gray-600 dark:text-gray-300">Selesai</div>
                   </div>
                 </div>
               </div>
@@ -216,25 +216,25 @@ export function DivisionMonitoringDashboard() {
       </div>
 
       {/* Ticket List */}
-      <Card>
-        <CardHeader>
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-700">
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle>Daftar Tiket</CardTitle>
-              <CardDescription>
-                {selectedDivision === "all" 
+              <CardTitle className="text-black dark:text-white">Daftar Tiket</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300">
+                {selectedDivision === "all"
                   ? `Menampilkan ${filteredTickets.length} tiket dari semua divisi`
                   : `Menampilkan ${filteredTickets.length} tiket dari divisi ${selectedDivision}`}
               </CardDescription>
             </div>
             <Select value={selectedDivision} onValueChange={setSelectedDivision}>
-              <SelectTrigger className="w-48">
+              <SelectTrigger className="w-48 bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
                 <SelectValue />
               </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Divisi</SelectItem>
+              <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
+                <SelectItem value="all" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Semua Divisi</SelectItem>
                 {divisionStats.map((stat) => (
-                  <SelectItem key={stat.division} value={stat.division}>
+                  <SelectItem key={stat.division} value={stat.division} className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">
                     {stat.division}
                   </SelectItem>
                 ))}
@@ -242,28 +242,28 @@ export function DivisionMonitoringDashboard() {
             </Select>
           </div>
         </CardHeader>
-        <CardContent>
+        <CardContent className="bg-white dark:bg-black">
           {filteredTickets.length === 0 ? (
-            <div className="text-center text-muted-foreground py-8">
+            <div className="text-center text-gray-500 dark:text-gray-400 py-8">
               Tidak ada tiket untuk divisi ini
             </div>
           ) : (
             <div className="space-y-4">
               {filteredTickets.map((ticket) => (
-                <Card key={ticket.id} className="hover:shadow-sm transition-shadow">
-                  <CardContent className="p-4">
+                <Card key={ticket.id} className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 hover:shadow-sm transition-shadow">
+                  <CardContent className="p-4 bg-white dark:bg-black">
                     <div className="flex items-start justify-between">
                       <div className="flex-1">
                         <div className="flex items-center gap-2 mb-2">
-                          <h4 className="font-semibold">{ticket.title}</h4>
+                          <h4 className="font-semibold text-black dark:text-white">{ticket.title}</h4>
                           {ticket.category && (
                             <Badge variant="outline" className="text-xs">{ticket.category}</Badge>
                           )}
                         </div>
-                        <p className="text-sm text-muted-foreground mb-2 line-clamp-2">
+                        <p className="text-sm text-gray-600 dark:text-gray-300 mb-2 line-clamp-2">
                           {ticket.description}
                         </p>
-                        <p className="text-xs text-muted-foreground">
+                        <p className="text-xs text-gray-500 dark:text-gray-400">
                           Dari: {ticket.name} ({ticket.divisi}) • {new Date(ticket.created_at).toLocaleDateString("id-ID")}
                         </p>
                       </div>
@@ -282,6 +282,7 @@ export function DivisionMonitoringDashboard() {
                           }}
                           variant="outline"
                           size="sm"
+                          className="border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
                         >
                           Detail
                         </Button>
@@ -316,71 +317,72 @@ export function DivisionMonitoringDashboard() {
       {/* Ticket Detail Modal */}
       {selectedTicket && (
         <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="max-w-2xl">
+          <DialogContent className="max-w-2xl bg-white dark:bg-black border-gray-200 dark:border-gray-700">
             <DialogHeader>
-              <DialogTitle>Detail Tiket</DialogTitle>
-              <DialogDescription>{selectedTicket.title}</DialogDescription>
+              <DialogTitle className="text-black dark:text-white">Detail Tiket</DialogTitle>
+              <DialogDescription className="text-gray-600 dark:text-gray-300">{selectedTicket.title}</DialogDescription>
             </DialogHeader>
             <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium mb-1">Deskripsi:</p>
-                <p className="text-sm p-3 bg-muted rounded-lg">{selectedTicket.description}</p>
+                <p className="text-sm font-medium mb-1 text-black dark:text-white">Deskripsi:</p>
+                <p className="text-sm p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-black dark:text-white">{selectedTicket.description}</p>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <p className="text-sm font-medium mb-1">User:</p>
-                  <p className="text-sm">{selectedTicket.name}</p>
-                  <p className="text-xs text-muted-foreground">{selectedTicket.email}</p>
+                  <p className="text-sm font-medium mb-1 text-black dark:text-white">User:</p>
+                  <p className="text-sm text-black dark:text-white">{selectedTicket.name}</p>
+                  <p className="text-xs text-gray-600 dark:text-gray-300">{selectedTicket.email}</p>
                 </div>
                 <div>
-                  <p className="text-sm font-medium mb-1">Divisi:</p>
+                  <p className="text-sm font-medium mb-1 text-black dark:text-white">Divisi:</p>
                   <Badge>{selectedTicket.divisi}</Badge>
                 </div>
               </div>
 
               {selectedTicket.image_user_url && (
                 <div>
-                  <p className="text-sm font-medium mb-2">Gambar:</p>
+                  <p className="text-sm font-medium mb-2 text-black dark:text-white">Gambar:</p>
                   <img
                     src={selectedTicket.image_user_url}
                     alt="Lampiran"
-                    className="w-full max-h-64 object-contain rounded border cursor-pointer"
+                    className="w-full max-h-64 object-contain rounded border border-gray-200 dark:border-gray-700 cursor-pointer"
                     onClick={() => openImageModal(selectedTicket.image_user_url!)}
                   />
                 </div>
               )}
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Status</label>
+                <label className="text-sm font-medium mb-2 block text-black dark:text-white">Status</label>
                 <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger>
+                  <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="new">Baru</SelectItem>
-                    <SelectItem value="in_progress">Dalam Proses</SelectItem>
-                    <SelectItem value="completed">Selesai</SelectItem>
-                    <SelectItem value="cancelled">Dibatalkan</SelectItem>
+                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
+                    <SelectItem value="new" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Baru</SelectItem>
+                    <SelectItem value="in_progress" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Dalam Proses</SelectItem>
+                    <SelectItem value="completed" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Selesai</SelectItem>
+                    <SelectItem value="cancelled" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Dibatalkan</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
 
               <div>
-                <label className="text-sm font-medium mb-2 block">Catatan</label>
+                <label className="text-sm font-medium mb-2 block text-black dark:text-white">Catatan</label>
                 <Textarea
                   value={adminNote}
                   onChange={(e) => setAdminNote(e.target.value)}
                   placeholder="Tambahkan catatan..."
                   rows={4}
+                  className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
               </div>
 
               <div className="flex gap-2">
-                <Button onClick={handleUpdateStatus} disabled={updating} className="flex-1">
+                <Button onClick={handleUpdateStatus} disabled={updating} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
                   {updating ? "Menyimpan..." : "Simpan"}
                 </Button>
-                <Button onClick={() => setSelectedTicket(null)} variant="outline" className="flex-1">
+                <Button onClick={() => setSelectedTicket(null)} variant="outline" className="flex-1 border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">
                   Batal
                 </Button>
               </div>
@@ -391,11 +393,11 @@ export function DivisionMonitoringDashboard() {
 
       {/* Image Modal */}
       <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-        <DialogContent className="max-w-4xl">
+        <DialogContent className="max-w-4xl bg-white dark:bg-black border-gray-200 dark:border-gray-700">
           <DialogHeader>
-            <DialogTitle>Gambar Lampiran</DialogTitle>
+            <DialogTitle className="text-black dark:text-white">Gambar Lampiran</DialogTitle>
           </DialogHeader>
-          <div className="flex items-center justify-center bg-muted rounded-lg p-4">
+          <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
             <img src={selectedImage} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain" />
           </div>
         </DialogContent>

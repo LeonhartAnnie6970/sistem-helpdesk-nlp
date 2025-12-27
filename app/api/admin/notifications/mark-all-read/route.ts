@@ -10,7 +10,7 @@ export async function PATCH(request: NextRequest) {
   }
 
   const decoded = verifyToken(token)
-  if (!decoded || decoded.role !== "admin") {
+  if (!decoded || (decoded.role !== "admin" && decoded.role !== "super_admin")) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 })
   }
 

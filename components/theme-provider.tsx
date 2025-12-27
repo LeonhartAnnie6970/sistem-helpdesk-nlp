@@ -10,16 +10,20 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true)
-    // Check localStorage and system preference
+    // Check localStorage - default to light theme if not set
     const saved = localStorage.getItem("theme")
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches
 
-    if (saved === "dark" || (!saved && prefersDark)) {
+    if (saved === "dark") {
       setIsDark(true)
       document.documentElement.classList.add("dark")
     } else {
+      // Default to light theme
       setIsDark(false)
       document.documentElement.classList.remove("dark")
+      // Set default theme to localStorage if not exists
+      if (!saved) {
+        localStorage.setItem("theme", "light")
+      }
     }
   }, [])
 
@@ -43,7 +47,7 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
       {children}
       <div
         onClick={toggleTheme}
-        className="fixed bottom-4 right-4 p-3 rounded-full bg-primary text-primary-foreground cursor-pointer hover:opacity-90 transition-opacity shadow-lg z-50"
+        className="fixed bottom-4 right-4 p-3 rounded-full bg-blue-600 text-white cursor-pointer hover:bg-blue-700 transition-colors shadow-lg z-50"
         title="Toggle theme"
       >
         {isDark ? (

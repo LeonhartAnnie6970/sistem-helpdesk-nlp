@@ -58,15 +58,15 @@ export function AdminStats() {
   }
 
   if (isLoading) {
-    return <div className="text-center py-8">Loading...</div>
+    return <div className="text-center py-8 text-gray-600 dark:text-gray-300">Loading...</div>
   }
 
   if (error) {
-    return <div className="text-center py-8 text-destructive">{error}</div>
+    return <div className="text-center py-8 text-red-600 dark:text-red-400">{error}</div>
   }
 
   if (!stats) {
-    return <div className="text-center py-8">No data available</div>
+    return <div className="text-center py-8 text-gray-600 dark:text-gray-300">No data available</div>
   }
 
   const COLORS = ["#3b82f6", "#10b981", "#f59e0b", "#ef4444", "#8b5cf6"]
@@ -75,21 +75,21 @@ export function AdminStats() {
     <div className="space-y-6">
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total Tiket</CardTitle>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-2 bg-white dark:bg-black">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Tiket</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalTickets}</div>
+          <CardContent className="bg-white dark:bg-black">
+            <div className="text-3xl font-bold text-black dark:text-white">{stats.totalTickets}</div>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium text-muted-foreground">Total User</CardTitle>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="pb-2 bg-white dark:bg-black">
+            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Total User</CardTitle>
           </CardHeader>
-          <CardContent>
-            <div className="text-3xl font-bold">{stats.totalUsers}</div>
+          <CardContent className="bg-white dark:bg-black">
+            <div className="text-3xl font-bold text-black dark:text-white">{stats.totalUsers}</div>
           </CardContent>
         </Card>
       </div>
@@ -100,16 +100,16 @@ export function AdminStats() {
       {/* Charts */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Status Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Tiket per Status</CardTitle>
-            <CardDescription>Distribusi status tiket</CardDescription>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="bg-white dark:bg-black">
+            <CardTitle className="text-black dark:text-white">Tiket per Status</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">Distribusi status tiket</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-white dark:bg-black">
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie data={stats.byStatus} dataKey="count" nameKey="status" cx="50%" cy="50%" outerRadius={100} label>
-                  {stats.byStatus.map((entry, index) => (
+                  {stats.byStatus.map((_entry, index) => (
                     <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                   ))}
                 </Pie>
@@ -120,12 +120,12 @@ export function AdminStats() {
         </Card>
 
         {/* Category Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Tiket per Kategori</CardTitle>
-            <CardDescription>Distribusi kategori tiket</CardDescription>
+        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+          <CardHeader className="bg-white dark:bg-black">
+            <CardTitle className="text-black dark:text-white">Tiket per Kategori</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">Distribusi kategori tiket</CardDescription>
           </CardHeader>
-          <CardContent>
+          <CardContent className="bg-white dark:bg-black">
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={stats.byCategory}>
                 <CartesianGrid strokeDasharray="3 3" />
@@ -140,20 +140,20 @@ export function AdminStats() {
       </div>
 
       {/* Recent Tickets */}
-      <Card>
-        <CardHeader>
-          <CardTitle>Tiket Terbaru</CardTitle>
-          <CardDescription>10 tiket terbaru yang masuk</CardDescription>
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black">
+          <CardTitle className="text-black dark:text-white">Tiket Terbaru</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-300">10 tiket terbaru yang masuk</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="bg-white dark:bg-black">
           <div className="space-y-4">
             {stats.recentTickets.map((ticket) => (
-              <div key={ticket.id} className="flex items-center justify-between p-3 border rounded">
+              <div key={ticket.id} className="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded bg-white dark:bg-black">
                 <div>
-                  <p className="font-medium">{ticket.title}</p>
-                  <p className="text-sm text-muted-foreground">{ticket.name}
+                  <p className="font-medium text-black dark:text-white">{ticket.title}</p>
+                  <p className="text-sm text-gray-600 dark:text-gray-300">{ticket.name}
                     {ticket.divisi && (
-                      <Badge variant="outline" className="text-xs"> Divisi : {ticket.divisi} </Badge>
+                      <Badge variant="outline" className="text-xs border-gray-300 dark:border-gray-600 text-black dark:text-white"> Divisi : {ticket.divisi} </Badge>
                     )}
                   </p>
                 </div>

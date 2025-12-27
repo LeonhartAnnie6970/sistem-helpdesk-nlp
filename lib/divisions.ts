@@ -1,15 +1,12 @@
 // List of available divisions/departments
 export const DIVISIONS = [
-  "IT & Teknologi",
-  "Human Resources",
-  "Finance & Accounting",
-  "Sales & Marketing",
-  "Operations",
-  "Customer Service",
-  "Logistics & Supply Chain",
-  "Quality Assurance",
-  "Research & Development",
-  "Admin & General",
+  "IT",
+  "ACC/FINANCE",
+  "OPERASIONAL",
+  "SALES",
+  "CUSTOMER SERVICE",
+  "HR",
+  "DIREKSI/DIREKTUR",
 ] as const
 
 export type Division = (typeof DIVISIONS)[number]

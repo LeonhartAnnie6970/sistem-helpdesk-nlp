@@ -195,3 +195,24 @@ export async function createTicketNotifications(
     return 0
   }
 }
+
+/**
+ * Check if user is super admin and should receive all tickets
+ */
+export async function isSuperAdmin(userId: number): Promise<boolean> {
+  try {
+    const result = await query(
+      "SELECT role FROM users WHERE id = ?",
+      [userId]
+    )
+    
+    if (Array.isArray(result) && result.length > 0) {
+      return (result[0] as any).role === 'super_admin'
+    }
+    
+    return false
+  } catch (error) {
+    console.error('[Routing] Error checking super admin:', error)
+    return false
+  }
+}

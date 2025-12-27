@@ -173,7 +173,7 @@
 
 "use client"
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Sidebar } from "@/components/dashboard-sidebar"
 import { AdminStats } from "@/components/admin-stats"
@@ -181,6 +181,7 @@ import { AdminDivisionTickets } from "@/components/admin-division-tickets"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { AdminNotificationsPanel } from "@/components/admin-notifications-panel"
+import { cn } from "@/lib/utils"
 
 function AdminDashboardContent() {
   const router = useRouter()
@@ -197,6 +198,7 @@ function AdminDashboardContent() {
   const [activeTab, setActiveTab] = useState("analytics")
   const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
   const [notificationCount, setNotificationCount] = useState(0)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   /**
    * AUTH & PROFILE CHECK
@@ -223,6 +225,13 @@ function AdminDashboardContent() {
       // user biasa
       setIsAuthenticated(true)
       fetchNotificationCount(storedToken)
+
+      // Poll for notifications every 30 seconds
+      const interval = setInterval(() => {
+        fetchNotificationCount(storedToken)
+      }, 30000)
+
+      return () => clearInterval(interval)
     })
     .catch(() => router.push("/login"))
 }, [router])
@@ -275,7 +284,7 @@ function AdminDashboardContent() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
+    <div className="flex h-screen bg-white dark:bg-black">
       {/* SIDEBAR */}
       <Sidebar
         role="admin"
@@ -285,22 +294,27 @@ function AdminDashboardContent() {
         onOpenProfile={() => setIsProfileOpen(true)}
         onOpenNotifications={() => setShowNotifications(!showNotifications)}
         notificationCount={notificationCount}
+        collapsed={sidebarCollapsed}
+        onCollapsedChange={setSidebarCollapsed}
       />
 
       {/* MAIN CONTENT */}
-      <main className="flex-1 overflow-y-auto ml-64">
-        <header className="sticky top-0 z-30 border-b bg-background/95 backdrop-blur">
+      <main className={cn(
+        "flex-1 overflow-y-auto transition-all duration-300 bg-white dark:bg-black",
+        sidebarCollapsed ? "ml-16" : "ml-64"
+      )}>
+        <header className="sticky top-0 z-30 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
           <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold">
+            <h1 className="text-2xl font-bold text-black dark:text-white">
               Dashboard Admin {userDivision}
             </h1>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-sm text-gray-600 dark:text-gray-300">
               Monitoring & pengelolaan tiket divisi
             </p>
           </div>
         </header>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-6 bg-white dark:bg-black">
           {activeTab === "analytics" && (
             <AdminStats />
           )}
@@ -317,12 +331,21 @@ function AdminDashboardContent() {
       {showNotifications && (
         <div className="fixed inset-0 bg-black/20 z-50" onClick={() => setShowNotifications(false)}>
           <div
-            className="fixed left-64 top-16 w-96 bg-background border rounded-lg shadow-lg"
+            className={cn(
+              "fixed top-16 w-96 max-h-[calc(100vh-80px)] bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden transition-all duration-300",
+              sidebarCollapsed ? "left-16" : "left-64"
+            )}
             onClick={(e) => e.stopPropagation()}
           >
             <AdminNotificationsPanel
               token={token}
-              onTicketClick={handleTicketClick}
+              isOpen={showNotifications}
+              onClose={() => setShowNotifications(false)}
+              onUnreadCountChange={(count) => setNotificationCount(count)}
+              onTicketClick={(ticketId) => {
+                setShowNotifications(false)
+                handleTicketClick(ticketId)
+              }}
             />
           </div>
         </div>
@@ -341,7 +364,9 @@ function AdminDashboardContent() {
 export default function AdminDashboardPage() {
   return (
     <ThemeProvider>
-      <AdminDashboardContent />
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+        <AdminDashboardContent />
+      </Suspense>
     </ThemeProvider>
   )
 }

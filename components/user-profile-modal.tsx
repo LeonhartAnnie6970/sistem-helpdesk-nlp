@@ -1,14 +1,13 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from 'next/navigation'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { X, Upload, Eye, EyeOff, LogOut, Save, Edit2, Camera, Loader2 } from 'lucide-react'
+import { X, Eye, EyeOff, Save, Edit2, Camera, Loader2 } from 'lucide-react'
 import { DIVISIONS } from "@/lib/divisions"
 
 interface UserProfile {
@@ -27,12 +26,12 @@ interface UserProfileModalProps {
 }
 
 export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalProps) {
-  const router = useRouter()
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [loading, setLoading] = useState(false)
   const [uploadingImage, setUploadingImage] = useState(false)
   const [error, setError] = useState("")
   const [success, setSuccess] = useState("")
+  const [isDark, setIsDark] = useState(false)
 
   const [username, setUsername] = useState("")
   const [division, setDivisi] = useState("")
@@ -50,6 +49,24 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
       fetchProfile()
     }
   }, [isOpen])
+
+  useEffect(() => {
+    // Detect theme changes
+    const checkTheme = () => {
+      setIsDark(document.documentElement.classList.contains('dark'))
+    }
+
+    checkTheme()
+
+    // Watch for theme changes
+    const observer = new MutationObserver(checkTheme)
+    observer.observe(document.documentElement, {
+      attributes: true,
+      attributeFilter: ['class']
+    })
+
+    return () => observer.disconnect()
+  }, [])
 
   const fetchProfile = async () => {
     try {
@@ -222,14 +239,6 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
     }
   }
 
-  const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("userId")
-    localStorage.removeItem("role")
-    onClose()
-    router.push("/login")
-  }
-
   const handleCancelEdit = () => {
     if (profile) {
       setUsername(profile.username)
@@ -243,22 +252,22 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
-      <Card className="w-full max-w-2xl">
-        <CardHeader className="flex flex-row items-center justify-between space-y-0">
+      <Card className="w-full max-w-2xl shadow-2xl border-gray-200 dark:border-gray-700" style={{ backgroundColor: isDark ? 'black' : 'white' }}>
+        <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-gray-200 dark:border-gray-700" style={{ backgroundColor: isDark ? 'black' : 'white' }}>
           <div>
-            <CardTitle>Profil Pengguna</CardTitle>
-            <CardDescription>Kelola pengaturan akun dan profil Anda</CardDescription>
+            <CardTitle className="text-black dark:text-white">Profil Pengguna</CardTitle>
+            <CardDescription className="text-gray-600 dark:text-gray-300">Kelola pengaturan akun dan profil Anda</CardDescription>
           </div>
-          <button 
-            onClick={onClose} 
-            className="text-gray-500 hover:text-gray-700 transition-colors"
+          <button
+            onClick={onClose}
+            className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
             disabled={loading || uploadingImage}
           >
             <X className="w-5 h-5" />
           </button>
         </CardHeader>
 
-        <CardContent className="max-h-[70vh] overflow-y-auto">
+        <CardContent className="max-h-[70vh] overflow-y-auto" style={{ backgroundColor: isDark ? 'black' : 'white' }}>
           {error && (
             <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-md flex items-start">
               <span className="flex-1">{error}</span>
@@ -284,10 +293,19 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
             </div>
           ) : profile ? (
             <Tabs defaultValue="profile" className="w-full">
-              <TabsList className="grid w-full grid-cols-3">
-                <TabsTrigger value="profile">Profil</TabsTrigger>
-                <TabsTrigger value="password">Ubah Password</TabsTrigger>
-                <TabsTrigger value="logout">Logout</TabsTrigger>
+              <TabsList className="grid w-full grid-cols-2 bg-gray-100 dark:bg-gray-800">
+                <TabsTrigger
+                  value="profile"
+                  className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-600 dark:data-[state=active]:bg-black dark:data-[state=active]:text-white dark:data-[state=inactive]:text-gray-400 font-semibold"
+                >
+                  Profil
+                </TabsTrigger>
+                <TabsTrigger
+                  value="password"
+                  className="data-[state=active]:bg-white data-[state=active]:text-black data-[state=inactive]:text-gray-600 dark:data-[state=active]:bg-black dark:data-[state=active]:text-white dark:data-[state=inactive]:text-gray-400 font-semibold"
+                >
+                  Ubah Password
+                </TabsTrigger>
               </TabsList>
 
               <TabsContent value="profile" className="space-y-4 mt-4">
@@ -300,18 +318,18 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                         className="w-full h-full rounded-full object-cover border-4 border-gray-200 shadow-lg"
                       />
                     ) : (
-                      <div className="w-full h-full rounded-full bg: gradient-to-br from-blue-400 to-purple-500 flex items-center justify-center text-white text-4xl font-bold shadow-lg">
+                      <div className="w-full h-full rounded-full bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center text-white text-4xl font-bold shadow-lg border-4 border-white dark:border-gray-800">
                         {profile.username.charAt(0).toUpperCase()}
                       </div>
                     )}
-                    
+
                     {/* Upload overlay */}
                     {uploadingImage ? (
                       <div className="absolute inset-0 bg-black bg-opacity-50 rounded-full flex items-center justify-center">
                         <Loader2 className="w-8 h-8 text-white animate-spin" />
                       </div>
                     ) : (
-                      <label className="absolute bottom-0 right-0 bg-blue-500 rounded-full p-2.5 cursor-pointer hover:bg-blue-600 transition-all shadow-lg hover:scale-110 active:scale-95">
+                      <label className="absolute bottom-0 right-0 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full p-2.5 cursor-pointer hover:from-blue-700 hover:to-blue-800 transition-all shadow-xl hover:scale-110 active:scale-95 border-3 border-white dark:border-gray-900">
                         <Camera className="w-5 h-5 text-white" />
                         <input
                           type="file"
@@ -324,10 +342,10 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                     )}
                   </div>
                   <div className="text-center">
-                    <p className="text-xs text-muted-foreground">
+                    <p className="text-xs text-gray-600 dark:text-gray-400 font-medium">
                       {uploadingImage ? "Mengupload foto..." : "Klik ikon kamera untuk mengubah foto profil"}
                     </p>
-                    <p className="text-xs text-muted-foreground mt-1">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-1">
                       Format: JPG, PNG, GIF (Max. 5MB)
                     </p>
                   </div>
@@ -335,40 +353,40 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
 
                 <div className="space-y-4">
                   <div>
-                    <Label className="text-sm font-medium">Nama Pengguna</Label>
+                    <Label className="text-sm font-semibold text-black dark:text-white">Nama Pengguna</Label>
                     {isEditing ? (
                       <Input
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
                         disabled={loading}
-                        className="mt-1"
+                        className="mt-1 bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600"
                         placeholder="Masukkan nama pengguna"
                       />
                     ) : (
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
+                      <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 text-black dark:text-white font-medium">
                         {profile.username}
                       </div>
                     )}
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Divisi</Label>
+                    <Label className="text-sm font-semibold text-black dark:text-white">Divisi</Label>
                     {isEditing ? (
                       <Select value={division} onValueChange={setDivisi} disabled={loading}>
-                        <SelectTrigger className="mt-1">
+                        <SelectTrigger className="mt-1 bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
                           <SelectValue placeholder="Pilih divisi" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
                           {DIVISIONS.map((div) => (
-                            <SelectItem key={div} value={div}>
+                            <SelectItem key={div} value={div} className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">
                               {div}
                             </SelectItem>
                           ))}
                         </SelectContent>
                       </Select>
                     ) : (
-                      <div className="mt-1 p-3 bg-gray-50 rounded-md border">
-                        <span className="inline-block px-3 py-1 bg-blue-100 text-blue-800 text-sm rounded-full font-medium">
+                      <div className="mt-1 p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700">
+                        <span className="inline-block px-3 py-1 bg-blue-600 text-white text-sm rounded-full font-semibold shadow-sm">
                           {profile.division}
                         </span>
                       </div>
@@ -376,15 +394,15 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Email</Label>
-                    <div className="p-3 bg-gray-50 rounded-md border mt-1 text-gray-600">
+                    <Label className="text-sm font-semibold text-black dark:text-white">Email</Label>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 mt-1 text-black dark:text-white font-medium">
                       {profile.email}
                     </div>
                   </div>
 
                   <div>
-                    <Label className="text-sm font-medium">Bergabung Sejak</Label>
-                    <div className="p-3 bg-gray-50 rounded-md border mt-1 text-gray-600">
+                    <Label className="text-sm font-semibold text-black dark:text-white">Bergabung Sejak</Label>
+                    <div className="p-3 bg-gray-50 dark:bg-gray-800 rounded-md border border-gray-200 dark:border-gray-700 mt-1 text-black dark:text-white font-medium">
                       {new Date(profile.created_at).toLocaleDateString("id-ID", {
                         year: 'numeric',
                         month: 'long',
@@ -399,7 +417,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                         <Button
                           onClick={handleUpdateProfile}
                           disabled={loading}
-                          className="flex-1"
+                          className="flex-1 bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                         >
                           <Save className="w-4 h-4 mr-2" />
                           {loading ? "Menyimpan..." : "Simpan Perubahan"}
@@ -408,7 +426,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                           onClick={handleCancelEdit}
                           disabled={loading}
                           variant="outline"
-                          className="flex-1"
+                          className="flex-1 border-gray-300 text-black hover:bg-gray-100 dark:border-gray-600 dark:text-white dark:hover:bg-gray-800 font-semibold"
                         >
                           Batal
                         </Button>
@@ -416,8 +434,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                     ) : (
                       <Button
                         onClick={() => setIsEditing(true)}
-                        className="w-full"
-                        variant="outline"
+                        className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                       >
                         <Edit2 className="w-4 h-4 mr-2" />
                         Edit Profil
@@ -430,7 +447,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
               <TabsContent value="password" className="space-y-4 mt-4">
                 <div className="space-y-4">
                   <div>
-                    <Label htmlFor="current-password" className="text-sm font-medium">
+                    <Label htmlFor="current-password" className="text-sm font-semibold text-black dark:text-white">
                       Password Saat Ini
                     </Label>
                     <div className="flex gap-2 mt-1">
@@ -441,11 +458,12 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                         onChange={(e) => setCurrentPassword(e.target.value)}
                         placeholder="Masukkan password saat ini"
                         disabled={loading}
+                        className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                       />
                       <button
                         type="button"
                         onClick={() => setShowCurrentPassword(!showCurrentPassword)}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors text-black dark:text-white"
                       >
                         {showCurrentPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -457,7 +475,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                   </div>
 
                   <div>
-                    <Label htmlFor="new-password" className="text-sm font-medium">
+                    <Label htmlFor="new-password" className="text-sm font-semibold text-black dark:text-white">
                       Password Baru
                     </Label>
                     <div className="flex gap-2 mt-1">
@@ -468,11 +486,12 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                         onChange={(e) => setNewPassword(e.target.value)}
                         placeholder="Masukkan password baru (min 6 karakter)"
                         disabled={loading}
+                        className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                       />
                       <button
                         type="button"
                         onClick={() => setShowNewPassword(!showNewPassword)}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors text-black dark:text-white"
                       >
                         {showNewPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -484,7 +503,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                   </div>
 
                   <div>
-                    <Label htmlFor="confirm-password" className="text-sm font-medium">
+                    <Label htmlFor="confirm-password" className="text-sm font-semibold text-black dark:text-white">
                       Konfirmasi Password Baru
                     </Label>
                     <div className="flex gap-2 mt-1">
@@ -495,11 +514,12 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                         onChange={(e) => setConfirmPassword(e.target.value)}
                         placeholder="Konfirmasi password baru"
                         disabled={loading}
+                        className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                       />
                       <button
                         type="button"
                         onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                        className="p-2 hover:bg-gray-100 rounded transition-colors"
+                        className="p-2 hover:bg-gray-100 dark:hover:bg-gray-800 rounded transition-colors text-black dark:text-white"
                       >
                         {showConfirmPassword ? (
                           <EyeOff className="w-4 h-4" />
@@ -513,7 +533,7 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                   <Button
                     onClick={handleChangePassword}
                     disabled={loading}
-                    className="w-full"
+                    className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold"
                   >
                     {loading ? (
                       <>
@@ -524,36 +544,6 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
                       "Ubah Password"
                     )}
                   </Button>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="logout" className="space-y-4 mt-4">
-                <div className="text-center space-y-4 py-4">
-                  <div className="w-16 h-16 mx-auto bg-red-100 rounded-full flex items-center justify-center">
-                    <LogOut className="w-8 h-8 text-red-500" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-semibold mb-2">Konfirmasi Logout</h3>
-                    <p className="text-gray-600">
-                      Apakah Anda yakin ingin logout? Anda akan diarahkan ke halaman login.
-                    </p>
-                  </div>
-                  <div className="flex gap-2 pt-4">
-                    <Button
-                      onClick={onClose}
-                      variant="outline"
-                      className="flex-1"
-                    >
-                      Batal
-                    </Button>
-                    <Button
-                      onClick={handleLogout}
-                      className="flex-1 bg-red-500 hover:bg-red-600"
-                    >
-                      <LogOut className="w-4 h-4 mr-2" />
-                      Ya, Logout
-                    </Button>
-                  </div>
                 </div>
               </TabsContent>
             </Tabs>
