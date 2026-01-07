@@ -186,6 +186,7 @@ export function Sidebar({
   const adminMenuItems = [
     { id: "analytics", label: "Analytics", icon: BarChart3 },
     { id: "tickets", label: "Kelola Tiket", icon: Ticket },
+    { id: "create-ticket", label: "Buat Tiket", icon: FileText },
   ]
 
   const userMenuItems = [
@@ -197,6 +198,7 @@ export function Sidebar({
     { id: "monitoring", label: "Division Monitoring", icon: Shield },
     { id: "tickets", label: "All Tickets", icon: Ticket },
     { id: "users", label: "User Management", icon: Users },
+    { id: "create-ticket", label: "Buat Tiket", icon: FileText },
   ]
 
   const menuItems =

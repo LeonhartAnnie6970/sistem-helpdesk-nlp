@@ -3,7 +3,9 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { ImageIcon, Hash } from "lucide-react"
+import { Button } from "@/components/ui/button"
+import { ImageIcon, Hash, MessageSquare } from "lucide-react"
+import { TicketDetailModal } from "@/components/ticket-detail-modal"
 
 interface Ticket {
   id: number
@@ -27,6 +29,8 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [error, setError] = useState("")
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [isModalOpen, setIsModalOpen] = useState(false)
 
   useEffect(() => {
     fetchTickets()
@@ -83,6 +87,20 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
     }
   }
 
+  const handleOpenTicket = (ticketId: number) => {
+    setSelectedTicketId(ticketId)
+    setIsModalOpen(true)
+  }
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false)
+    setSelectedTicketId(null)
+  }
+
+  const handleTicketUpdate = () => {
+    fetchTickets()
+  }
+
   if (isLoading) {
     return <div className="text-center py-8 text-gray-600 dark:text-gray-300">Loading...</div>
   }
@@ -96,34 +114,35 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
   }
 
   return (
-    <div className="space-y-4">
-      {tickets.map((ticket) => (
-        <Card key={ticket.id} className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
-          <CardHeader className="bg-white dark:bg-black">
-            <div className="flex items-start justify-between">
-              <div className="flex-1">
-                <div className="flex items-center gap-2 mb-2">
-                  <Badge variant="outline" className="font-mono text-xs border-gray-300 dark:border-gray-600 text-black dark:text-white">
-                    <Hash className="w-3 h-3 mr-1" />
-                    {ticket.id}
-                  </Badge>
-                </div>
-                <CardTitle className="text-lg text-black dark:text-white">{ticket.title}</CardTitle>
-                <div className="flex gap-2 items-center mt-1">
-                  <CardDescription className="text-gray-600 dark:text-gray-300">{ticket.name}</CardDescription>
-                  {ticket.divisi && (
-                    <Badge variant="secondary" className="text-xs">
-                      {ticket.divisi}
+    <>
+      <div className="space-y-4">
+        {tickets.map((ticket) => (
+          <Card key={ticket.id} className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 hover:shadow-md transition-shadow">
+            <CardHeader className="bg-white dark:bg-black">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-2">
+                    <Badge variant="outline" className="font-mono text-xs border-gray-300 dark:border-gray-600 text-black dark:text-white">
+                      <Hash className="w-3 h-3 mr-1" />
+                      {ticket.id}
                     </Badge>
-                  )}
+                  </div>
+                  <CardTitle className="text-lg text-black dark:text-white">{ticket.title}</CardTitle>
+                  <div className="flex gap-2 items-center mt-1">
+                    <CardDescription className="text-gray-600 dark:text-gray-300">{ticket.name}</CardDescription>
+                    {ticket.divisi && (
+                      <Badge variant="secondary" className="text-xs">
+                        {ticket.divisi}
+                      </Badge>
+                    )}
+                  </div>
                 </div>
+                <Badge className={getStatusColor(ticket.status)}>
+                  {getStatusLabel(ticket.status)}
+                </Badge>
               </div>
-              <Badge className={getStatusColor(ticket.status)}>
-                {getStatusLabel(ticket.status)}
-              </Badge>
-            </div>
-          </CardHeader>
-          <CardContent className="bg-white dark:bg-black">
+            </CardHeader>
+            <CardContent className="bg-white dark:bg-black">
             <p className="text-sm text-gray-600 dark:text-gray-300 mb-3">
               <span className="font-semibold">User Notes:</span> {ticket.description}
             </p>
@@ -162,7 +181,7 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
               </p>
             )}
 
-            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300">
+            <div className="flex items-center justify-between text-xs text-gray-600 dark:text-gray-300 mb-3">
               {ticket.category && <Badge variant="outline" className="border-gray-300 dark:border-gray-600 text-black dark:text-white">{ticket.category}</Badge>}
               <span>{new Date(ticket.created_at).toLocaleDateString("id-ID", {
                 year: 'numeric',
@@ -172,9 +191,26 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
                 minute: '2-digit'
               })}</span>
             </div>
+
+            <Button
+              onClick={() => handleOpenTicket(ticket.id)}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              size="sm"
+            >
+              <MessageSquare className="w-4 h-4 mr-2" />
+              Lihat Detail & Respons
+            </Button>
           </CardContent>
         </Card>
       ))}
     </div>
+
+    <TicketDetailModal
+      isOpen={isModalOpen}
+      onClose={handleCloseModal}
+      ticketId={selectedTicketId}
+      onUpdate={handleTicketUpdate}
+    />
+  </>
   )
 }

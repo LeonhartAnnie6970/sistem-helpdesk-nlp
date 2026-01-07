@@ -9,6 +9,10 @@ import { SuperAdminUserManagement } from "@/components/super-admin-user-manageme
 import { SuperAdminTicketsPanel } from "@/components/super-admin-tickets-panel"
 import { AdminNotificationsPanel } from "@/components/admin-notifications-panel"
 import { Sidebar } from "@/components/dashboard-sidebar"
+import { TicketForm } from "@/components/ticket-form"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Button } from "@/components/ui/button"
+import { Plus } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function SuperAdminDashboardContent() {
@@ -20,6 +24,8 @@ function SuperAdminDashboardContent() {
   const [notificationCount, setNotificationCount] = useState(0)
   const [activeTab, setActiveTab] = useState("monitoring")
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [showNewTicketForm, setShowNewTicketForm] = useState(false)
+  const [refreshTrigger, setRefreshTrigger] = useState(0)
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token")
@@ -61,6 +67,11 @@ function SuperAdminDashboardContent() {
     router.push("/login")
   }
 
+  const handleTicketSuccess = () => {
+    setRefreshTrigger((prev) => prev + 1)
+    setShowNewTicketForm(false)
+  }
+
   if (!isAuthenticated) {
     return (
       <div className="flex items-center justify-center min-h-screen">
@@ -91,17 +102,27 @@ function SuperAdminDashboardContent() {
       )}>
         {/* Top Bar */}
         <header className="sticky top-0 z-30 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
-          <div className="px-6 py-4">
-            <h1 className="text-2xl font-bold text-black dark:text-white">
-              {activeTab === "monitoring" && "Division Monitoring"}
-              {activeTab === "tickets" && "All Tickets"}
-              {activeTab === "users" && "User Management"}
-            </h1>
-            <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-              {activeTab === "monitoring" && "Monitor performa semua divisi"}
-              {activeTab === "tickets" && "Kelola semua ticket dari seluruh sistem"}
-              {activeTab === "users" && "Kelola akun pengguna dan admin"}
-            </p>
+          <div className="flex items-center justify-between px-6 py-4">
+            <div>
+              <h1 className="text-2xl font-bold text-black dark:text-white">
+                {activeTab === "monitoring" && "Division Monitoring"}
+                {activeTab === "tickets" && "All Tickets"}
+                {activeTab === "users" && "User Management"}
+                {activeTab === "create-ticket" && "Buat Tiket Baru"}
+              </h1>
+              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
+                {activeTab === "monitoring" && "Monitor performa semua divisi"}
+                {activeTab === "tickets" && "Kelola semua ticket dari seluruh sistem"}
+                {activeTab === "users" && "Kelola akun pengguna dan admin"}
+                {activeTab === "create-ticket" && "Buat tiket atas nama super admin"}
+              </p>
+            </div>
+            {activeTab === "create-ticket" && (
+              <Button onClick={() => setShowNewTicketForm(!showNewTicketForm)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                <Plus className="w-4 h-4 mr-2" />
+                {showNewTicketForm ? "Tutup Form" : "Buat Tiket"}
+              </Button>
+            )}
           </div>
         </header>
 
@@ -110,6 +131,41 @@ function SuperAdminDashboardContent() {
           {activeTab === "monitoring" && <DivisionMonitoringDashboard />}
           {activeTab === "tickets" && <SuperAdminTicketsPanel token={token} />}
           {activeTab === "users" && <SuperAdminUserManagement />}
+
+          {activeTab === "create-ticket" && (
+            <div className="space-y-6">
+              {showNewTicketForm && (
+                <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+                  <CardHeader className="bg-white dark:bg-black">
+                    <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-300">
+                      Buat tiket sebagai super admin
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="bg-white dark:bg-black">
+                    <TicketForm onSuccess={handleTicketSuccess} />
+                  </CardContent>
+                </Card>
+              )}
+
+              {!showNewTicketForm && (
+                <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+                  <CardHeader className="bg-white dark:bg-black">
+                    <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
+                    <CardDescription className="text-gray-600 dark:text-gray-300">
+                      Klik tombol di atas untuk membuat tiket baru
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="bg-white dark:bg-black flex items-center justify-center py-12">
+                    <Button onClick={() => setShowNewTicketForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                      <Plus className="w-4 h-4 mr-2" />
+                      Buat Tiket Baru
+                    </Button>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
         </div>
       </main>
 

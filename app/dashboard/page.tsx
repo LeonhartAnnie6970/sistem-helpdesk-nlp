@@ -5,12 +5,14 @@ import { useRouter } from 'next/navigation'
 import { Sidebar } from "@/components/dashboard-sidebar"
 import { TicketForm } from "@/components/ticket-form"
 import { TicketList } from "@/components/ticket-list"
+import { DivisionTicketList } from "@/components/division-ticket-list"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { UserNotificationsPanel } from "@/components/user-notifications-panel"
 import { Button } from "@/components/ui/button"
-import { Plus } from 'lucide-react'
+import { Plus, Inbox } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 function DashboardContent() {
@@ -218,14 +220,33 @@ function DashboardContent() {
                 </Card>
               )}
 
-              {/* Tickets List */}
+              {/* Tickets List with Tabs */}
               <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
                 <CardHeader className="bg-white dark:bg-black">
-                  <CardTitle className="text-black dark:text-white">Semua Tiket Saya</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">Daftar semua ticket yang pernah Anda buat</CardDescription>
+                  <CardTitle className="text-black dark:text-white">Tiket</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">Kelola tiket Anda dan tiket divisi</CardDescription>
                 </CardHeader>
                 <CardContent className="bg-white dark:bg-black">
-                  <TicketList refreshTrigger={refreshTrigger} />
+                  <Tabs defaultValue="my-tickets" className="w-full">
+                    <TabsList className="grid w-full grid-cols-2 mb-4">
+                      <TabsTrigger value="my-tickets">
+                        <Plus className="w-4 h-4 mr-2" />
+                        Tiket Saya
+                      </TabsTrigger>
+                      <TabsTrigger value="division-tickets">
+                        <Inbox className="w-4 h-4 mr-2" />
+                        Tiket Divisi
+                      </TabsTrigger>
+                    </TabsList>
+
+                    <TabsContent value="my-tickets" className="mt-0">
+                      <TicketList refreshTrigger={refreshTrigger} />
+                    </TabsContent>
+
+                    <TabsContent value="division-tickets" className="mt-0">
+                      <DivisionTicketList refreshTrigger={refreshTrigger} />
+                    </TabsContent>
+                  </Tabs>
                 </CardContent>
               </Card>
             </div>

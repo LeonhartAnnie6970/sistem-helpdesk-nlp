@@ -73,8 +73,8 @@ export async function getAdminsForTicket(
 
     // 1. Get admins from user division
     const userDivisionAdmins = await query(
-      `SELECT id, name, email, division, role 
-       FROM users 
+      `SELECT id, name, email, division, role
+       FROM users
        WHERE role = 'admin' AND division = ? AND is_active = TRUE`,
       [userDivision]
     )as Array<{ id: number; name: string; email: string; division: string; role: string }>
@@ -93,8 +93,8 @@ export async function getAdminsForTicket(
       if (division === userDivision) continue // Skip duplicate
 
       const categoryAdmins = await query(
-        `SELECT id, name, email, division, role 
-         FROM users 
+        `SELECT id, name, email, division, role
+         FROM users
          WHERE role = 'admin' AND division = ? AND is_active = TRUE`,
         [division]
       )
@@ -114,8 +114,8 @@ export async function getAdminsForTicket(
 
     // 3. Get all super admins
     const superAdmins = await query(
-      `SELECT id, name, email, division, role 
-       FROM users 
+      `SELECT id, name, email, division, role
+       FROM users
        WHERE role = 'super_admin' AND is_active = TRUE`
     )
 
@@ -146,7 +146,62 @@ export async function getAdminsForTicket(
 }
 
 /**
- * Create notifications for all relevant admins
+ * Get all users in target divisions that should receive notifications
+ */
+export async function getUsersForTicket(
+  userDivision: string,
+  nlpCategory: string,
+  ticketCreatorId: number
+): Promise<Array<{
+  id: number
+  name: string
+  email: string
+  division: string
+  role: string
+  notification_reason: 'target_division'
+}>> {
+  try {
+    const routing = await getTicketRoutingDivisions(userDivision, nlpCategory)
+    const users: any[] = []
+
+    // Get all users from target divisions (NLP routing)
+    for (const division of routing.nlpDivisions) {
+      // Get users from this division (excluding ticket creator)
+      const divisionUsers = await query(
+        `SELECT id, name, email, division, role
+         FROM users
+         WHERE role = 'user' AND division = ? AND is_active = TRUE AND id != ?`,
+        [division, ticketCreatorId]
+      )
+
+      if (divisionUsers && Array.isArray(divisionUsers)) {
+        divisionUsers.forEach((user: any) => {
+          // Check if user already added
+          if (!users.find(u => u.id === user.id)) {
+            users.push({
+              ...user,
+              notification_reason: 'target_division' as const
+            })
+          }
+        })
+      }
+    }
+
+    console.log(`[Routing] Found ${users.length} users for ticket:`, {
+      userDivision,
+      nlpCategory,
+      targetDivisions: routing.nlpDivisions
+    })
+
+    return users
+  } catch (error) {
+    console.error('[Routing] Error getting users:', error)
+    return []
+  }
+}
+
+/**
+ * Create notifications for all relevant admins and users
  */
 export async function createTicketNotifications(
   ticketId: number,
@@ -158,20 +213,22 @@ export async function createTicketNotifications(
 ): Promise<number> {
   try {
     const admins = await getAdminsForTicket(userDivision, nlpCategory)
-    
+    const users = await getUsersForTicket(userDivision, nlpCategory, userId)
+
     let notificationCount = 0
 
+    // Create admin notifications
     for (const admin of admins) {
       // Create notification dengan reason
       let message = `Tiket baru dari ${userName} (${userDivision})`
-      
+
       if (admin.notification_reason === 'nlp_category') {
         message += ` - Kategori: ${nlpCategory}`
       }
 
       await query(
-        `INSERT INTO notifications 
-         (id_admin, id_ticket, id_user, title, message, notification_reason, is_read) 
+        `INSERT INTO notifications
+         (id_admin, id_ticket, id_user, title, message, notification_reason, is_read)
          VALUES (?, ?, ?, ?, ?, ?, ?)`,
         [
           admin.id,
@@ -187,8 +244,29 @@ export async function createTicketNotifications(
       notificationCount++
     }
 
-    console.log(`[Routing] Created ${notificationCount} notifications for ticket ${ticketId}`)
-    
+    // Create user notifications for target division users
+    for (const user of users) {
+      const message = `Tiket baru di divisi Anda dari ${userName} (${userDivision}) - Kategori: ${nlpCategory}`
+
+      await query(
+        `INSERT INTO user_notifications
+         (id_user, id_ticket, ticket_title, message, type, is_read)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          user.id,
+          ticketId,
+          title,
+          message,
+          'status_update',
+          false
+        ]
+      )
+
+      notificationCount++
+    }
+
+    console.log(`[Routing] Created ${notificationCount} notifications (${admins.length} admins, ${users.length} users) for ticket ${ticketId}`)
+
     return notificationCount
   } catch (error) {
     console.error('[Routing] Error creating notifications:', error)

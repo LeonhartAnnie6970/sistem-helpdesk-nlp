@@ -17,9 +17,13 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
   try {
     const tickets = await query(
-      `SELECT t.*, u.name, u.email, u.division 
-       FROM tickets t 
-       JOIN users u ON t.id_user = u.id 
+      `SELECT t.*,
+        u.name as user_name,
+        u.email as user_email,
+        u.role as user_role,
+        u.division as user_division
+       FROM tickets t
+       JOIN users u ON t.id_user = u.id
        WHERE t.id = ?`,
       [params.id]
     )
@@ -30,12 +34,45 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
 
     const ticket = tickets[0] as any
 
-    // Check authorization
-    if (decoded.role === "user" && ticket.id_user !== decoded.userId) {
-      return NextResponse.json({ error: "Forbidden" }, { status: 403 })
-    }
+    // Check authorization based on role
+    if (decoded.role === "user") {
+      // User can see if:
+      // 1. They created it
+      // 2. It's targeted to their division
+      // 3. It's created FROM their division
+      const userInfo: any = await query(
+        "SELECT division FROM users WHERE id = ?",
+        [decoded.userId]
+      )
+      const userDivision = userInfo[0]?.division
 
-    return NextResponse.json(ticket)
+      const hasAccess = ticket.id_user === decoded.userId ||
+                        ticket.target_division === userDivision ||
+                        ticket.user_division === userDivision
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: "Forbidden - ticket not accessible" }, { status: 403 })
+      }
+    } else if (decoded.role === "admin") {
+      // Admin can see tickets:
+      // 1. Targeted to their division
+      // 2. Created FROM their division
+      const adminInfo: any = await query(
+        "SELECT division FROM users WHERE id = ?",
+        [decoded.userId]
+      )
+      const adminDivision = adminInfo[0]?.division
+
+      const hasAccess = ticket.target_division === adminDivision ||
+                        ticket.user_division === adminDivision
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: "Forbidden - ticket not for your division" }, { status: 403 })
+      }
+    }
+    // Super admin can see all
+
+    return NextResponse.json({ ticket })
   } catch (error) {
     console.error("Get ticket error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
