@@ -177,14 +177,16 @@ import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Sidebar } from "@/components/dashboard-sidebar"
 import { AdminStats } from "@/components/admin-stats"
-import { DivisionTicketList } from "@/components/division-ticket-list"
+import { OutgoingTickets } from "@/components/outgoing-tickets"
+import { IncomingTickets } from "@/components/incoming-tickets"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { AdminNotificationsPanel } from "@/components/admin-notifications-panel"
 import { TicketForm } from "@/components/ticket-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, ArrowUpRight, ArrowDownLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
 
 function AdminDashboardContent() {
@@ -343,9 +345,36 @@ function AdminDashboardContent() {
           )}
 
           {activeTab === "tickets" && (
-            <DivisionTicketList
-              refreshTrigger={refreshTrigger}
-            />
+            <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+              <CardHeader className="bg-white dark:bg-black">
+                <CardTitle className="text-black dark:text-white">Kelola Tiket</CardTitle>
+                <CardDescription className="text-gray-600 dark:text-gray-300">
+                  Tiket keluar dan tiket masuk untuk divisi Anda
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="bg-white dark:bg-black">
+                <Tabs defaultValue="outgoing" className="w-full">
+                  <TabsList className="grid w-full grid-cols-2 mb-4">
+                    <TabsTrigger value="outgoing">
+                      <ArrowUpRight className="w-4 h-4 mr-2" />
+                      Tiket Keluar
+                    </TabsTrigger>
+                    <TabsTrigger value="incoming">
+                      <ArrowDownLeft className="w-4 h-4 mr-2" />
+                      Tiket Masuk
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="outgoing" className="mt-0">
+                    <OutgoingTickets refreshTrigger={refreshTrigger} />
+                  </TabsContent>
+
+                  <TabsContent value="incoming" className="mt-0">
+                    <IncomingTickets refreshTrigger={refreshTrigger} />
+                  </TabsContent>
+                </Tabs>
+              </CardContent>
+            </Card>
           )}
 
           {activeTab === "create-ticket" && (

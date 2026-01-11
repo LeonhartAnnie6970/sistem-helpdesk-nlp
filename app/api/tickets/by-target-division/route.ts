@@ -42,9 +42,9 @@ export async function GET(request: NextRequest) {
             (SELECT COUNT(*) FROM ticket_comments WHERE ticket_id = t.id) as comment_count
           FROM tickets t
           JOIN users u ON t.id_user = u.id
-          WHERE t.target_division = ?
+          WHERE JSON_CONTAINS(t.target_divisions, ?, '$')
           ORDER BY t.created_at DESC`,
-          [filterDivision]
+          [JSON.stringify(filterDivision)]
         )
       } else {
         tickets = await query(
@@ -63,7 +63,7 @@ export async function GET(request: NextRequest) {
     }
     else if (decoded.role === "admin") {
       // Admin can see:
-      // 1. Tickets targeted to their division
+      // 1. Tickets targeted to their division (via target_divisions JSON array)
       // 2. Tickets created FROM their division (by users in same division)
       const adminInfo = await query(
         "SELECT division FROM users WHERE id = ?",
@@ -85,15 +85,15 @@ export async function GET(request: NextRequest) {
           (SELECT COUNT(*) FROM ticket_comments WHERE ticket_id = t.id) as comment_count
         FROM tickets t
         JOIN users u ON t.id_user = u.id
-        WHERE t.target_division = ? OR u.division = ?
+        WHERE JSON_CONTAINS(t.target_divisions, ?, '$') OR u.division = ?
         ORDER BY t.created_at DESC`,
-        [adminDivision, adminDivision]
+        [JSON.stringify(adminDivision), adminDivision]
       )
     }
     else {
       // Regular user: see tickets:
       // 1. They created
-      // 2. Targeted to their division
+      // 2. Targeted to their division (via target_divisions JSON array)
       // 3. Created FROM their division (by other users in same division)
       const userInfo = await query(
         "SELECT division FROM users WHERE id = ?",
@@ -111,9 +111,9 @@ export async function GET(request: NextRequest) {
           (SELECT COUNT(*) FROM ticket_comments WHERE ticket_id = t.id) as comment_count
         FROM tickets t
         JOIN users u ON t.id_user = u.id
-        WHERE t.id_user = ? OR t.target_division = ? OR u.division = ?
+        WHERE t.id_user = ? OR JSON_CONTAINS(t.target_divisions, ?, '$') OR u.division = ?
         ORDER BY t.created_at DESC`,
-        [decoded.userId, userDivision, userDivision]
+        [decoded.userId, JSON.stringify(userDivision), userDivision]
       )
     }
 

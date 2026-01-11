@@ -37,11 +37,11 @@ export async function GET(
 
     const ticket = tickets[0]
 
-    // Access control based on target_division
+    // Access control based on target_divisions (JSON array)
     if (decoded.role === "user") {
       // User can see if:
       // 1. They created it
-      // 2. It's targeted to their division
+      // 2. It's targeted to their division (check in target_divisions JSON array)
       // 3. It's created FROM their division (by users in same division)
       const userInfo: any = await query(
         "SELECT division FROM users WHERE id = ?",
@@ -49,8 +49,16 @@ export async function GET(
       )
       const userDivision = userInfo[0]?.division
 
+      // Parse target_divisions JSON array
+      let targetDivisions = []
+      try {
+        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+      } catch (e) {
+        console.error("Failed to parse target_divisions:", e)
+      }
+
       const hasAccess = ticket.id_user === decoded.userId ||
-                        ticket.target_division === userDivision ||
+                        targetDivisions.includes(userDivision) ||
                         ticket.user_division === userDivision
 
       if (!hasAccess) {
@@ -58,7 +66,7 @@ export async function GET(
       }
     } else if (decoded.role === "admin") {
       // Admin can see tickets:
-      // 1. Targeted to their division
+      // 1. Targeted to their division (check in target_divisions JSON array)
       // 2. Created FROM their division
       const adminInfo: any = await query(
         "SELECT division FROM users WHERE id = ?",
@@ -66,7 +74,15 @@ export async function GET(
       )
       const adminDivision = adminInfo[0]?.division
 
-      const hasAccess = ticket.target_division === adminDivision ||
+      // Parse target_divisions JSON array
+      let targetDivisions = []
+      try {
+        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+      } catch (e) {
+        console.error("Failed to parse target_divisions:", e)
+      }
+
+      const hasAccess = targetDivisions.includes(adminDivision) ||
                         ticket.user_division === adminDivision
 
       if (!hasAccess) {
@@ -141,8 +157,16 @@ export async function POST(
       )
       const userDivision = userInfo[0]?.division
 
+      // Parse target_divisions JSON array
+      let targetDivisions = []
+      try {
+        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+      } catch (e) {
+        console.error("Failed to parse target_divisions:", e)
+      }
+
       const hasAccess = ticket.id_user === decoded.userId ||
-                        ticket.target_division === userDivision ||
+                        targetDivisions.includes(userDivision) ||
                         ticket.user_division === userDivision
 
       if (!hasAccess) {
@@ -155,7 +179,15 @@ export async function POST(
       )
       const adminDivision = adminInfo[0]?.division
 
-      const hasAccess = ticket.target_division === adminDivision ||
+      // Parse target_divisions JSON array
+      let targetDivisions = []
+      try {
+        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+      } catch (e) {
+        console.error("Failed to parse target_divisions:", e)
+      }
+
+      const hasAccess = targetDivisions.includes(adminDivision) ||
                         ticket.user_division === adminDivision
 
       if (!hasAccess) {

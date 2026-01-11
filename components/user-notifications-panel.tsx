@@ -73,8 +73,13 @@ export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
 
   const handleNotificationClick = (notification: Notification) => {
     handleMarkAsRead(notification.id)
-    // Refresh ticket list if needed
-    window.location.reload()
+
+    // Set flag untuk buka Tiket Masuk
+    localStorage.setItem('openIncomingTickets', 'true')
+    localStorage.setItem('highlightTicketId', notification.ticket_id.toString())
+
+    // Navigate to my-tickets page with incoming tab
+    window.location.href = '/dashboard?tab=my-tickets&view=incoming'
   }
 
   const getNotificationIcon = (type: string) => {

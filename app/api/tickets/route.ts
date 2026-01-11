@@ -306,8 +306,10 @@ export async function GET(request: NextRequest) {
 
     // 🟢 USER → lihat ticket sendiri
     else {
+      console.log('[GET /api/tickets] Fetching tickets for user:', decoded.userId)
+
       tickets = await query(
-        `SELECT 
+        `SELECT
           t.*,
           u.name,
           u.email,
@@ -318,6 +320,8 @@ export async function GET(request: NextRequest) {
         ORDER BY t.created_at DESC`,
         [decoded.userId]
       )
+
+      console.log('[GET /api/tickets] Tickets found:', Array.isArray(tickets) ? tickets.length : 0)
     }
 
     return NextResponse.json(tickets)

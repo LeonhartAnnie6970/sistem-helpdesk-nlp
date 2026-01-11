@@ -1,28 +1,30 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { Sidebar } from "@/components/dashboard-sidebar"
 import { TicketForm } from "@/components/ticket-form"
-import { TicketList } from "@/components/ticket-list"
-import { DivisionTicketList } from "@/components/division-ticket-list"
+import { OutgoingTickets } from "@/components/outgoing-tickets"
+import { IncomingTickets } from "@/components/incoming-tickets"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { UserNotificationsPanel } from "@/components/user-notifications-panel"
 import { Button } from "@/components/ui/button"
-import { Plus, Inbox } from 'lucide-react'
+import { Plus, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
 
 function DashboardContent() {
   const router = useRouter()
+  const searchParams = useSearchParams()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
   const [token, setToken] = useState("")
   const [activeTab, setActiveTab] = useState("dashboard")
+  const [activeTicketTab, setActiveTicketTab] = useState("outgoing")
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNewTicketForm, setShowNewTicketForm] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
@@ -35,6 +37,25 @@ function DashboardContent() {
   }
 
   setToken(storedToken)
+
+  // Check URL parameters untuk navigate ke tab tertentu
+  const tab = searchParams.get('tab')
+  const view = searchParams.get('view')
+
+  if (tab === 'my-tickets') {
+    setActiveTab('my-tickets')
+    if (view === 'incoming') {
+      setActiveTicketTab('incoming')
+    }
+  }
+
+  // Check localStorage flag dari notifikasi
+  const openIncoming = localStorage.getItem('openIncomingTickets')
+  if (openIncoming === 'true') {
+    setActiveTab('my-tickets')
+    setActiveTicketTab('incoming')
+    localStorage.removeItem('openIncomingTickets')
+  }
 
   fetch("/api/user/profile", {
     headers: { Authorization: `Bearer ${storedToken}` },
@@ -58,7 +79,7 @@ function DashboardContent() {
       return () => clearInterval(interval)
     })
     .catch(() => router.push("/login"))
-}, [router])
+}, [router, searchParams])
 
 
   const fetchNotificationCount = async (token: string) => {
@@ -184,11 +205,22 @@ function DashboardContent() {
               {/* Recent Tickets Preview */}
               <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
                 <CardHeader className="bg-white dark:bg-black">
-                  <CardTitle className="text-black dark:text-white">Tiket Terbaru</CardTitle>
+                  <CardTitle className="text-black dark:text-white">Tiket Keluar Terbaru</CardTitle>
                   <CardDescription className="text-gray-600 dark:text-gray-300">Ticket yang baru saja Anda buat</CardDescription>
                 </CardHeader>
                 <CardContent className="bg-white dark:bg-black">
-                  <TicketList refreshTrigger={refreshTrigger} />
+                  <OutgoingTickets refreshTrigger={refreshTrigger} />
+                </CardContent>
+              </Card>
+
+              {/* Incoming Tickets Preview */}
+              <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+                <CardHeader className="bg-white dark:bg-black">
+                  <CardTitle className="text-black dark:text-white">Tiket Masuk Terbaru</CardTitle>
+                  <CardDescription className="text-gray-600 dark:text-gray-300">Ticket dari divisi lain untuk Anda</CardDescription>
+                </CardHeader>
+                <CardContent className="bg-white dark:bg-black">
+                  <IncomingTickets refreshTrigger={refreshTrigger} />
                 </CardContent>
               </Card>
             </div>
@@ -227,24 +259,24 @@ function DashboardContent() {
                   <CardDescription className="text-gray-600 dark:text-gray-300">Kelola tiket Anda dan tiket divisi</CardDescription>
                 </CardHeader>
                 <CardContent className="bg-white dark:bg-black">
-                  <Tabs defaultValue="my-tickets" className="w-full">
+                  <Tabs value={activeTicketTab} onValueChange={setActiveTicketTab} className="w-full">
                     <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="my-tickets">
-                        <Plus className="w-4 h-4 mr-2" />
-                        Tiket Saya
+                      <TabsTrigger value="outgoing">
+                        <ArrowUpRight className="w-4 h-4 mr-2" />
+                        Tiket Keluar
                       </TabsTrigger>
-                      <TabsTrigger value="division-tickets">
-                        <Inbox className="w-4 h-4 mr-2" />
-                        Tiket Divisi
+                      <TabsTrigger value="incoming">
+                        <ArrowDownLeft className="w-4 h-4 mr-2" />
+                        Tiket Masuk
                       </TabsTrigger>
                     </TabsList>
 
-                    <TabsContent value="my-tickets" className="mt-0">
-                      <TicketList refreshTrigger={refreshTrigger} />
+                    <TabsContent value="outgoing" className="mt-0">
+                      <OutgoingTickets refreshTrigger={refreshTrigger} />
                     </TabsContent>
 
-                    <TabsContent value="division-tickets" className="mt-0">
-                      <DivisionTicketList refreshTrigger={refreshTrigger} />
+                    <TabsContent value="incoming" className="mt-0">
+                      <IncomingTickets refreshTrigger={refreshTrigger} />
                     </TabsContent>
                   </Tabs>
                 </CardContent>

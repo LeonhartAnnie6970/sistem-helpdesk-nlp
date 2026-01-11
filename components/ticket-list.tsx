@@ -41,20 +41,31 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
       setIsLoading(true)
       const token = localStorage.getItem("token")
 
+      console.log('[TicketList] Fetching tickets...')
+
       const response = await fetch("/api/tickets", {
         headers: {
           Authorization: `Bearer ${token}`,
         },
       })
 
+      console.log('[TicketList] Response status:', response.status)
+
       if (!response.ok) {
+        const errorData = await response.json()
+        console.error('[TicketList] Error response:', errorData)
         setError("Failed to fetch tickets")
         return
       }
 
       const data = await response.json()
+      console.log('[TicketList] Tickets received:', data)
+      console.log('[TicketList] Is array?', Array.isArray(data))
+      console.log('[TicketList] Tickets count:', Array.isArray(data) ? data.length : 'Not an array')
+
       setTickets(Array.isArray(data) ? data : [])
     } catch (err) {
+      console.error('[TicketList] Fetch error:', err)
       setError("An error occurred while fetching tickets")
     } finally {
       setIsLoading(false)

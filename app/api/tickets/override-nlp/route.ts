@@ -28,25 +28,29 @@ export async function PATCH(request: NextRequest) {
     }
 
     // Get current ticket data
-    const ticketData = await query("SELECT target_division FROM tickets WHERE id = ?", [ticketId])
+    const ticketData = await query("SELECT target_divisions, nlp_category FROM tickets WHERE id = ?", [ticketId])
 
     if (!ticketData || (ticketData as any[]).length === 0) {
       return NextResponse.json({ error: "Ticket not found" }, { status: 404 })
     }
 
-    const currentDivision = (ticketData as any)[0].target_division
+    const currentTargetDivisions = (ticketData as any)[0].target_divisions
+    const nlpCategory = (ticketData as any)[0].nlp_category
+
+    // Override: replace entire target_divisions array with single new division
+    const newTargetDivisions = JSON.stringify([newDivision])
 
     // Update ticket with override
     await query(
-      `UPDATE tickets 
-       SET target_division = ?, 
+      `UPDATE tickets
+       SET target_divisions = ?,
            is_nlp_overridden = TRUE,
            original_nlp_division = ?,
            override_reason = ?,
            overridden_by = ?,
            overridden_at = NOW()
        WHERE id = ?`,
-      [newDivision, currentDivision, reason || null, decoded.userId, ticketId],
+      [newTargetDivisions, currentTargetDivisions, reason || null, decoded.userId, ticketId],
     )
 
     return NextResponse.json({ message: "NLP result overridden successfully" })
