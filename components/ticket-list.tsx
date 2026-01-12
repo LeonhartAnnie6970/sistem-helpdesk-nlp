@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { ImageIcon, Hash, MessageSquare } from "lucide-react"
 import { TicketDetailModal } from "@/components/ticket-detail-modal"
+import { formatTicketId } from "@/lib/utils"
 
 interface Ticket {
   id: number
@@ -135,7 +136,7 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="outline" className="font-mono text-xs border-gray-300 dark:border-gray-600 text-black dark:text-white">
                       <Hash className="w-3 h-3 mr-1" />
-                      {ticket.id}
+                      {formatTicketId(ticket.id, ticket.divisi || 'GENERAL')}
                     </Badge>
                   </div>
                   <CardTitle className="text-lg text-black dark:text-white">{ticket.title}</CardTitle>

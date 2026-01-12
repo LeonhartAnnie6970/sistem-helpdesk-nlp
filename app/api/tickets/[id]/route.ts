@@ -3,7 +3,7 @@ import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
 
-export async function GET(request: NextRequest, { params }: { params: { id: string } }) {
+export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
   if (!token) {
@@ -16,6 +16,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 
   try {
+    const { id } = await params
     const tickets = await query(
       `SELECT t.*,
         u.name as user_name,
@@ -25,7 +26,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
        FROM tickets t
        JOIN users u ON t.id_user = u.id
        WHERE t.id = ?`,
-      [params.id]
+      [id]
     )
 
     if (!Array.isArray(tickets) || tickets.length === 0) {
@@ -95,7 +96,7 @@ export async function GET(request: NextRequest, { params }: { params: { id: stri
   }
 }
 
-export async function PATCH(request: NextRequest, { params }: { params: { id: string } }) {
+export async function PATCH(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
   if (!token) {
@@ -108,6 +109,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
   }
 
   try {
+    const { id } = await params
     const contentType = request.headers.get("content-type") || ""
     let bodyData: any
 
@@ -130,12 +132,12 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       const adminDivision = (adminInfo as any)[0]?.division
 
       const ticketInfo = await query(
-        `SELECT u.division FROM tickets t 
-         JOIN users u ON t.id_user = u.id 
+        `SELECT u.division FROM tickets t
+         JOIN users u ON t.id_user = u.id
          WHERE t.id = ?`,
-        [params.id]
+        [id]
       )
-      
+
       const ticketUserDivision = (ticketInfo as any)[0]?.division
 
       if (adminDivision !== ticketUserDivision) {
@@ -168,7 +170,7 @@ export async function PATCH(request: NextRequest, { params }: { params: { id: st
       return NextResponse.json({ error: "No updates provided" }, { status: 400 })
     }
 
-    values.push(params.id)
+    values.push(id)
 
     await query(`UPDATE tickets SET ${updates.join(", ")} WHERE id = ?`, values)
 

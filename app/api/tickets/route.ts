@@ -304,10 +304,25 @@ export async function GET(request: NextRequest) {
       )
     }
 
-    // 🟢 USER → lihat ticket sendiri
+    // 🟢 USER → lihat ticket sendiri DAN ticket yang ditargetkan ke divisinya
     else {
       console.log('[GET /api/tickets] Fetching tickets for user:', decoded.userId)
 
+      // Get user division
+      const userInfo = await query(
+        "SELECT division FROM users WHERE id = ?",
+        [decoded.userId]
+      )
+
+      const userDivision = (userInfo as any)[0]?.division
+
+      if (!userDivision) {
+        return NextResponse.json({ error: "User division not found" }, { status: 404 })
+      }
+
+      // Query untuk mendapatkan:
+      // 1. Ticket yang dibuat user sendiri
+      // 2. Ticket yang ditargetkan ke divisi user (untuk incoming)
       tickets = await query(
         `SELECT
           t.*,
@@ -316,11 +331,12 @@ export async function GET(request: NextRequest) {
           u.division AS user_division_name
         FROM tickets t
         JOIN users u ON t.id_user = u.id
-        WHERE t.id_user = ?
+        WHERE t.id_user = ? OR JSON_CONTAINS(t.target_divisions, ?, '$')
         ORDER BY t.created_at DESC`,
-        [decoded.userId]
+        [decoded.userId, JSON.stringify(userDivision)]
       )
 
+      console.log('[GET /api/tickets] User division:', userDivision)
       console.log('[GET /api/tickets] Tickets found:', Array.isArray(tickets) ? tickets.length : 0)
     }
 

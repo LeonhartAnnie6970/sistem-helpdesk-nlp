@@ -5,10 +5,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
-import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AlertCircle, CheckCircle2, Clock, XCircle, ZoomIn, Users, Ticket as TicketIcon } from "lucide-react"
+import { AlertCircle, CheckCircle2, Clock, XCircle, Users, Ticket as TicketIcon } from "lucide-react"
+import { TicketDetailModal } from "@/components/ticket-detail-modal"
 
 interface Ticket {
   id: number
@@ -37,12 +35,8 @@ export function DivisionMonitoringDashboard() {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [divisionStats, setDivisionStats] = useState<DivisionStats[]>([])
   const [selectedDivision, setSelectedDivision] = useState<string>("all")
-  const [selectedTicket, setSelectedTicket] = useState<Ticket | null>(null)
-  const [newStatus, setNewStatus] = useState("")
-  const [adminNote, setAdminNote] = useState("")
-  const [updating, setUpdating] = useState(false)
-  const [imageModalOpen, setImageModalOpen] = useState(false)
-  const [selectedImage, setSelectedImage] = useState("")
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
@@ -76,7 +70,7 @@ export function DivisionMonitoringDashboard() {
 
     tickets.forEach((ticket) => {
       const division = ticket.divisi || "Unknown"
-      
+
       if (!divisionMap.has(division)) {
         divisionMap.set(division, {
           division,
@@ -106,35 +100,18 @@ export function DivisionMonitoringDashboard() {
     setDivisionStats(Array.from(divisionMap.values()).sort((a, b) => b.totalTickets - a.totalTickets))
   }
 
-  const handleUpdateStatus = async () => {
-    if (!selectedTicket || !newStatus) return
+  const handleOpenTicketDetail = (ticketId: number) => {
+    setSelectedTicketId(ticketId)
+    setIsTicketModalOpen(true)
+  }
 
-    setUpdating(true)
-    try {
-      const token = localStorage.getItem("token")
-      const response = await fetch(`/api/tickets/${selectedTicket.id}`, {
-        method: "PATCH",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          status: newStatus,
-          catatan_admin: adminNote,
-        }),
-      })
+  const handleCloseTicketDetail = () => {
+    setIsTicketModalOpen(false)
+    setSelectedTicketId(null)
+  }
 
-      if (response.ok) {
-        await fetchTickets()
-        setSelectedTicket(null)
-        setNewStatus("")
-        setAdminNote("")
-      }
-    } catch (error) {
-      console.error("Error updating ticket:", error)
-    } finally {
-      setUpdating(false)
-    }
+  const handleTicketUpdate = () => {
+    fetchTickets()
   }
 
   const getStatusIcon = (status: string) => {
@@ -163,13 +140,8 @@ export function DivisionMonitoringDashboard() {
     }
   }
 
-  const openImageModal = (imageUrl: string) => {
-    setSelectedImage(imageUrl)
-    setImageModalOpen(true)
-  }
-
-  const filteredTickets = selectedDivision === "all" 
-    ? tickets 
+  const filteredTickets = selectedDivision === "all"
+    ? tickets
     : tickets.filter(t => t.divisi === selectedDivision)
 
   if (loading) {
@@ -275,11 +247,7 @@ export function DivisionMonitoringDashboard() {
                           </span>
                         </Badge>
                         <Button
-                          onClick={() => {
-                            setSelectedTicket(ticket)
-                            setNewStatus(ticket.status)
-                            setAdminNote(ticket.catatan_admin || "")
-                          }}
+                          onClick={() => handleOpenTicketDetail(ticket.id)}
                           variant="outline"
                           size="sm"
                           className="border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -289,23 +257,6 @@ export function DivisionMonitoringDashboard() {
                       </div>
                     </div>
 
-                    {ticket.image_user_url && (
-                      <div className="mt-3">
-                        <button
-                          onClick={() => openImageModal(ticket.image_user_url!)}
-                          className="relative group"
-                        >
-                          <img
-                            src={ticket.image_user_url}
-                            alt="Lampiran"
-                            className="w-20 h-20 object-cover rounded border"
-                          />
-                          <div className="absolute inset-0 bg-black bg-opacity-50 opacity-0 group-hover:opacity-100 transition-opacity rounded flex items-center justify-center">
-                            <ZoomIn className="w-5 h-5 text-white" />
-                          </div>
-                        </button>
-                      </div>
-                    )}
                   </CardContent>
                 </Card>
               ))}
@@ -315,93 +266,12 @@ export function DivisionMonitoringDashboard() {
       </Card>
 
       {/* Ticket Detail Modal */}
-      {selectedTicket && (
-        <Dialog open={!!selectedTicket} onOpenChange={() => setSelectedTicket(null)}>
-          <DialogContent className="max-w-2xl bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-            <DialogHeader>
-              <DialogTitle className="text-black dark:text-white">Detail Tiket</DialogTitle>
-              <DialogDescription className="text-gray-600 dark:text-gray-300">{selectedTicket.title}</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div>
-                <p className="text-sm font-medium mb-1 text-black dark:text-white">Deskripsi:</p>
-                <p className="text-sm p-3 bg-gray-100 dark:bg-gray-800 rounded-lg text-black dark:text-white">{selectedTicket.description}</p>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <p className="text-sm font-medium mb-1 text-black dark:text-white">User:</p>
-                  <p className="text-sm text-black dark:text-white">{selectedTicket.name}</p>
-                  <p className="text-xs text-gray-600 dark:text-gray-300">{selectedTicket.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium mb-1 text-black dark:text-white">Divisi:</p>
-                  <Badge>{selectedTicket.divisi}</Badge>
-                </div>
-              </div>
-
-              {selectedTicket.image_user_url && (
-                <div>
-                  <p className="text-sm font-medium mb-2 text-black dark:text-white">Gambar:</p>
-                  <img
-                    src={selectedTicket.image_user_url}
-                    alt="Lampiran"
-                    className="w-full max-h-64 object-contain rounded border border-gray-200 dark:border-gray-700 cursor-pointer"
-                    onClick={() => openImageModal(selectedTicket.image_user_url!)}
-                  />
-                </div>
-              )}
-
-              <div>
-                <label className="text-sm font-medium mb-2 block text-black dark:text-white">Status</label>
-                <Select value={newStatus} onValueChange={setNewStatus}>
-                  <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
-                    <SelectItem value="new" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Baru</SelectItem>
-                    <SelectItem value="in_progress" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Dalam Proses</SelectItem>
-                    <SelectItem value="completed" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Selesai</SelectItem>
-                    <SelectItem value="cancelled" className="text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">Dibatalkan</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-
-              <div>
-                <label className="text-sm font-medium mb-2 block text-black dark:text-white">Catatan</label>
-                <Textarea
-                  value={adminNote}
-                  onChange={(e) => setAdminNote(e.target.value)}
-                  placeholder="Tambahkan catatan..."
-                  rows={4}
-                  className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500"
-                />
-              </div>
-
-              <div className="flex gap-2">
-                <Button onClick={handleUpdateStatus} disabled={updating} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
-                  {updating ? "Menyimpan..." : "Simpan"}
-                </Button>
-                <Button onClick={() => setSelectedTicket(null)} variant="outline" className="flex-1 border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800">
-                  Batal
-                </Button>
-              </div>
-            </div>
-          </DialogContent>
-        </Dialog>
-      )}
-
-      {/* Image Modal */}
-      <Dialog open={imageModalOpen} onOpenChange={setImageModalOpen}>
-        <DialogContent className="max-w-4xl bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-          <DialogHeader>
-            <DialogTitle className="text-black dark:text-white">Gambar Lampiran</DialogTitle>
-          </DialogHeader>
-          <div className="flex items-center justify-center bg-gray-100 dark:bg-gray-800 rounded-lg p-4">
-            <img src={selectedImage} alt="Lampiran" className="max-w-full max-h-[70vh] object-contain" />
-          </div>
-        </DialogContent>
-      </Dialog>
+      <TicketDetailModal
+        isOpen={isTicketModalOpen}
+        onClose={handleCloseTicketDetail}
+        ticketId={selectedTicketId}
+        onUpdate={handleTicketUpdate}
+      />
     </div>
   )
 }

@@ -39,9 +39,11 @@ interface Ticket {
 
 interface SuperAdminTicketsPanelProps {
   token: string
+  onTicketClick?: (ticketId: number) => void
+  refreshTrigger?: number
 }
 
-export function SuperAdminTicketsPanel({ token }: SuperAdminTicketsPanelProps) {
+export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }: SuperAdminTicketsPanelProps) {
   const [tickets, setTickets] = useState<Ticket[]>([])
   const [filteredTickets, setFilteredTickets] = useState<Ticket[]>([])
   const [loading, setLoading] = useState(true)
@@ -54,7 +56,7 @@ export function SuperAdminTicketsPanel({ token }: SuperAdminTicketsPanelProps) {
 
   useEffect(() => {
     fetchTickets()
-  }, [])
+  }, [refreshTrigger])
 
   useEffect(() => {
     applyFilters()
@@ -246,9 +248,9 @@ export function SuperAdminTicketsPanel({ token }: SuperAdminTicketsPanelProps) {
                 const targetDivs = JSON.parse(ticket.target_divisions || '[]')
 
                 return (
-                  <Card key={ticket.id} className="hover:shadow-md transition-shadow">
+                  <Card key={ticket.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onTicketClick?.(ticket.id)}>
                     <CardContent className="p-4">
-                      <div className="flex items-start justify-between">
+                      <div className="flex items-start justify-between gap-4">
                         <div className="flex-1 space-y-2">
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">{ticket.title}</h3>
@@ -282,6 +284,17 @@ export function SuperAdminTicketsPanel({ token }: SuperAdminTicketsPanelProps) {
                             {new Date(ticket.created_at).toLocaleString("id-ID")}
                           </div>
                         </div>
+
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            onTicketClick?.(ticket.id)
+                          }}
+                        >
+                          Detail
+                        </Button>
                       </div>
                     </CardContent>
                   </Card>

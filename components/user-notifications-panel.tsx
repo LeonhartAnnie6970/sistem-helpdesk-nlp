@@ -76,7 +76,16 @@ export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
 
     // Set flag untuk buka Tiket Masuk
     localStorage.setItem('openIncomingTickets', 'true')
-    localStorage.setItem('highlightTicketId', notification.ticket_id.toString())
+
+    // Normalize ticket id from different possible shapes (some backends use id_ticket)
+    const rawTicketId: any = (notification as any).ticket_id ?? (notification as any).id_ticket ?? (notification as any).ticketId ?? (notification as any).idTicket ?? (notification as any).ticket?.id ?? null
+    const ticketId = rawTicketId !== null && rawTicketId !== undefined && rawTicketId !== "" ? Number(rawTicketId) : null
+
+    if (ticketId !== null && !Number.isNaN(ticketId)) {
+      localStorage.setItem('highlightTicketId', String(ticketId))
+    } else {
+      console.warn('Notification has no valid ticket id:', notification)
+    }
 
     // Navigate to my-tickets page with incoming tab
     window.location.href = '/dashboard?tab=my-tickets&view=incoming'

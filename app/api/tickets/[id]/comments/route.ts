@@ -7,7 +7,7 @@ import path from "path"
 // GET - Fetch all comments for a ticket
 export async function GET(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
@@ -20,7 +20,8 @@ export async function GET(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const ticketId = parseInt(params.id)
+    const { id } = await params
+    const ticketId = parseInt(id)
 
     // Check if user has access to this ticket
     const tickets: any = await query(
@@ -119,9 +120,10 @@ export async function GET(
 // POST - Add a new comment/response
 export async function POST(
   request: NextRequest,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
   try {
+    const { id } = await params
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -132,7 +134,7 @@ export async function POST(
       return NextResponse.json({ error: "Invalid token" }, { status: 401 })
     }
 
-    const ticketId = parseInt(params.id)
+    const ticketId = parseInt(id)
 
     // Check if user has access to this ticket
     const tickets: any = await query(

@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ArrowDownLeft, Hash } from "lucide-react"
 import { TicketDetailModal } from "@/components/ticket-detail-modal"
+import { formatTicketId } from "@/lib/utils"
 
 interface Ticket {
   id: number
@@ -47,12 +48,15 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
         headers: { Authorization: `Bearer ${token}` }
       })
 
+      let currentUserDivision = ""
       if (profileResponse.ok) {
         const profile = await profileResponse.json()
-        setUserDivision(profile.division || "")
+        currentUserDivision = profile.division || ""
+        setUserDivision(currentUserDivision)
       }
 
       console.log('[IncomingTickets] Fetching incoming tickets...')
+      console.log('[IncomingTickets] Current user division:', currentUserDivision)
 
       const response = await fetch("/api/tickets", {
         headers: {
@@ -77,7 +81,7 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
       const userId = parseInt(localStorage.getItem("userId") || "0")
 
       console.log('[IncomingTickets] User ID:', userId)
-      console.log('[IncomingTickets] User division:', userDivision)
+      console.log('[IncomingTickets] User division:', currentUserDivision)
       console.log('[IncomingTickets] All tickets:', data)
 
       const incoming = Array.isArray(data) ? data.filter((t: any) => {
@@ -99,7 +103,7 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
         console.log('[IncomingTickets] Ticket', t.id, 'target_divisions:', targetDivisions)
 
         // Check if user's division is in target_divisions
-        const isTargeted = targetDivisions.includes(userDivision)
+        const isTargeted = targetDivisions.includes(currentUserDivision)
 
         console.log('[IncomingTickets] Ticket', t.id, 'targeted to user division?', isTargeted)
 
@@ -110,6 +114,26 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
       console.log('[IncomingTickets] Incoming tickets:', incoming)
 
       setTickets(incoming)
+
+      // Jika ada highlightTicketId dari notifikasi, coba buka modal tiket tersebut
+      try {
+        const rawHighlight = localStorage.getItem('highlightTicketId')
+        if (rawHighlight) {
+          const highlightId = Number(rawHighlight)
+          if (!Number.isNaN(highlightId)) {
+            const found = incoming.find((t: any) => Number(t.id) === highlightId)
+            if (found) {
+              setSelectedTicketId(highlightId)
+              setIsModalOpen(true)
+            } else {
+              console.warn('[IncomingTickets] Highlight ticket id not found in incoming tickets:', highlightId)
+            }
+          }
+          localStorage.removeItem('highlightTicketId')
+        }
+      } catch (e) {
+        console.error('[IncomingTickets] Error handling highlightTicketId:', e)
+      }
     } catch (err) {
       console.error('[IncomingTickets] Fetch error:', err)
       setError("An error occurred while fetching tickets")
@@ -211,7 +235,7 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
                   <div className="flex items-center gap-2 mb-2">
                     <Hash className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     <span className="text-sm font-mono text-gray-600 dark:text-gray-300">
-                      {ticket.id}
+                      {formatTicketId(ticket.id, ticket.user_division || ticket.user_division_name)}
                     </span>
                     <Badge className={getStatusColor(ticket.status)}>
                       {getStatusLabel(ticket.status)}
@@ -256,15 +280,17 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
                     Ke Divisi:
                   </span>
                   <div className="flex flex-wrap gap-1">
-                    {targetDivisions.map((division, idx) => (
-                      <Badge
-                        key={idx}
-                        className={division === userDivision ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 ring-2 ring-green-500" : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"}
-                      >
-                        {division}
-                        {division === userDivision && " (Anda)"}
-                      </Badge>
-                    ))}
+                    {targetDivisions
+                      .filter(division => division !== (ticket.user_division || ticket.user_division_name))
+                      .map((division, idx) => (
+                        <Badge
+                          key={idx}
+                          className={division === userDivision ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 ring-2 ring-green-500" : "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"}
+                        >
+                          {division}
+                          {division === userDivision && " (Anda)"}
+                        </Badge>
+                      ))}
                   </div>
                 </div>
 

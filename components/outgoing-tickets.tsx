@@ -3,9 +3,9 @@
 import { useEffect, useState } from "react"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { ArrowUpRight, Hash } from "lucide-react"
 import { TicketDetailModal } from "@/components/ticket-detail-modal"
+import { formatTicketId } from "@/lib/utils"
 
 interface Ticket {
   id: number
@@ -167,7 +167,7 @@ export function OutgoingTickets({ refreshTrigger }: OutgoingTicketsProps) {
                   <div className="flex items-center gap-2 mb-2">
                     <Hash className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     <span className="text-sm font-mono text-gray-600 dark:text-gray-300">
-                      {ticket.id}
+                      {formatTicketId(ticket.id, ticket.user_division)}
                     </span>
                     <Badge className={getStatusColor(ticket.status)}>
                       {getStatusLabel(ticket.status)}
@@ -202,14 +202,16 @@ export function OutgoingTickets({ refreshTrigger }: OutgoingTicketsProps) {
                     Ke Divisi:
                   </span>
                   <div className="flex flex-wrap gap-1">
-                    {targetDivisions.map((division, idx) => (
-                      <Badge
-                        key={idx}
-                        className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                      >
-                        {division}
-                      </Badge>
-                    ))}
+                    {targetDivisions
+                      .filter(division => division !== ticket.user_division)
+                      .map((division, idx) => (
+                        <Badge
+                          key={idx}
+                          className="bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                        >
+                          {division}
+                        </Badge>
+                      ))}
                   </div>
                 </div>
 

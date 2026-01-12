@@ -8,6 +8,7 @@ import { DivisionMonitoringDashboard } from "@/components/division-monitoring-da
 import { SuperAdminUserManagement } from "@/components/super-admin-user-management"
 import { SuperAdminTicketsPanel } from "@/components/super-admin-tickets-panel"
 import { AdminNotificationsPanel } from "@/components/admin-notifications-panel"
+import { TicketDetailModal } from "@/components/ticket-detail-modal"
 import { Sidebar } from "@/components/dashboard-sidebar"
 import { TicketForm } from "@/components/ticket-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -26,6 +27,8 @@ function SuperAdminDashboardContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showNewTicketForm, setShowNewTicketForm] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token")
@@ -70,6 +73,20 @@ function SuperAdminDashboardContent() {
   const handleTicketSuccess = () => {
     setRefreshTrigger((prev) => prev + 1)
     setShowNewTicketForm(false)
+  }
+
+  const handleOpenTicketDetail = (ticketId: number) => {
+    setSelectedTicketId(ticketId)
+    setIsTicketModalOpen(true)
+  }
+
+  const handleCloseTicketDetail = () => {
+    setIsTicketModalOpen(false)
+    setSelectedTicketId(null)
+  }
+
+  const handleTicketUpdate = () => {
+    setRefreshTrigger((prev) => prev + 1)
   }
 
   if (!isAuthenticated) {
@@ -129,7 +146,7 @@ function SuperAdminDashboardContent() {
         {/* Content Area */}
         <div className="p-6 space-y-6 bg-white dark:bg-black">
           {activeTab === "monitoring" && <DivisionMonitoringDashboard />}
-          {activeTab === "tickets" && <SuperAdminTicketsPanel token={token} />}
+          {activeTab === "tickets" && <SuperAdminTicketsPanel token={token} onTicketClick={handleOpenTicketDetail} refreshTrigger={refreshTrigger} />}
           {activeTab === "users" && <SuperAdminUserManagement />}
 
           {activeTab === "create-ticket" && (
@@ -187,6 +204,7 @@ function SuperAdminDashboardContent() {
               onTicketClick={(ticketId) => {
                 setShowNotifications(false)
                 setActiveTab("tickets")
+                handleOpenTicketDetail(ticketId)
               }}
             />
           </div>
@@ -198,6 +216,13 @@ function SuperAdminDashboardContent() {
         isOpen={isProfileOpen}
         onClose={() => setIsProfileOpen(false)}
         token={token}
+      />
+
+      <TicketDetailModal
+        isOpen={isTicketModalOpen}
+        onClose={handleCloseTicketDetail}
+        ticketId={selectedTicketId}
+        onUpdate={handleTicketUpdate}
       />
     </div>
   )
