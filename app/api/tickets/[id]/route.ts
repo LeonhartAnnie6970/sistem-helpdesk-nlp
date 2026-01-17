@@ -3,6 +3,27 @@ import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
 
+// Helper function to create notification for ticket creator
+async function notifyTicketCreator(
+  ticketId: number,
+  ticketCreatorId: number,
+  ticketTitle: string,
+  message: string,
+  type: 'status_update' | 'admin_note' | 'admin_image' | 'ticket_resolved'
+) {
+  try {
+    await query(
+      `INSERT INTO user_notifications
+       (id_user, id_ticket, ticket_title, message, type, is_read)
+       VALUES (?, ?, ?, ?, ?, FALSE)`,
+      [ticketCreatorId, ticketId, ticketTitle, message, type]
+    )
+    console.log(`[Notification] Created notification for user ${ticketCreatorId}: ${type}`)
+  } catch (error) {
+    console.error('[Notification] Error creating notification:', error)
+  }
+}
+
 export async function GET(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "")
 
@@ -172,7 +193,65 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     values.push(id)
 
+    // Get ticket info before update for notification
+    const ticketInfo: any = await query(
+      `SELECT t.id_user, t.title, t.status as old_status, u.name as admin_name
+       FROM tickets t
+       JOIN users u ON u.id = ?
+       WHERE t.id = ?`,
+      [decoded.userId, id]
+    )
+    const ticket = ticketInfo[0]
+
     await query(`UPDATE tickets SET ${updates.join(", ")} WHERE id = ?`, values)
+
+    // Send notification to ticket creator
+    if (ticket) {
+      const adminName = ticket.admin_name || 'Admin'
+
+      if (status) {
+        const statusLabels: Record<string, string> = {
+          'new': 'Baru',
+          'in_progress': 'Sedang Diproses',
+          'resolved': 'Selesai'
+        }
+        const oldStatusLabel = statusLabels[ticket.old_status] || ticket.old_status
+        const newStatusLabel = statusLabels[status] || status
+
+        const notifType = status === 'resolved' ? 'ticket_resolved' : 'status_update'
+        const message = status === 'resolved'
+          ? `Tiket Anda telah diselesaikan oleh ${adminName}`
+          : `Status tiket diubah dari "${oldStatusLabel}" menjadi "${newStatusLabel}" oleh ${adminName}`
+
+        await notifyTicketCreator(
+          parseInt(id as string),
+          ticket.id_user,
+          ticket.title,
+          message,
+          notifType
+        )
+      }
+
+      if (admin_notes !== undefined) {
+        await notifyTicketCreator(
+          parseInt(id as string),
+          ticket.id_user,
+          ticket.title,
+          `${adminName} menambahkan catatan pada tiket Anda`,
+          'admin_note'
+        )
+      }
+
+      if (imageAdminUrl) {
+        await notifyTicketCreator(
+          parseInt(id as string),
+          ticket.id_user,
+          ticket.title,
+          `${adminName} menambahkan gambar pada tiket Anda`,
+          'admin_image'
+        )
+      }
+    }
 
     return NextResponse.json({ message: "Ticket updated" })
   } catch (error) {

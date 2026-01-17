@@ -4,6 +4,65 @@ import { verifyToken } from "@/lib/auth"
 import { writeFile } from "fs/promises"
 import path from "path"
 
+// Helper function to create notification for ticket creator (user_notifications table)
+async function notifyTicketCreator(
+  ticketId: number,
+  ticketCreatorId: number,
+  ticketTitle: string,
+  message: string,
+  type: 'status_update' | 'admin_note' | 'admin_image' | 'ticket_resolved'
+) {
+  try {
+    await query(
+      `INSERT INTO user_notifications
+       (id_user, id_ticket, ticket_title, message, type, is_read)
+       VALUES (?, ?, ?, ?, ?, FALSE)`,
+      [ticketCreatorId, ticketId, ticketTitle, message, type]
+    )
+    console.log(`[Notification] Created user notification for user ${ticketCreatorId}: ${type}`)
+  } catch (error) {
+    console.error('[Notification] Error creating user notification:', error)
+  }
+}
+
+// Helper function to create notification for admins (notifications table)
+async function notifyAdmins(
+  ticketId: number,
+  ticketCreatorId: number,
+  ticketTitle: string,
+  message: string,
+  targetDivisions: string[]
+) {
+  try {
+    // Get all admins from target divisions
+    const admins: any = await query(
+      `SELECT id, name, division FROM users
+       WHERE role = 'admin' AND division IN (?) AND is_active = TRUE`,
+      [targetDivisions]
+    )
+
+    // Also get super admins
+    const superAdmins: any = await query(
+      `SELECT id, name, division FROM users
+       WHERE role = 'super_admin' AND is_active = TRUE`
+    )
+
+    const allAdmins = [...(Array.isArray(admins) ? admins : []), ...(Array.isArray(superAdmins) ? superAdmins : [])]
+
+    for (const admin of allAdmins) {
+      await query(
+        `INSERT INTO notifications
+         (id_admin, id_ticket, id_user, title, message, notification_reason, is_read)
+         VALUES (?, ?, ?, ?, ?, 'nlp_category', FALSE)`,
+        [admin.id, ticketId, ticketCreatorId, ticketTitle, message]
+      )
+      console.log(`[Notification] Created admin notification for ${admin.name} (${admin.division})`)
+    }
+  } catch (error) {
+    console.error('[Notification] Error creating admin notifications:', error)
+  }
+}
+
 // GET - Fetch all comments for a ticket
 export async function GET(
   request: NextRequest,
@@ -240,6 +299,68 @@ export async function POST(
       await query(
         `UPDATE tickets SET status = ? WHERE id = ?`,
         [newStatus, ticketId]
+      )
+    }
+
+    // Get commenter name for notification
+    const commenterInfo: any = await query(
+      `SELECT name, role FROM users WHERE id = ?`,
+      [decoded.userId]
+    )
+    const commenterName = commenterInfo[0]?.name || 'Seseorang'
+    const commenterRole = commenterInfo[0]?.role
+
+    // Parse target divisions for notifications
+    let targetDivisions: string[] = []
+    try {
+      targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+    } catch (e) {
+      console.error("Failed to parse target_divisions:", e)
+    }
+
+    // Send notifications based on who commented
+    if (commenterRole === 'admin' || commenterRole === 'super_admin') {
+      // Admin/Super Admin merespons -> notifikasi ke pembuat tiket
+      if (ticket.id_user !== decoded.userId) {
+        if (commentType === "status_change" && newStatus) {
+          const statusLabels: Record<string, string> = {
+            'new': 'Baru',
+            'in_progress': 'Sedang Diproses',
+            'resolved': 'Selesai'
+          }
+          const newStatusLabel = statusLabels[newStatus] || newStatus
+
+          const notifType = newStatus === 'resolved' ? 'ticket_resolved' : 'status_update'
+          const message = newStatus === 'resolved'
+            ? `Tiket Anda telah diselesaikan oleh ${commenterName}`
+            : `Status tiket diubah menjadi "${newStatusLabel}" oleh ${commenterName}`
+
+          await notifyTicketCreator(
+            ticketId,
+            ticket.id_user,
+            ticket.title,
+            message,
+            notifType
+          )
+        } else if (commentType === "response" || commentType === "comment") {
+          await notifyTicketCreator(
+            ticketId,
+            ticket.id_user,
+            ticket.title,
+            `${commenterName} merespons tiket Anda`,
+            'admin_note'
+          )
+        }
+      }
+    } else if (commenterRole === 'user') {
+      // User merespons -> notifikasi ke admin divisi tujuan
+      const message = `${commenterName} merespons tiket "${ticket.title}"`
+      await notifyAdmins(
+        ticketId,
+        ticket.id_user,
+        ticket.title,
+        message,
+        targetDivisions
       )
     }
 
