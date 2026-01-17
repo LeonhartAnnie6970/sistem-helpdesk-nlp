@@ -872,7 +872,7 @@ export function SuperAdminUserManagement() {
             </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleDeleteUser}
-              className="bg-destructive hover:bg-destructive/90 text-white"
+              className="!bg-red-600 hover:!bg-red-700 !text-white font-semibold"
               disabled={submitting}
             >
               {submitting ? "Deleting..." : "Delete User"}
