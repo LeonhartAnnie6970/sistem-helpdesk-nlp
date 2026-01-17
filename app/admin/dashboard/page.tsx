@@ -34,42 +34,46 @@ function AdminDashboardContent() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [showNewTicketForm, setShowNewTicketForm] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
+  const [ticketSubTab, setTicketSubTab] = useState("outgoing") // untuk kontrol tab tiket masuk/keluar
 
   /**
    * AUTH & PROFILE CHECK
    */
   useEffect(() => {
-  const storedToken = localStorage.getItem("token")
-  if (!storedToken) {
-    router.push("/login")
-    return
-  }
+    const storedToken = localStorage.getItem("token")
+    if (!storedToken) {
+      router.push("/login")
+      return
+    }
 
-  setToken(storedToken)
+    setToken(storedToken)
 
-  fetch("/api/user/profile", {
-    headers: { Authorization: `Bearer ${storedToken}` },
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.role === "admin") {
-        router.push("/admin/dashboard")
-        return
-      }
-
-      // user biasa
-      setIsAuthenticated(true)
-      fetchNotificationCount(storedToken)
-
-      // Poll for notifications every 30 seconds
-      const interval = setInterval(() => {
-        fetchNotificationCount(storedToken)
-      }, 30000)
-
-      return () => clearInterval(interval)
+    fetch("/api/user/profile", {
+      headers: { Authorization: `Bearer ${storedToken}` },
     })
-    .catch(() => router.push("/login"))
-}, [router])
+      .then(res => res.json())
+      .then(data => {
+        // Hanya admin yang boleh akses halaman ini
+        if (data.role !== "admin") {
+          // Redirect user biasa ke dashboard user
+          router.push("/dashboard")
+          return
+        }
+
+        // Admin - izinkan akses
+        setIsAuthenticated(true)
+        setUserDivision(data.division || "")
+        fetchNotificationCount(storedToken)
+
+        // Poll for notifications every 30 seconds
+        const interval = setInterval(() => {
+          fetchNotificationCount(storedToken)
+        }, 30000)
+
+        return () => clearInterval(interval)
+      })
+      .catch(() => router.push("/login"))
+  }, [router])
 
 
   /**
@@ -96,9 +100,14 @@ function AdminDashboardContent() {
     const id = Number(ticketId)
     if (Number.isNaN(id)) return
 
+    // Pindah ke tab tickets dan sub-tab incoming (tiket masuk)
     setActiveTab("tickets")
+    setTicketSubTab("incoming")
     setSelectedTicketId(id)
     setShowNotifications(false)
+
+    // Trigger refresh untuk membuka modal tiket
+    setRefreshTrigger((prev) => prev + 1)
 
     const url = new URL(window.location.href)
     url.searchParams.set("ticketId", String(id))
@@ -180,7 +189,7 @@ function AdminDashboardContent() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="bg-white dark:bg-black">
-                <Tabs defaultValue="outgoing" className="w-full">
+                <Tabs value={ticketSubTab} onValueChange={setTicketSubTab} className="w-full">
                   <TabsList className="grid w-full grid-cols-2 mb-4">
                     <TabsTrigger value="outgoing">
                       <ArrowUpRight className="w-4 h-4 mr-2" />

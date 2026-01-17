@@ -15,10 +15,11 @@ export async function GET(request: NextRequest) {
     if (!userId) return NextResponse.json({ error: "Invalid token payload" }, { status: 400 })
 
     const sql = `
-      SELECT 
+      SELECT
         id,
         name AS username,
         email,
+        role,
         division,
         profile_image_url,
         created_at
@@ -90,7 +91,7 @@ export async function PATCH(request: NextRequest) {
 
     // Fetch updated profile
     const result = await query(
-      `SELECT id, name AS username, email, division, profile_image_url, created_at FROM users WHERE id = ?`,
+      `SELECT id, name AS username, email, role, division, profile_image_url, created_at FROM users WHERE id = ?`,
       [userId]
     )
     const rows = Array.isArray(result) ? result : []
