@@ -41,49 +41,34 @@ INSERT INTO users (name, email, password, role, division, is_active) VALUES
 -- Mapping kategori NLP ke divisi tujuan
 -- ============================================================
 INSERT INTO category_division_mapping (nlp_category, target_division, priority) VALUES
--- IT Related
+-- =====================================================
+-- MAPPING UTAMA: Kategori NLP -> Divisi Tujuan
+-- Sesuai dengan classifier.py categories
+-- =====================================================
+
+-- IT (kategori utama dari NLP)
 ('IT', 'IT', 1),
-('Network', 'IT', 1),
-('Hardware', 'IT', 1),
-('Software', 'IT', 1),
-('Account', 'IT', 1),
-('Security', 'IT', 1),
-('Email', 'IT', 1),
 
--- Finance Related
-('Finance', 'ACC/FINANCE', 1),
-('Accounting', 'ACC/FINANCE', 1),
-('Invoice', 'ACC/FINANCE', 1),
-('Payment', 'ACC/FINANCE', 1),
-('Budget', 'ACC/FINANCE', 1),
-('Reimbursement', 'ACC/FINANCE', 1),
+-- ACC/FINANCE (kategori utama dari NLP)
+('ACC/FINANCE', 'ACC/FINANCE', 1),
 
--- Operations Related
-('Logistics', 'OPERASIONAL', 1),
-('Operations', 'OPERASIONAL', 1),
-('Warehouse', 'OPERASIONAL', 1),
-('Delivery', 'OPERASIONAL', 1),
-('Inventory', 'OPERASIONAL', 1),
+-- OPERASIONAL (kategori utama dari NLP)
+('OPERASIONAL', 'OPERASIONAL', 1),
 
--- Sales Related
-('Sales', 'SALES', 1),
-('Marketing', 'SALES', 1),
-('Promotion', 'SALES', 1),
-('Lead', 'SALES', 1),
+-- SALES (kategori utama dari NLP)
+('SALES', 'SALES', 1),
 
--- Customer Service Related
-('Customer Service', 'CUSTOMER SERVICE', 1),
-('Complaint', 'CUSTOMER SERVICE', 1),
-('Feedback', 'CUSTOMER SERVICE', 1),
-('Support', 'CUSTOMER SERVICE', 1),
+-- CUSTOMER SERVICE (kategori utama dari NLP)
+('CUSTOMER SERVICE', 'CUSTOMER SERVICE', 1),
 
--- HR Related
+-- HR (kategori utama dari NLP)
 ('HR', 'HR', 1),
-('Employee', 'HR', 1),
-('Recruitment', 'HR', 1),
-('Training', 'HR', 1),
-('Leave', 'HR', 1),
-('Payroll', 'HR', 1);
+
+-- DIREKSI/DIREKTUR (kategori utama dari NLP)
+('DIREKSI/DIREKTUR', 'DIREKSI/DIREKTUR', 1),
+
+-- General (fallback kategori dari NLP)
+('General', 'GENERAL', 1);
 
 -- ============================================================
 -- DATA SAMPLE TICKETS

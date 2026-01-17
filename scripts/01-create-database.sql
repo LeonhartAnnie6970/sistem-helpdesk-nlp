@@ -116,7 +116,7 @@ CREATE TABLE IF NOT EXISTS user_notifications (
     id_ticket INT NOT NULL,
     ticket_title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    type ENUM('status_update', 'admin_note', 'admin_image', 'ticket_resolved') DEFAULT 'status_update',
+    type ENUM('status_update', 'admin_note', 'admin_image', 'ticket_resolved', 'new_ticket') DEFAULT 'status_update',
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

@@ -8,14 +8,27 @@ import { query } from "@/lib/db"
 export async function getTargetDivisionsByCategory(nlpCategory: string): Promise<string[]> {
   try {
     const mappings = await query(
-      `SELECT target_division 
-       FROM category_division_mapping 
+      `SELECT target_division
+       FROM category_division_mapping
        WHERE nlp_category = ? AND is_active = TRUE`,
       [nlpCategory]
     )as Array<{ target_division: string }>
 
     if (mappings.length === 0) {
-      // Fallback: jika tidak ada mapping, return general
+      // Fallback 1: Cek apakah nlpCategory adalah nama divisi yang valid
+      const divisionCheck = await query(
+        `SELECT DISTINCT division FROM users WHERE division = ? AND is_active = TRUE`,
+        [nlpCategory]
+      ) as Array<{ division: string }>
+
+      if (divisionCheck.length > 0) {
+        // Kategori NLP sama dengan nama divisi, gunakan langsung
+        console.log(`[Routing] No mapping found, but category '${nlpCategory}' is a valid division name`)
+        return [nlpCategory]
+      }
+
+      // Fallback 2: jika tidak ada mapping dan bukan nama divisi, return general
+      console.log(`[Routing] No mapping found for category '${nlpCategory}', falling back to GENERAL`)
       return ['GENERAL']
     }
 
@@ -202,6 +215,12 @@ export async function getUsersForTicket(
 
 /**
  * Create notifications for all relevant admins and users
+ *
+ * Alur notifikasi:
+ * 1. Admin dari divisi pembuat tiket (userDivision) -> notifikasi karena user mereka membuat tiket
+ * 2. Admin dari divisi tujuan (nlpCategory) -> notifikasi karena tiket ditujukan ke divisi mereka
+ * 3. User dari divisi tujuan (nlpCategory) -> notifikasi karena tiket masuk ke divisi mereka
+ * 4. Super Admin -> selalu dapat notifikasi semua tiket
  */
 export async function createTicketNotifications(
   ticketId: number,
@@ -212,8 +231,21 @@ export async function createTicketNotifications(
   userName: string
 ): Promise<number> {
   try {
+    console.log(`[Routing] Creating notifications for ticket ${ticketId}:`, {
+      userId,
+      userDivision,
+      nlpCategory,
+      title,
+      userName
+    })
+
     const admins = await getAdminsForTicket(userDivision, nlpCategory)
     const users = await getUsersForTicket(userDivision, nlpCategory, userId)
+
+    console.log(`[Routing] Recipients found:`, {
+      admins: admins.map(a => ({ id: a.id, name: a.name, division: a.division, reason: a.notification_reason })),
+      users: users.map(u => ({ id: u.id, name: u.name, division: u.division }))
+    })
 
     let notificationCount = 0
 
@@ -223,6 +255,10 @@ export async function createTicketNotifications(
       let message = `Tiket baru dari ${userName} (${userDivision})`
 
       if (admin.notification_reason === 'nlp_category') {
+        message += ` - Kategori: ${nlpCategory}`
+      } else if (admin.notification_reason === 'user_division') {
+        message += ` - User dari divisi Anda`
+      } else if (admin.notification_reason === 'super_admin') {
         message += ` - Kategori: ${nlpCategory}`
       }
 
@@ -241,12 +277,13 @@ export async function createTicketNotifications(
         ]
       )
 
+      console.log(`[Routing] Created admin notification for ${admin.name} (${admin.division}) - reason: ${admin.notification_reason}`)
       notificationCount++
     }
 
     // Create user notifications for target division users
     for (const user of users) {
-      const message = `Tiket baru di divisi Anda dari ${userName} (${userDivision}) - Kategori: ${nlpCategory}`
+      const message = `Tiket baru untuk divisi ${user.division} dari ${userName} (${userDivision}) - Kategori: ${nlpCategory}`
 
       await query(
         `INSERT INTO user_notifications
@@ -257,15 +294,16 @@ export async function createTicketNotifications(
           ticketId,
           title,
           message,
-          'status_update',
+          'new_ticket',
           false
         ]
       )
 
+      console.log(`[Routing] Created user notification for ${user.name} (${user.division})`)
       notificationCount++
     }
 
-    console.log(`[Routing] Created ${notificationCount} notifications (${admins.length} admins, ${users.length} users) for ticket ${ticketId}`)
+    console.log(`[Routing] Total ${notificationCount} notifications created for ticket ${ticketId}`)
 
     return notificationCount
   } catch (error) {
