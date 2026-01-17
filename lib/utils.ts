@@ -11,7 +11,7 @@ export function cn(...inputs: ClassValue[]) {
  * @param division - Nama divisi (contoh: "ACC/FINANCE", "Operasional", "HR")
  * @returns Formatted ticket ID (contoh: "ACC-001", "OPR-003", "HR-012")
  */
-export function formatTicketId(ticketId: number, division: string): string {
+export function formatTicketId(ticketId: number, division?: string | null): string {
   // Mapping divisi ke prefix
   const divisionPrefixMap: Record<string, string> = {
     'ACC/FINANCE': 'ACC',
@@ -28,8 +28,16 @@ export function formatTicketId(ticketId: number, division: string): string {
     'TEKNOLOGI INFORMASI': 'IT',
     'MARKETING': 'MKT',
     'SALES': 'SLS',
+    'CUSTOMER SERVICE': 'CS',
+    'DIREKSI/DIREKTUR': 'DIR',
     'GENERAL': 'GEN',
     'UMUM': 'GEN',
+  }
+
+  // Handle null/undefined division
+  if (!division) {
+    const paddedId = ticketId.toString().padStart(3, '0')
+    return `TKT-${paddedId}`
   }
 
   // Normalisasi division name (uppercase dan trim)
