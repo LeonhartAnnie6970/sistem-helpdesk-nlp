@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -16,6 +16,26 @@ function LoginContent() {
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isChecking, setIsChecking] = useState(true)
+
+  // Check if user is already logged in - redirect to appropriate dashboard
+  useEffect(() => {
+    const token = localStorage.getItem("token")
+    const role = localStorage.getItem("role")
+
+    if (token) {
+      // User is already logged in, redirect to appropriate dashboard
+      if (role === "super_admin") {
+        router.replace("/super-admin/dashboard")
+      } else if (role === "admin") {
+        router.replace("/admin/dashboard")
+      } else {
+        router.replace("/dashboard")
+      }
+    } else {
+      setIsChecking(false)
+    }
+  }, [router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -41,18 +61,28 @@ function LoginContent() {
       localStorage.setItem("userId", data.userId)
       localStorage.setItem("role", data.role)
 
+      // Use replace instead of push to prevent going back to login page
       if (data.role === "super_admin") {
-        router.push("/super-admin/dashboard")
+        router.replace("/super-admin/dashboard")
       } else if (data.role === "admin") {
-        router.push("/admin/dashboard")
+        router.replace("/admin/dashboard")
       } else {
-        router.push("/dashboard")
+        router.replace("/dashboard")
       }
     } catch (err) {
       setError("An error occurred. Please try again.")
     } finally {
       setIsLoading(false)
     }
+  }
+
+  // Show loading while checking authentication
+  if (isChecking) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        <div className="text-muted-foreground">Loading...</div>
+      </main>
+    )
   }
 
   return (

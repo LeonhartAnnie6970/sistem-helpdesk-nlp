@@ -42,11 +42,14 @@ function AdminDashboardContent() {
   useEffect(() => {
     const storedToken = localStorage.getItem("token")
     if (!storedToken) {
-      router.push("/login")
+      router.replace("/login")
       return
     }
 
     setToken(storedToken)
+
+    // Replace current history state to prevent back navigation to login
+    window.history.replaceState(null, '', window.location.href)
 
     fetch("/api/user/profile", {
       headers: { Authorization: `Bearer ${storedToken}` },
@@ -56,7 +59,7 @@ function AdminDashboardContent() {
         // Hanya admin yang boleh akses halaman ini
         if (data.role !== "admin") {
           // Redirect user biasa ke dashboard user
-          router.push("/dashboard")
+          router.replace("/dashboard")
           return
         }
 
@@ -72,7 +75,7 @@ function AdminDashboardContent() {
 
         return () => clearInterval(interval)
       })
-      .catch(() => router.push("/login"))
+      .catch(() => router.replace("/login"))
   }, [router])
 
 

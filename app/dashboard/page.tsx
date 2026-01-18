@@ -33,56 +33,60 @@ function DashboardContent() {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
 
   useEffect(() => {
-  const storedToken = localStorage.getItem("token")
-  if (!storedToken) {
-    router.push("/login")
-    return
-  }
-
-  setToken(storedToken)
-
-  // Check URL parameters untuk navigate ke tab tertentu
-  const tab = searchParams.get('tab')
-  const view = searchParams.get('view')
-
-  if (tab === 'my-tickets') {
-    setActiveTab('my-tickets')
-    if (view === 'incoming') {
-      setActiveTicketTab('incoming')
+    const storedToken = localStorage.getItem("token")
+    if (!storedToken) {
+      router.replace("/login")
+      return
     }
-  }
 
-  // Check localStorage flag dari notifikasi
-  const openIncoming = localStorage.getItem('openIncomingTickets')
-  if (openIncoming === 'true') {
-    setActiveTab('my-tickets')
-    setActiveTicketTab('incoming')
-    localStorage.removeItem('openIncomingTickets')
-  }
+    setToken(storedToken)
 
-  fetch("/api/user/profile", {
-    headers: { Authorization: `Bearer ${storedToken}` },
-  })
-    .then(res => res.json())
-    .then(data => {
-      if (data.role === "admin") {
-        router.push("/admin/dashboard")
-        return
+    // Replace current history state to prevent back navigation to login
+    // This ensures that pressing back button won't go to login page
+    window.history.replaceState(null, '', window.location.href)
+
+    // Check URL parameters untuk navigate ke tab tertentu
+    const tab = searchParams.get('tab')
+    const view = searchParams.get('view')
+
+    if (tab === 'my-tickets') {
+      setActiveTab('my-tickets')
+      if (view === 'incoming') {
+        setActiveTicketTab('incoming')
       }
+    }
 
-      // user biasa
-      setIsAuthenticated(true)
-      fetchNotificationCount(storedToken)
+    // Check localStorage flag dari notifikasi
+    const openIncoming = localStorage.getItem('openIncomingTickets')
+    if (openIncoming === 'true') {
+      setActiveTab('my-tickets')
+      setActiveTicketTab('incoming')
+      localStorage.removeItem('openIncomingTickets')
+    }
 
-      // Poll for notifications every 30 seconds
-      const interval = setInterval(() => {
-        fetchNotificationCount(storedToken)
-      }, 30000)
-
-      return () => clearInterval(interval)
+    fetch("/api/user/profile", {
+      headers: { Authorization: `Bearer ${storedToken}` },
     })
-    .catch(() => router.push("/login"))
-}, [router, searchParams])
+      .then(res => res.json())
+      .then(data => {
+        if (data.role === "admin") {
+          router.replace("/admin/dashboard")
+          return
+        }
+
+        // user biasa
+        setIsAuthenticated(true)
+        fetchNotificationCount(storedToken)
+
+        // Poll for notifications every 30 seconds
+        const interval = setInterval(() => {
+          fetchNotificationCount(storedToken)
+        }, 30000)
+
+        return () => clearInterval(interval)
+      })
+      .catch(() => router.replace("/login"))
+  }, [router, searchParams])
 
 
   const fetchNotificationCount = async (token: string) => {

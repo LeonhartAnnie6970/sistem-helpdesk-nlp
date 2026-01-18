@@ -12,16 +12,31 @@ import {
   SelectTrigger, 
   SelectValue 
 } from "@/components/ui/select"
-import { 
-  AlertCircle, 
-  CheckCircle2, 
-  Clock, 
+import {
+  AlertCircle,
+  CheckCircle2,
+  Clock,
   XCircle,
   Users,
   Building2,
   Tag,
-  Search
+  Search,
+  Trash2,
+  FileSpreadsheet,
+  FileText,
+  Download,
+  Calendar
 } from 'lucide-react'
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 
 interface Ticket {
   id: number
@@ -53,6 +68,16 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterDivision, setFilterDivision] = useState("all")
   const [filterCategory, setFilterCategory] = useState("all")
+
+  // Delete state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false)
+  const [ticketToDelete, setTicketToDelete] = useState<Ticket | null>(null)
+  const [isDeleting, setIsDeleting] = useState(false)
+
+  // Export state
+  const [startDate, setStartDate] = useState("")
+  const [endDate, setEndDate] = useState("")
+  const [isExporting, setIsExporting] = useState(false)
 
   useEffect(() => {
     fetchTickets()
@@ -131,6 +156,83 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
   const uniqueDivisions = Array.from(new Set(tickets.map(t => t.user_division).filter(Boolean)))
   const uniqueCategories = Array.from(new Set(tickets.map(t => t.nlp_category).filter(Boolean)))
 
+  // Handle delete ticket
+  const handleDeleteClick = (ticket: Ticket, e: React.MouseEvent) => {
+    e.stopPropagation()
+    setTicketToDelete(ticket)
+    setDeleteDialogOpen(true)
+  }
+
+  const handleConfirmDelete = async () => {
+    if (!ticketToDelete) return
+
+    setIsDeleting(true)
+    try {
+      const response = await fetch(`/api/tickets/${ticketToDelete.id}`, {
+        method: "DELETE",
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (response.ok) {
+        // Remove ticket from local state
+        setTickets(prev => prev.filter(t => t.id !== ticketToDelete.id))
+        setDeleteDialogOpen(false)
+        setTicketToDelete(null)
+      } else {
+        const data = await response.json()
+        alert(data.error || "Gagal menghapus tiket")
+      }
+    } catch (error) {
+      console.error("Error deleting ticket:", error)
+      alert("Terjadi kesalahan saat menghapus tiket")
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  // Handle export
+  const handleExport = async (format: "excel" | "pdf") => {
+    setIsExporting(true)
+    try {
+      const params = new URLSearchParams()
+      params.set("format", format)
+
+      if (filterCategory !== "all") params.set("category", filterCategory)
+      if (filterDivision !== "all") params.set("division", filterDivision)
+      if (filterStatus !== "all") params.set("status", filterStatus)
+      if (startDate) params.set("startDate", startDate)
+      if (endDate) params.set("endDate", endDate)
+
+      const response = await fetch(`/api/tickets/export?${params.toString()}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        alert(data.error || "Gagal mengekspor laporan")
+        return
+      }
+
+      // Download file
+      const blob = await response.blob()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement("a")
+      a.href = url
+      a.download = format === "excel"
+        ? `laporan-tiket-${new Date().toISOString().split("T")[0]}.xlsx`
+        : `laporan-tiket-${new Date().toISOString().split("T")[0]}.pdf`
+      document.body.appendChild(a)
+      a.click()
+      window.URL.revokeObjectURL(url)
+      document.body.removeChild(a)
+    } catch (error) {
+      console.error("Error exporting:", error)
+      alert("Terjadi kesalahan saat mengekspor laporan")
+    } finally {
+      setIsExporting(false)
+    }
+  }
+
   const stats = {
     total: filteredTickets.length,
     new: filteredTickets.filter(t => t.status === "new").length,
@@ -178,10 +280,34 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
       {/* Filters */}
       <Card>
         <CardHeader>
-          <CardTitle>Filters</CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle>Filter & Export</CardTitle>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport("excel")}
+                disabled={isExporting}
+                className="gap-2"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                {isExporting ? "Mengekspor..." : "Export Excel"}
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleExport("pdf")}
+                disabled={isExporting}
+                className="gap-2"
+              >
+                <FileText className="w-4 h-4" />
+                {isExporting ? "Mengekspor..." : "Export PDF"}
+              </Button>
+            </div>
+          </div>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="relative">
               <Search className="absolute left-3 top-3 w-4 h-4 text-muted-foreground" />
               <Input
@@ -228,7 +354,64 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                 ))}
               </SelectContent>
             </Select>
+
+            <div>
+              <Input
+                type="date"
+                placeholder="Dari Tanggal"
+                value={startDate}
+                onChange={(e) => setStartDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div>
+              <Input
+                type="date"
+                placeholder="Sampai Tanggal"
+                value={endDate}
+                onChange={(e) => setEndDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
           </div>
+
+          {/* Active filters indicator */}
+          {(filterStatus !== "all" || filterDivision !== "all" || filterCategory !== "all" || startDate || endDate) && (
+            <div className="mt-4 flex items-center gap-2 flex-wrap">
+              <span className="text-sm text-muted-foreground">Filter aktif:</span>
+              {filterStatus !== "all" && (
+                <Badge variant="secondary">Status: {filterStatus}</Badge>
+              )}
+              {filterDivision !== "all" && (
+                <Badge variant="secondary">Divisi: {filterDivision}</Badge>
+              )}
+              {filterCategory !== "all" && (
+                <Badge variant="secondary">Kategori: {filterCategory}</Badge>
+              )}
+              {startDate && (
+                <Badge variant="secondary">Dari: {startDate}</Badge>
+              )}
+              {endDate && (
+                <Badge variant="secondary">Sampai: {endDate}</Badge>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => {
+                  setFilterStatus("all")
+                  setFilterDivision("all")
+                  setFilterCategory("all")
+                  setStartDate("")
+                  setEndDate("")
+                  setSearchQuery("")
+                }}
+                className="text-xs h-6"
+              >
+                Reset Filter
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
 
@@ -285,16 +468,25 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                           </div>
                         </div>
 
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            e.stopPropagation()
-                            onTicketClick?.(ticket.id)
-                          }}
-                        >
-                          Detail
-                        </Button>
+                        <div className="flex gap-2">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              onTicketClick?.(ticket.id)
+                            }}
+                          >
+                            Detail
+                          </Button>
+                          <Button
+                            variant="destructive"
+                            size="sm"
+                            onClick={(e) => handleDeleteClick(ticket, e)}
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
@@ -304,6 +496,39 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
           )}
         </CardContent>
       </Card>
+
+      {/* Delete Confirmation Dialog */}
+      <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Hapus Tiket?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Apakah Anda yakin ingin menghapus tiket ini?
+              {ticketToDelete && (
+                <div className="mt-3 p-3 bg-muted rounded-lg">
+                  <p className="font-semibold">{ticketToDelete.title}</p>
+                  <p className="text-sm text-muted-foreground">
+                    Dibuat oleh: {ticketToDelete.name} ({ticketToDelete.user_division})
+                  </p>
+                </div>
+              )}
+              <p className="mt-3 text-destructive font-medium">
+                Tindakan ini tidak dapat dibatalkan. Semua data tiket termasuk komentar dan notifikasi terkait akan dihapus secara permanen.
+              </p>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handleConfirmDelete}
+              disabled={isDeleting}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {isDeleting ? "Menghapus..." : "Hapus Tiket"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

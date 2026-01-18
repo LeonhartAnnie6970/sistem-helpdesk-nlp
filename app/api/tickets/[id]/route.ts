@@ -323,3 +323,62 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
+
+// DELETE - Only super_admin can delete tickets
+export async function DELETE(request: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  const token = request.headers.get("authorization")?.replace("Bearer ", "")
+
+  if (!token) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
+  }
+
+  const decoded = verifyToken(token)
+  if (!decoded) {
+    return NextResponse.json({ error: "Invalid token" }, { status: 401 })
+  }
+
+  // Only super_admin can delete tickets
+  if (decoded.role !== "super_admin") {
+    return NextResponse.json(
+      { error: "Hanya Super Admin yang dapat menghapus tiket" },
+      { status: 403 }
+    )
+  }
+
+  try {
+    const { id } = await params
+
+    // Check if ticket exists
+    const ticketCheck: any = await query(
+      `SELECT id, title FROM tickets WHERE id = ?`,
+      [id]
+    )
+
+    if (!Array.isArray(ticketCheck) || ticketCheck.length === 0) {
+      return NextResponse.json({ error: "Ticket not found" }, { status: 404 })
+    }
+
+    const ticketTitle = ticketCheck[0].title
+
+    // Delete related comments first (foreign key constraint)
+    await query(`DELETE FROM ticket_comments WHERE ticket_id = ?`, [id])
+
+    // Delete related notifications
+    await query(`DELETE FROM user_notifications WHERE id_ticket = ?`, [id])
+    await query(`DELETE FROM admin_notifications WHERE id_ticket = ?`, [id])
+
+    // Delete the ticket
+    await query(`DELETE FROM tickets WHERE id = ?`, [id])
+
+    console.log(`[Ticket Delete] Super Admin ${decoded.userId} deleted ticket #${id}: ${ticketTitle}`)
+
+    return NextResponse.json({
+      message: "Tiket berhasil dihapus",
+      deletedTicketId: id,
+      deletedTicketTitle: ticketTitle
+    })
+  } catch (error) {
+    console.error("Delete ticket error:", error)
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+  }
+}

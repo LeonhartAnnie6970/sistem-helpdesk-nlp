@@ -35,12 +35,15 @@ function SuperAdminDashboardContent() {
     const role = localStorage.getItem("role")
 
     if (!storedToken || role !== "super_admin") {
-      router.push("/login")
+      router.replace("/login")
       return
     }
 
     setToken(storedToken)
     setIsAuthenticated(true)
+
+    // Replace current history state to prevent back navigation to login
+    window.history.replaceState(null, '', window.location.href)
 
     // Fetch initial notification count
     fetchNotificationCount(storedToken)
@@ -67,7 +70,7 @@ function SuperAdminDashboardContent() {
 
   const handleLogout = () => {
     localStorage.clear()
-    router.push("/login")
+    router.replace("/login")
   }
 
   const handleTicketSuccess = () => {

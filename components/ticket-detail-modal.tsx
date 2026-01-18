@@ -10,6 +10,65 @@ import { Badge } from "@/components/ui/badge"
 import { Upload, Send, User, Clock, MessageSquare, Image as ImageIcon } from "lucide-react"
 import { format } from "date-fns"
 
+// Helper function to generate formatted ticket ID based on division/category
+const generateTicketCode = (category: string | null | undefined, ticketId: number): string => {
+  // Map divisi ke kode prefix (sesuai database)
+  const divisionPrefixes: { [key: string]: string } = {
+    // IT
+    "IT": "IT",
+    "Information Technology": "IT",
+    // Akuntansi / Finance
+    "Akuntansi": "ACC",
+    "ACC": "ACC",
+    "Finance": "ACC",
+    "Keuangan": "ACC",
+    // Operasional
+    "Operasional": "OPR",
+    "OPR": "OPR",
+    "Operations": "OPR",
+    // Sales
+    "Sales": "SLS",
+    "SLS": "SLS",
+    "Penjualan": "SLS",
+    // Customer Service
+    "Customer Service": "CS",
+    "CS": "CS",
+    "Pelayanan": "CS",
+    // HR / HRD
+    "HR": "HR",
+    "HRD": "HR",
+    "Human Resource": "HR",
+    "SDM": "HR",
+    // Direksi / Direktur
+    "Direksi": "DKT",
+    "Direktur": "DKT",
+    "DKT": "DKT",
+    "Management": "DKT",
+  }
+
+  // Cari prefix yang sesuai (case-insensitive)
+  let prefix = "TKT" // default prefix
+
+  // Null check untuk category
+  if (category) {
+    const categoryLower = category.toLowerCase()
+
+    for (const [key, value] of Object.entries(divisionPrefixes)) {
+      if (categoryLower === key.toLowerCase() ||
+          categoryLower.includes(key.toLowerCase()) ||
+          key.toLowerCase().includes(categoryLower)) {
+        prefix = value
+        break
+      }
+    }
+  }
+
+  // Format nomor dengan padding 3 digit
+  const paddedNumber = String(ticketId).padStart(3, '0')
+
+  return `${prefix}-${paddedNumber}`
+}
+
 interface Comment {
   id: number
   ticket_id: number
@@ -212,7 +271,7 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-black border-gray-200 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-black dark:text-white">
-            Detail Tiket #{ticketId}
+            Detail Tiket {ticket ? generateTicketCode(ticket.category, ticket.id) : `#${ticketId}`}
           </DialogTitle>
         </DialogHeader>
 
