@@ -11,16 +11,24 @@ async function notifyTicketCreator(
   message: string,
   type: 'status_update' | 'admin_note' | 'admin_image' | 'ticket_resolved'
 ) {
+  console.log(`[Notification] Attempting to create notification:`, {
+    ticketId,
+    ticketCreatorId,
+    ticketTitle,
+    message,
+    type
+  })
+
   try {
-    await query(
+    const result = await query(
       `INSERT INTO user_notifications
        (id_user, id_ticket, ticket_title, message, type, is_read)
        VALUES (?, ?, ?, ?, ?, FALSE)`,
       [ticketCreatorId, ticketId, ticketTitle, message, type]
     )
-    console.log(`[Notification] Created notification for user ${ticketCreatorId}: ${type}`)
+    console.log(`[Notification] SUCCESS - Created notification for user ${ticketCreatorId}: ${type}`, result)
   } catch (error) {
-    console.error('[Notification] Error creating notification:', error)
+    console.error('[Notification] FAILED - Error creating notification:', error)
   }
 }
 
@@ -147,22 +155,63 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    // For admin, verify they can only update tickets from their division
+    // For admin, verify they can update tickets targeted to their division OR from their division
     if (decoded.role === "admin") {
       const adminInfo = await query("SELECT division FROM users WHERE id = ?", [decoded.userId])
       const adminDivision = (adminInfo as any)[0]?.division
 
       const ticketInfo = await query(
-        `SELECT u.division FROM tickets t
+        `SELECT t.target_divisions, u.division as user_division FROM tickets t
          JOIN users u ON t.id_user = u.id
          WHERE t.id = ?`,
         [id]
       )
 
-      const ticketUserDivision = (ticketInfo as any)[0]?.division
+      if (!Array.isArray(ticketInfo) || ticketInfo.length === 0) {
+        return NextResponse.json({ error: "Ticket not found" }, { status: 404 })
+      }
 
-      if (adminDivision !== ticketUserDivision) {
-        return NextResponse.json({ error: "You can only update tickets from your division" }, { status: 403 })
+      const ticketData = (ticketInfo as any)[0]
+      const ticketUserDivision = ticketData?.user_division
+
+      // Parse target_divisions JSON array
+      let targetDivisions: string[] = []
+      try {
+        targetDivisions = JSON.parse(ticketData?.target_divisions || '[]')
+      } catch (e) {
+        console.error("Failed to parse target_divisions:", e)
+      }
+
+      // Admin can update if ticket is targeted to their division OR from their division
+      const hasAccess = targetDivisions.includes(adminDivision) || ticketUserDivision === adminDivision
+
+      if (!hasAccess) {
+        return NextResponse.json({ error: "You can only update tickets for your division" }, { status: 403 })
+      }
+    }
+
+    // Check if ticket is already closed - prevent any updates
+    const currentTicketInfo: any = await query(
+      `SELECT status, id_user FROM tickets WHERE id = ?`,
+      [id]
+    )
+
+    if (currentTicketInfo[0]?.status === "closed") {
+      return NextResponse.json(
+        { error: "Tiket sudah ditutup dan tidak dapat diubah lagi" },
+        { status: 403 }
+      )
+    }
+
+    // IMPORTANT: Only ticket creator can set status to "closed"
+    // Admin/super_admin can only set status up to "resolved"
+    if (status === "closed") {
+      const ticketCreatorId = currentTicketInfo[0]?.id_user
+      if (ticketCreatorId !== decoded.userId) {
+        return NextResponse.json(
+          { error: "Hanya pembuat ticket yang dapat menutup ticket ini" },
+          { status: 403 }
+        )
       }
     }
 
@@ -195,19 +244,32 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Get ticket info before update for notification
     const ticketInfo: any = await query(
-      `SELECT t.id_user, t.title, t.status as old_status, u.name as admin_name
+      `SELECT t.id_user, t.title, t.status as old_status
        FROM tickets t
-       JOIN users u ON u.id = ?
        WHERE t.id = ?`,
-      [decoded.userId, id]
+      [id]
     )
     const ticket = ticketInfo[0]
+
+    // Get admin name separately
+    const adminInfo: any = await query(
+      `SELECT name FROM users WHERE id = ?`,
+      [decoded.userId]
+    )
+    const adminName = adminInfo[0]?.name || 'Admin'
+
+    console.log(`[Ticket Update] Ticket info for notification:`, {
+      ticketId: id,
+      ticketInfo: ticket,
+      adminName,
+      updates: { status, category, imageAdminUrl, admin_notes }
+    })
 
     await query(`UPDATE tickets SET ${updates.join(", ")} WHERE id = ?`, values)
 
     // Send notification to ticket creator
     if (ticket) {
-      const adminName = ticket.admin_name || 'Admin'
+      console.log(`[Ticket Update] Sending notifications to user ${ticket.id_user}`)
 
       if (status) {
         const statusLabels: Record<string, string> = {
@@ -251,6 +313,8 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
           'admin_image'
         )
       }
+    } else {
+      console.error(`[Ticket Update] ERROR - Ticket not found for id: ${id}`)
     }
 
     return NextResponse.json({ message: "Ticket updated" })

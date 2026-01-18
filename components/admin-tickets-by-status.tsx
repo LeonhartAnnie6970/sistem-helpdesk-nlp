@@ -45,6 +45,7 @@ export function AdminTicketsByStatus({ tickets, onStatusUpdate, updatingStatus }
   const newTickets = filteredTickets.filter((t) => t.status === "new")
   const inProgressTickets = filteredTickets.filter((t) => t.status === "in_progress")
   const resolvedTickets = filteredTickets.filter((t) => t.status === "resolved")
+  const closedTickets = filteredTickets.filter((t) => t.status === "closed")
 
   const TicketSection = ({
     title,
@@ -53,7 +54,7 @@ export function AdminTicketsByStatus({ tickets, onStatusUpdate, updatingStatus }
   }: {
     title: string
     tickets: Ticket[]
-    color: "bg-blue-100 text-blue-800" | "bg-yellow-100 text-yellow-800" | "bg-green-100 text-green-800"
+    color: "bg-blue-100 text-blue-800" | "bg-yellow-100 text-yellow-800" | "bg-green-100 text-green-800" | "bg-gray-100 text-gray-800"
   }) => (
     <Card>
       <CardHeader className="pb-3">
@@ -108,6 +109,9 @@ export function AdminTicketsByStatus({ tickets, onStatusUpdate, updatingStatus }
 
       {/* Resolved Tickets */}
       <TicketSection title="Resolved Ticket" tickets={resolvedTickets} color="bg-green-100 text-green-800" />
+
+      {/* Closed Tickets */}
+      <TicketSection title="Closed Ticket" tickets={closedTickets} color="bg-gray-100 text-gray-800" />
     </div>
   )
 }

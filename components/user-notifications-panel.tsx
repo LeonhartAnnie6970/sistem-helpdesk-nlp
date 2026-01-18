@@ -17,9 +17,11 @@ interface Notification {
 
 interface UserNotificationsPanelProps {
   token: string
+  onTicketClick?: (ticketId: number) => void
+  onClose?: () => void
 }
 
-export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
+export function UserNotificationsPanel({ token, onTicketClick, onClose }: UserNotificationsPanelProps) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
@@ -74,21 +76,24 @@ export function UserNotificationsPanel({ token }: UserNotificationsPanelProps) {
   const handleNotificationClick = (notification: Notification) => {
     handleMarkAsRead(notification.id)
 
-    // Set flag untuk buka Tiket Masuk
-    localStorage.setItem('openIncomingTickets', 'true')
-
     // Normalize ticket id from different possible shapes (some backends use id_ticket)
     const rawTicketId: any = (notification as any).ticket_id ?? (notification as any).id_ticket ?? (notification as any).ticketId ?? (notification as any).idTicket ?? (notification as any).ticket?.id ?? null
     const ticketId = rawTicketId !== null && rawTicketId !== undefined && rawTicketId !== "" ? Number(rawTicketId) : null
 
     if (ticketId !== null && !Number.isNaN(ticketId)) {
-      localStorage.setItem('highlightTicketId', String(ticketId))
+      // Jika ada callback onTicketClick, gunakan itu (navigasi tanpa reload)
+      if (onTicketClick) {
+        onTicketClick(ticketId)
+        if (onClose) onClose()
+      } else {
+        // Fallback: navigasi dengan reload halaman
+        localStorage.setItem('openIncomingTickets', 'true')
+        localStorage.setItem('highlightTicketId', String(ticketId))
+        window.location.href = '/dashboard?tab=my-tickets&view=incoming'
+      }
     } else {
       console.warn('Notification has no valid ticket id:', notification)
     }
-
-    // Navigate to my-tickets page with incoming tab
-    window.location.href = '/dashboard?tab=my-tickets&view=incoming'
   }
 
   const getNotificationIcon = (type: string) => {

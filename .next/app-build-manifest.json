@@ -6,11 +6,6 @@
       "static/css/app/layout.css",
       "static/chunks/app/layout.js"
     ],
-    "/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/page.js"
-    ],
     "/login/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
@@ -51,15 +46,15 @@
       "static/chunks/main-app.js",
       "static/chunks/app/api/tickets/[id]/comments/route.js"
     ],
-    "/api/nlp/classify/route": [
+    "/api/debug/check-db/route": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/nlp/classify/route.js"
+      "static/chunks/app/api/debug/check-db/route.js"
     ],
-    "/api/upload/route": [
+    "/page": [
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
-      "static/chunks/app/api/upload/route.js"
+      "static/chunks/app/page.js"
     ],
     "/admin/dashboard/page": [
       "static/chunks/webpack.js",

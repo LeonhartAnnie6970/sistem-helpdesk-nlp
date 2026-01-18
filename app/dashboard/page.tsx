@@ -9,6 +9,7 @@ import { IncomingTickets } from "@/components/incoming-tickets"
 import { ThemeProvider } from "@/components/theme-provider"
 import { UserProfileModal } from "@/components/user-profile-modal"
 import { UserNotificationsPanel } from "@/components/user-notifications-panel"
+import { TicketDetailModal } from "@/components/ticket-detail-modal"
 import { Button } from "@/components/ui/button"
 import { Plus, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -28,6 +29,8 @@ function DashboardContent() {
   const [notificationCount, setNotificationCount] = useState(0)
   const [showNewTicketForm, setShowNewTicketForm] = useState(false)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
+  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
 
   useEffect(() => {
   const storedToken = localStorage.getItem("token")
@@ -108,6 +111,23 @@ function DashboardContent() {
 
   const handleOpenNotifications = () => {
     setShowNotifications(!showNotifications)
+  }
+
+  // Handler untuk klik notifikasi - buka detail ticket langsung
+  const handleNotificationTicketClick = (ticketId: number) => {
+    setSelectedTicketId(ticketId)
+    setIsTicketModalOpen(true)
+    setActiveTab("my-tickets")
+    setActiveTicketTab("outgoing") // Default ke outgoing, modal akan menampilkan detail
+  }
+
+  const handleCloseTicketModal = () => {
+    setIsTicketModalOpen(false)
+    setSelectedTicketId(null)
+  }
+
+  const handleTicketUpdate = () => {
+    setRefreshTrigger((prev) => prev + 1)
   }
 
   if (!isAuthenticated) {
@@ -296,7 +316,11 @@ function DashboardContent() {
             )}
             onClick={(e) => e.stopPropagation()}
           >
-            <UserNotificationsPanel token={token} />
+            <UserNotificationsPanel
+              token={token}
+              onTicketClick={handleNotificationTicketClick}
+              onClose={() => setShowNotifications(false)}
+            />
           </div>
         </div>
       )}
@@ -307,6 +331,16 @@ function DashboardContent() {
         onClose={() => setIsProfileOpen(false)}
         token={token}
       />
+
+      {/* Ticket Detail Modal - untuk membuka dari notifikasi */}
+      {selectedTicketId && (
+        <TicketDetailModal
+          ticketId={selectedTicketId}
+          isOpen={isTicketModalOpen}
+          onClose={handleCloseTicketModal}
+          onUpdate={handleTicketUpdate}
+        />
+      )}
     </div>
   )
 }

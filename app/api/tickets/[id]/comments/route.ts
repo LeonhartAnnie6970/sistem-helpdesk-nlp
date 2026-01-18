@@ -12,16 +12,24 @@ async function notifyTicketCreator(
   message: string,
   type: 'status_update' | 'admin_note' | 'admin_image' | 'ticket_resolved'
 ) {
+  console.log(`[Comment Notification] Attempting to create user notification:`, {
+    ticketId,
+    ticketCreatorId,
+    ticketTitle,
+    message,
+    type
+  })
+
   try {
-    await query(
+    const result = await query(
       `INSERT INTO user_notifications
        (id_user, id_ticket, ticket_title, message, type, is_read)
        VALUES (?, ?, ?, ?, ?, FALSE)`,
       [ticketCreatorId, ticketId, ticketTitle, message, type]
     )
-    console.log(`[Notification] Created user notification for user ${ticketCreatorId}: ${type}`)
+    console.log(`[Comment Notification] SUCCESS - Created user notification for user ${ticketCreatorId}: ${type}`, result)
   } catch (error) {
-    console.error('[Notification] Error creating user notification:', error)
+    console.error('[Comment Notification] FAILED - Error creating user notification:', error)
   }
 }
 
@@ -34,18 +42,32 @@ async function notifyAdmins(
   targetDivisions: string[]
 ) {
   try {
+    console.log(`[notifyAdmins] Called with targetDivisions:`, targetDivisions)
+
+    if (!targetDivisions || targetDivisions.length === 0) {
+      console.log(`[notifyAdmins] No target divisions, skipping`)
+      return
+    }
+
+    // Build placeholders for IN clause: (?, ?, ?)
+    const placeholders = targetDivisions.map(() => '?').join(', ')
+
     // Get all admins from target divisions
     const admins: any = await query(
       `SELECT id, name, division FROM users
-       WHERE role = 'admin' AND division IN (?) AND is_active = TRUE`,
-      [targetDivisions]
+       WHERE role = 'admin' AND division IN (${placeholders}) AND is_active = TRUE`,
+      targetDivisions
     )
+
+    console.log(`[notifyAdmins] Found admins:`, admins)
 
     // Also get super admins
     const superAdmins: any = await query(
       `SELECT id, name, division FROM users
        WHERE role = 'super_admin' AND is_active = TRUE`
     )
+
+    console.log(`[notifyAdmins] Found super admins:`, superAdmins)
 
     const allAdmins = [...(Array.isArray(admins) ? admins : []), ...(Array.isArray(superAdmins) ? superAdmins : [])]
 
@@ -181,8 +203,14 @@ export async function POST(
   request: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  console.log("===========================================")
+  console.log("[Comment POST] Request received!")
+  console.log("===========================================")
+
   try {
     const { id } = await params
+    console.log(`[Comment POST] Ticket ID: ${id}`)
+
     const token = request.headers.get("authorization")?.replace("Bearer ", "")
     if (!token) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
@@ -209,6 +237,15 @@ export async function POST(
     }
 
     const ticket = tickets[0]
+
+    // Check if ticket is closed - prevent ANY updates on closed tickets
+    if (ticket.status === "closed") {
+      console.log(`[Comment POST] Rejected - ticket ${ticketId} is closed`)
+      return NextResponse.json(
+        { error: "Tiket sudah ditutup dan tidak dapat menerima tanggapan lagi" },
+        { status: 403 }
+      )
+    }
 
     // Access control - same as GET
     if (decoded.role === "user") {
@@ -262,6 +299,24 @@ export async function POST(
     const oldStatus = formData.get("oldStatus") as string || null
     const newStatus = formData.get("newStatus") as string || null
     const attachment = formData.get("attachment") as File | null
+
+    console.log(`[Comment POST] FormData parsed:`, {
+      comment: comment?.substring(0, 50),
+      commentType,
+      oldStatus,
+      newStatus,
+      hasAttachment: !!attachment
+    })
+
+    // IMPORTANT: Only ticket creator can set status to "closed"
+    // Admin/responder can only set status up to "resolved"
+    if (newStatus === "closed" && ticket.id_user !== decoded.userId) {
+      console.log(`[Comment POST] Rejected - only ticket creator can close ticket. Creator: ${ticket.id_user}, Current user: ${decoded.userId}`)
+      return NextResponse.json(
+        { error: "Hanya pembuat ticket yang dapat menutup ticket ini" },
+        { status: 403 }
+      )
+    }
 
     let attachmentPath = null
 
@@ -319,9 +374,25 @@ export async function POST(
     }
 
     // Send notifications based on who commented
+    console.log(`[Comment] Notification check:`, {
+      commenterRole,
+      commenterName,
+      ticketCreatorId: ticket.id_user,
+      commenterId: decoded.userId,
+      commentType,
+      newStatus
+    })
+
     if (commenterRole === 'admin' || commenterRole === 'super_admin') {
       // Admin/Super Admin merespons -> notifikasi ke pembuat tiket
+      console.log(`[Comment] Admin/SuperAdmin commented. Checking if should notify ticket creator...`)
+      console.log(`[Comment] ticket.id_user=${ticket.id_user} (type: ${typeof ticket.id_user}), decoded.userId=${decoded.userId} (type: ${typeof decoded.userId})`)
+      console.log(`[Comment] Are they different? ${ticket.id_user !== decoded.userId}`)
+
       if (ticket.id_user !== decoded.userId) {
+        console.log(`[Comment] Will notify ticket creator ${ticket.id_user}`)
+        console.log(`[Comment] commentType=${commentType}, newStatus=${newStatus}`)
+
         if (commentType === "status_change" && newStatus) {
           const statusLabels: Record<string, string> = {
             'new': 'Baru',
@@ -350,16 +421,59 @@ export async function POST(
             `${commenterName} merespons tiket Anda`,
             'admin_note'
           )
+        } else {
+          console.log(`[Comment] Skipped notification - commentType=${commentType} doesn't match status_change/response/comment`)
         }
+      } else {
+        console.log(`[Comment] Skipped notification - admin is the ticket creator`)
       }
     } else if (commenterRole === 'user') {
-      // User merespons -> notifikasi ke admin divisi tujuan
-      const message = `${commenterName} merespons tiket "${ticket.title}"`
+      // User merespons tiket
+      console.log(`[Comment] User commented on ticket`)
+
+      // 1. Notifikasi ke pembuat tiket (jika bukan diri sendiri)
+      if (ticket.id_user !== decoded.userId) {
+        console.log(`[Comment] Notifying ticket creator ${ticket.id_user}`)
+        if (commentType === "status_change" && newStatus) {
+          const statusLabels: Record<string, string> = {
+            'new': 'Baru',
+            'in_progress': 'Sedang Diproses',
+            'resolved': 'Selesai'
+          }
+          const newStatusLabel = statusLabels[newStatus] || newStatus
+          const notifType = newStatus === 'resolved' ? 'ticket_resolved' : 'status_update'
+          const message = newStatus === 'resolved'
+            ? `Tiket Anda telah diselesaikan oleh ${commenterName}`
+            : `Status tiket diubah menjadi "${newStatusLabel}" oleh ${commenterName}`
+
+          await notifyTicketCreator(
+            ticketId,
+            ticket.id_user,
+            ticket.title,
+            message,
+            notifType
+          )
+        } else {
+          await notifyTicketCreator(
+            ticketId,
+            ticket.id_user,
+            ticket.title,
+            `${commenterName} merespons tiket Anda`,
+            'admin_note'
+          )
+        }
+      }
+
+      // 2. Notifikasi ke admin divisi tujuan dan super admin
+      const adminMessage = commentType === "status_change" && newStatus
+        ? `${commenterName} mengubah status tiket "${ticket.title}"`
+        : `${commenterName} merespons tiket "${ticket.title}"`
+
       await notifyAdmins(
         ticketId,
         ticket.id_user,
         ticket.title,
-        message,
+        adminMessage,
         targetDivisions
       )
     }

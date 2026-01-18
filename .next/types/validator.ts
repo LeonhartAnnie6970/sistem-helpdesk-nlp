@@ -209,6 +209,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   type __Unused = __Check
 }
 
+// Validate ../../app/api/debug/check-db/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/debug/check-db">> = Specific
+  const handler = {} as typeof import("../../app/api/debug/check-db/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
+// Validate ../../app/api/debug/test-notification/route.ts
+{
+  type __IsExpected<Specific extends RouteHandlerConfig<"/api/debug/test-notification">> = Specific
+  const handler = {} as typeof import("../../app/api/debug/test-notification/route.js")
+  type __Check = __IsExpected<typeof handler>
+  // @ts-ignore
+  type __Unused = __Check
+}
+
 // Validate ../../app/api/nlp/classify-enhanced/route.ts
 {
   type __IsExpected<Specific extends RouteHandlerConfig<"/api/nlp/classify-enhanced">> = Specific

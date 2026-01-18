@@ -2,7 +2,6 @@
 
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 
 interface Ticket {
@@ -46,27 +45,39 @@ export function AdminTicketDetail({
 
         <div className="flex items-center gap-3">
           <span className="text-sm font-medium">Status:</span>
-          <Select
-            value={ticket.status}
-            onValueChange={(value) =>
-              onStatusUpdate(ticket.id, value)
-            }
-            disabled={isUpdating}
-          >
-            <SelectTrigger className="w-40">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="in_progress">In Progress</SelectItem>
-              <SelectItem value="resolved">Resolved</SelectItem>
-            </SelectContent>
-          </Select>
+          {ticket.status === "closed" ? (
+            <div className="flex items-center gap-2">
+              <Badge className="bg-gray-500 text-white">CLOSED</Badge>
+              <span className="text-xs text-muted-foreground">
+                Tiket sudah ditutup
+              </span>
+            </div>
+          ) : (
+            <>
+              <Select
+                value={ticket.status}
+                onValueChange={(value) =>
+                  onStatusUpdate(ticket.id, value)
+                }
+                disabled={isUpdating}
+              >
+                <SelectTrigger className="w-40">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="new">New</SelectItem>
+                  <SelectItem value="in_progress">In Progress</SelectItem>
+                  <SelectItem value="resolved">Resolved</SelectItem>
+                  {/* Admin tidak bisa close ticket - hanya pembuat ticket yang bisa */}
+                </SelectContent>
+              </Select>
 
-          {isUpdating && (
-            <span className="text-xs text-muted-foreground">
-              Updating...
-            </span>
+              {isUpdating && (
+                <span className="text-xs text-muted-foreground">
+                  Updating...
+                </span>
+              )}
+            </>
           )}
         </div>
 

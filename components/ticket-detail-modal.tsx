@@ -28,6 +28,7 @@ interface Comment {
 
 interface Ticket {
   id: number
+  id_user: number
   title: string
   description: string
   category: string
@@ -54,6 +55,15 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
   const [attachment, setAttachment] = useState<File | null>(null)
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
+  const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+
+  useEffect(() => {
+    // Get current user ID from localStorage
+    const userId = localStorage.getItem("userId")
+    if (userId) {
+      setCurrentUserId(parseInt(userId))
+    }
+  }, [])
 
   useEffect(() => {
     if (isOpen && ticketId) {
@@ -61,6 +71,9 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
       fetchComments()
     }
   }, [isOpen, ticketId])
+
+  // Check if current user is the ticket creator
+  const isTicketCreator = ticket && currentUserId ? ticket.id_user === currentUserId : false
 
   const fetchTicketDetails = async () => {
     try {
@@ -70,8 +83,11 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
         headers: { Authorization: `Bearer ${token}` }
       })
       const data = await response.json()
-      setTicket(data.ticket)
-      setNewStatus(data.ticket.status)
+      console.log("[TicketDetailModal] Fetched ticket data:", data.ticket)
+      if (data.ticket) {
+        setTicket(data.ticket)
+        setNewStatus(data.ticket.status || "")
+      }
     } catch (error) {
       console.error("Error fetching ticket:", error)
     } finally {
@@ -93,6 +109,14 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
   }
 
   const handleSubmitComment = async () => {
+    // Double-check: prevent submit if ticket is closed (check both ticket status and comments)
+    const isTicketClosed = ticket?.status === "closed" || comments.some(c => c.new_status === "closed")
+    if (isTicketClosed) {
+      alert("Tiket sudah ditutup dan tidak dapat menerima tanggapan lagi")
+      fetchTicketDetails() // Refresh to update UI
+      return
+    }
+
     if (!newComment.trim() && !attachment) {
       alert("Mohon isi komentar atau upload bukti foto")
       return
@@ -134,7 +158,12 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
         const fileInput = document.getElementById("comment-attachment") as HTMLInputElement
         if (fileInput) fileInput.value = ""
       } else {
-        alert("Gagal mengirim komentar")
+        // Get error message from server
+        const errorData = await response.json()
+        alert(errorData.error || "Gagal mengirim komentar")
+        // Refresh ticket details to get latest status
+        fetchTicketDetails()
+        fetchComments()
       }
     } catch (error) {
       console.error("Error submitting comment:", error)
@@ -337,86 +366,115 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
               </div>
             </div>
 
-            {/* Add Comment Form */}
+            {/* Add Comment Form - Disabled if ticket is closed */}
+            {/* Check both ticket.status and comments history for closed status */}
             <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
               <CardContent className="p-6">
-                <h4 className="text-lg font-semibold text-black dark:text-white mb-4">
-                  Tambah Tanggapan
-                </h4>
-
-                <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
-                      Status Tiket
-                    </label>
-                    <Select value={newStatus} onValueChange={setNewStatus}>
-                      <SelectTrigger className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
-                        <SelectValue placeholder="Pilih status" />
-                      </SelectTrigger>
-                      <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
-                        <SelectItem value="new">New</SelectItem>
-                        <SelectItem value="in_progress">In Progress</SelectItem>
-                        <SelectItem value="resolved">Resolved</SelectItem>
-                        <SelectItem value="closed">Closed</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
-                      Komentar / Tanggapan
-                    </label>
-                    <Textarea
-                      value={newComment}
-                      onChange={(e) => setNewComment(e.target.value)}
-                      placeholder="Tulis tanggapan Anda..."
-                      className="min-h-24 bg-white dark:bg-black border-gray-300 dark:border-gray-600 text-black dark:text-white"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
-                      Upload Bukti Foto (Opsional)
-                    </label>
-                    <div className="flex items-center gap-2">
-                      <input
-                        id="comment-attachment"
-                        type="file"
-                        accept="image/*"
-                        onChange={(e) => setAttachment(e.target.files?.[0] || null)}
-                        className="block w-full text-sm text-gray-600 dark:text-gray-300
-                          file:mr-4 file:py-2 file:px-4
-                          file:rounded-md file:border-0
-                          file:text-sm file:font-semibold
-                          file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-200
-                          hover:file:bg-blue-100 dark:hover:file:bg-blue-800"
-                      />
+                {(ticket.status === "closed" || comments.some(c => c.new_status === "closed")) ? (
+                  <div className="text-center py-4">
+                    <div className="w-12 h-12 rounded-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-3">
+                      <MessageSquare className="w-6 h-6 text-gray-400" />
                     </div>
-                    {attachment && (
-                      <p className="text-sm text-green-600 dark:text-green-400 mt-2">
-                        File terpilih: {attachment.name}
-                      </p>
-                    )}
+                    <h4 className="text-lg font-semibold text-gray-600 dark:text-gray-400 mb-2">
+                      Tiket Sudah Ditutup
+                    </h4>
+                    <p className="text-sm text-gray-500 dark:text-gray-500">
+                      Tiket ini sudah ditutup dan tidak dapat menerima tanggapan lagi.
+                    </p>
+                    <div className="mt-4">
+                      <Button
+                        variant="outline"
+                        onClick={onClose}
+                        className="border-gray-300 dark:border-gray-600"
+                      >
+                        Tutup
+                      </Button>
+                    </div>
                   </div>
+                ) : (
+                  <>
+                    <h4 className="text-lg font-semibold text-black dark:text-white mb-4">
+                      Tambah Tanggapan
+                    </h4>
 
-                  <div className="flex justify-end gap-2">
-                    <Button
-                      variant="outline"
-                      onClick={onClose}
-                      className="border-gray-300 dark:border-gray-600"
-                    >
-                      Tutup
-                    </Button>
-                    <Button
-                      onClick={handleSubmitComment}
-                      disabled={submitting}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      <Send className="w-4 h-4 mr-2" />
-                      {submitting ? "Mengirim..." : "Kirim Tanggapan"}
-                    </Button>
-                  </div>
-                </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
+                          Status Tiket
+                        </label>
+                        <Select value={newStatus} onValueChange={setNewStatus}>
+                          <SelectTrigger className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
+                            <SelectValue placeholder="Pilih status" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
+                            <SelectItem value="new">New</SelectItem>
+                            <SelectItem value="in_progress">In Progress</SelectItem>
+                            <SelectItem value="resolved">Resolved</SelectItem>
+                            {/* Only ticket creator can close the ticket */}
+                            {isTicketCreator && (
+                              <SelectItem value="closed">Closed</SelectItem>
+                            )}
+                          </SelectContent>
+                        </Select>
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
+                          Komentar / Tanggapan
+                        </label>
+                        <Textarea
+                          value={newComment}
+                          onChange={(e) => setNewComment(e.target.value)}
+                          placeholder="Tulis tanggapan Anda..."
+                          className="min-h-24 bg-white dark:bg-black border-gray-300 dark:border-gray-600 text-black dark:text-white"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2 block">
+                          Upload Bukti Foto (Opsional)
+                        </label>
+                        <div className="flex items-center gap-2">
+                          <input
+                            id="comment-attachment"
+                            type="file"
+                            accept="image/*"
+                            onChange={(e) => setAttachment(e.target.files?.[0] || null)}
+                            className="block w-full text-sm text-gray-600 dark:text-gray-300
+                              file:mr-4 file:py-2 file:px-4
+                              file:rounded-md file:border-0
+                              file:text-sm file:font-semibold
+                              file:bg-blue-50 dark:file:bg-blue-900 file:text-blue-700 dark:file:text-blue-200
+                              hover:file:bg-blue-100 dark:hover:file:bg-blue-800"
+                          />
+                        </div>
+                        {attachment && (
+                          <p className="text-sm text-green-600 dark:text-green-400 mt-2">
+                            File terpilih: {attachment.name}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="flex justify-end gap-2">
+                        <Button
+                          variant="outline"
+                          onClick={onClose}
+                          className="border-gray-300 dark:border-gray-600"
+                        >
+                          Tutup
+                        </Button>
+                        <Button
+                          onClick={handleSubmitComment}
+                          disabled={submitting}
+                          className="bg-blue-600 hover:bg-blue-700 text-white"
+                        >
+                          <Send className="w-4 h-4 mr-2" />
+                          {submitting ? "Mengirim..." : "Kirim Tanggapan"}
+                        </Button>
+                      </div>
+                    </div>
+                  </>
+                )}
               </CardContent>
             </Card>
           </div>
