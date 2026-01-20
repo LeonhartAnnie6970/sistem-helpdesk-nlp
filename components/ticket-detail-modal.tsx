@@ -10,8 +10,9 @@ import { Badge } from "@/components/ui/badge"
 import { Upload, Send, User, Clock, MessageSquare, Image as ImageIcon } from "lucide-react"
 import { format } from "date-fns"
 
-// Helper function to generate formatted ticket ID based on division/category
-const generateTicketCode = (category: string | null | undefined, ticketId: number): string => {
+// Helper function to generate formatted ticket ID based on user's division
+// Contoh: User dari divisi SALES membuat tiket ID 9 → SLS-009
+const generateTicketCode = (userDivision: string | null | undefined, ticketId: number): string => {
   // Map divisi ke kode prefix (sesuai database)
   const divisionPrefixes: { [key: string]: string } = {
     // IT
@@ -47,16 +48,16 @@ const generateTicketCode = (category: string | null | undefined, ticketId: numbe
   }
 
   // Cari prefix yang sesuai (case-insensitive)
-  let prefix = "TKT" // default prefix
+  let prefix = "TKT" // default prefix jika divisi tidak dikenali
 
-  // Null check untuk category
-  if (category) {
-    const categoryLower = category.toLowerCase()
+  // Null check untuk userDivision
+  if (userDivision) {
+    const divisionLower = userDivision.toLowerCase()
 
     for (const [key, value] of Object.entries(divisionPrefixes)) {
-      if (categoryLower === key.toLowerCase() ||
-          categoryLower.includes(key.toLowerCase()) ||
-          key.toLowerCase().includes(categoryLower)) {
+      if (divisionLower === key.toLowerCase() ||
+          divisionLower.includes(key.toLowerCase()) ||
+          key.toLowerCase().includes(divisionLower)) {
         prefix = value
         break
       }
@@ -96,6 +97,7 @@ interface Ticket {
   created_at: string
   user_name: string
   user_email: string
+  user_division?: string
   image_path?: string
 }
 
@@ -271,7 +273,7 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-black border-gray-200 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-black dark:text-white">
-            Detail Tiket {ticket ? generateTicketCode(ticket.category, ticket.id) : `#${ticketId}`}
+            Detail Tiket {ticket ? generateTicketCode(ticket.user_division, ticket.id) : `#${ticketId}`}
           </DialogTitle>
         </DialogHeader>
 

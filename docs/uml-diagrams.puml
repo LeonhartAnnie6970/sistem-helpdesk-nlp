@@ -1,0 +1,2556 @@
+@startuml UseCase_Diagram
+!theme plain
+title Use Case Diagram - Sistem Helpdesk NLP SJPL
+
+left to right direction
+skinparam packageStyle rectangle
+skinparam actorStyle awesome
+
+' ========== ACTORS ==========
+actor "User" as user
+actor "Admin" as admin
+actor "Super Admin" as superadmin
+actor "NLP System" as nlp <<system>>
+
+admin -|> user : extends
+superadmin -|> admin : extends
+
+' ========== PACKAGES ==========
+
+rectangle "Sistem Helpdesk NLP SJPL" {
+
+    package "Authentication" {
+        usecase "UC01: Login" as UC01
+        usecase "UC02: Register" as UC02
+        usecase "UC03: Logout" as UC03
+        usecase "UC04: Change Password" as UC04
+    }
+
+    package "Profile Management" {
+        usecase "UC05: View Profile" as UC05
+        usecase "UC06: Update Profile Image" as UC06
+    }
+
+    package "Ticket Management - User" {
+        usecase "UC07: Create Ticket" as UC07
+        usecase "UC08: View Own Tickets" as UC08
+        usecase "UC09: View Incoming Tickets" as UC09
+        usecase "UC10: View Ticket Detail" as UC10
+        usecase "UC11: Add Comment" as UC11
+        usecase "UC12: Close Own Ticket" as UC12
+        usecase "UC13: Upload Ticket Image" as UC13
+    }
+
+    package "Ticket Management - Admin" {
+        usecase "UC14: View Division Tickets" as UC14
+        usecase "UC15: Update Ticket Status" as UC15
+        usecase "UC16: Add Admin Notes" as UC16
+        usecase "UC17: Upload Admin Image" as UC17
+        usecase "UC18: Override NLP Category" as UC18
+        usecase "UC19: Search Tickets" as UC19
+    }
+
+    package "Ticket Management - Super Admin" {
+        usecase "UC20: View All Tickets" as UC20
+        usecase "UC21: Delete Ticket" as UC21
+        usecase "UC22: Export to Excel" as UC22
+        usecase "UC23: Export to PDF" as UC23
+    }
+
+    package "Notification System" {
+        usecase "UC24: View Notifications" as UC24
+        usecase "UC25: Mark Notification Read" as UC25
+        usecase "UC26: Mark All Read" as UC26
+    }
+
+    package "User Management" {
+        usecase "UC27: View All Users" as UC27
+        usecase "UC28: Create User" as UC28
+        usecase "UC29: Update User" as UC29
+        usecase "UC30: Deactivate User" as UC30
+    }
+
+    package "Category & Division Mapping" {
+        usecase "UC31: View Category Mappings" as UC31
+        usecase "UC32: Create Category Mapping" as UC32
+        usecase "UC33: Update Category Mapping" as UC33
+    }
+
+    package "Dashboard & Reports" {
+        usecase "UC34: View Statistics" as UC34
+        usecase "UC35: View Division Stats" as UC35
+        usecase "UC36: Generate NLP Analysis" as UC36
+    }
+
+    package "NLP Classification" {
+        usecase "UC37: Classify Ticket Text" as UC37
+        usecase "UC38: Route to Division" as UC38
+    }
+}
+
+' ========== RELATIONSHIPS - User ==========
+user --> UC01
+user --> UC02
+user --> UC03
+user --> UC04
+user --> UC05
+user --> UC06
+user --> UC07
+user --> UC08
+user --> UC09
+user --> UC10
+user --> UC11
+user --> UC12
+user --> UC13
+user --> UC24
+user --> UC25
+user --> UC26
+
+' ========== RELATIONSHIPS - Admin ==========
+admin --> UC14
+admin --> UC15
+admin --> UC16
+admin --> UC17
+admin --> UC18
+admin --> UC19
+admin --> UC31
+admin --> UC34
+
+' ========== RELATIONSHIPS - Super Admin ==========
+superadmin --> UC20
+superadmin --> UC21
+superadmin --> UC22
+superadmin --> UC23
+superadmin --> UC27
+superadmin --> UC28
+superadmin --> UC29
+superadmin --> UC30
+superadmin --> UC32
+superadmin --> UC33
+superadmin --> UC35
+superadmin --> UC36
+
+' ========== NLP System ==========
+nlp --> UC37
+nlp --> UC38
+
+' ========== INCLUDE/EXTEND ==========
+UC07 ..> UC37 : <<include>>
+UC37 ..> UC38 : <<include>>
+UC07 ..> UC13 : <<extend>>
+UC15 ..> UC24 : <<include>>
+UC16 ..> UC24 : <<include>>
+UC17 ..> UC24 : <<include>>
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - LOGIN
+' ============================================================
+
+@startuml Activity_Login
+!theme plain
+title Activity Diagram - Login Process
+
+start
+
+:User opens login page;
+
+:User enters email and password;
+
+:Click login button;
+
+:Send POST /api/auth/login;
+
+if (Email exists in database?) then (yes)
+    if (Password valid (bcrypt compare)?) then (yes)
+        if (User is_active = true?) then (yes)
+            :Generate JWT Token;
+            :Store token in localStorage;
+            :Update last_login timestamp;
+
+            if (User role?) then (super_admin)
+                :Redirect to /super-admin/dashboard;
+            else if (admin) then (admin)
+                :Redirect to /admin/dashboard;
+            else (user)
+                :Redirect to /dashboard;
+            endif
+
+            :Display success notification;
+            stop
+        else (no)
+            :Display "Account deactivated" error;
+            stop
+        endif
+    else (no)
+        :Display "Invalid password" error;
+        stop
+    endif
+else (no)
+    :Display "Email not found" error;
+    stop
+endif
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - REGISTER
+' ============================================================
+
+@startuml Activity_Register
+!theme plain
+title Activity Diagram - User Registration
+
+start
+
+:User opens registration page;
+
+:User fills registration form;
+note right
+  - Name
+  - Email
+  - Password
+  - Confirm Password
+  - Division
+end note
+
+:Click register button;
+
+if (All fields filled?) then (yes)
+    if (Password matches confirmation?) then (yes)
+        if (Password >= 6 characters?) then (yes)
+            :Send POST /api/auth/register;
+
+            if (Email already exists?) then (no)
+                :Hash password with bcrypt;
+                :Create user record in database;
+                :Set role = 'user';
+                :Set is_active = true;
+                :Display success message;
+                :Redirect to login page;
+                stop
+            else (yes)
+                :Display "Email already registered" error;
+                stop
+            endif
+        else (no)
+            :Display "Password too short" error;
+            stop
+        endif
+    else (no)
+        :Display "Passwords don't match" error;
+        stop
+    endif
+else (no)
+    :Display "Fill all fields" error;
+    stop
+endif
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - CREATE TICKET
+' ============================================================
+
+@startuml Activity_CreateTicket
+!theme plain
+title Activity Diagram - Create Ticket with NLP Classification
+
+|User|
+start
+:Open ticket creation form;
+:Fill ticket details;
+note right
+  - Title
+  - Description
+  - Category (optional)
+  - Image (optional)
+end note
+
+:Click submit button;
+
+|System|
+:Validate input data;
+
+if (Valid input?) then (yes)
+    :Get user info from JWT token;
+    :Get user division;
+
+    |NLP API|
+    :Send text to NLP API;
+    :Process with TF-IDF vectorizer;
+    :Classify with trained model;
+    :Extract keywords;
+    :Calculate confidence score;
+    :Return classification result;
+
+    |System|
+    :Receive NLP result;
+    note right
+      - nlp_category
+      - nlp_confidence
+      - nlp_keywords
+    end note
+
+    :Map category to target divisions;
+    :Get category_division_mapping;
+
+    fork
+        :Create ticket record;
+        note right
+          - title, description
+          - category
+          - user_division
+          - target_divisions (JSON)
+          - nlp_category
+          - nlp_confidence
+          - nlp_keywords
+          - status = 'new'
+        end note
+    fork again
+        :Upload image if provided;
+        :Store image URL;
+    end fork
+
+    :Get admins for notification;
+    note right
+      - Admins from user division
+      - Admins from target divisions
+      - All super admins
+    end note
+
+    fork
+        :Create admin notifications;
+    fork again
+        :Create super admin notifications;
+    fork again
+        :Create user notifications for target division users;
+    end fork
+
+    |User|
+    :Display success message;
+    :Show ticket ID and routing info;
+    :Refresh ticket list;
+
+else (no)
+    |User|
+    :Display validation error;
+endif
+
+stop
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - UPDATE TICKET STATUS
+' ============================================================
+
+@startuml Activity_UpdateTicketStatus
+!theme plain
+title Activity Diagram - Update Ticket Status (Admin)
+
+|Admin|
+start
+:Select ticket from list;
+:View ticket detail;
+:Select new status;
+note right
+  Available statuses:
+  - new
+  - in_progress
+  - resolved
+  - closed (only by creator)
+end note
+
+:Click update button;
+
+|System|
+:Validate JWT token;
+:Check admin authorization;
+
+if (Is admin or super_admin?) then (yes)
+    if (Status = 'closed'?) then (yes)
+        if (Admin is ticket creator?) then (yes)
+            :Update ticket status;
+        else (no)
+            :Return error: Only creator can close;
+            |Admin|
+            :Display error message;
+            stop
+        endif
+    else (no)
+        :Update ticket status;
+    endif
+
+    :Record old_status and new_status;
+    :Update updated_at timestamp;
+
+    fork
+        :Create ticket comment (status_change);
+    fork again
+        :Create user notification;
+        note right
+          type: status_update
+          message: Status changed
+        end note
+    end fork
+
+    |Admin|
+    :Display success message;
+    :Refresh ticket detail;
+
+else (no)
+    |Admin|
+    :Display "Unauthorized" error;
+endif
+
+stop
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - OVERRIDE NLP
+' ============================================================
+
+@startuml Activity_OverrideNLP
+!theme plain
+title Activity Diagram - Override NLP Classification
+
+|Admin/Super Admin|
+start
+:View ticket with NLP classification;
+:Click "Override NLP" button;
+:Select new target division;
+:Enter override reason;
+:Confirm override;
+
+|System|
+:Validate JWT token;
+:Check admin/super_admin role;
+
+if (Authorized?) then (yes)
+    :Store original NLP values;
+    note right
+      - original_nlp_division
+      - is_nlp_overridden = true
+      - override_reason
+      - overridden_by (admin_id)
+      - overridden_at (timestamp)
+    end note
+
+    :Update target_divisions with new division;
+    :Update nlp_category if needed;
+
+    fork
+        :Create notifications for new target division admins;
+    fork again
+        :Log override action;
+    end fork
+
+    |Admin/Super Admin|
+    :Display success message;
+    :Show updated routing;
+
+else (no)
+    |Admin/Super Admin|
+    :Display "Unauthorized" error;
+endif
+
+stop
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - DELETE TICKET (Super Admin)
+' ============================================================
+
+@startuml Activity_DeleteTicket
+!theme plain
+title Activity Diagram - Delete Ticket (Super Admin Only)
+
+|Super Admin|
+start
+:View all tickets list;
+:Select ticket to delete;
+:Click delete button;
+:Confirm deletion in dialog;
+
+|System|
+:Validate JWT token;
+:Check role = super_admin;
+
+if (Is super_admin?) then (yes)
+    :Get ticket ID;
+
+    if (Ticket exists?) then (yes)
+
+        :Begin database transaction;
+
+        fork
+            :Delete from ticket_comments;
+        fork again
+            :Delete from user_notifications;
+        fork again
+            :Delete from admin_notifications (notifications);
+        fork again
+            :Delete from super_admin_notifications;
+        end fork
+
+        :Delete from tickets;
+        :Commit transaction;
+
+        |Super Admin|
+        :Display success message;
+        :Refresh ticket list;
+
+    else (no)
+        |Super Admin|
+        :Display "Ticket not found" error;
+    endif
+
+else (no)
+    |Super Admin|
+    :Display "Only Super Admin can delete" error;
+endif
+
+stop
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - EXPORT REPORT
+' ============================================================
+
+@startuml Activity_ExportReport
+!theme plain
+title Activity Diagram - Export Report (Excel/PDF)
+
+|Super Admin|
+start
+:Open export panel;
+:Set filter criteria;
+note right
+  Filters:
+  - Format (Excel/PDF)
+  - Category
+  - Division
+  - Status
+  - Start Date
+  - End Date
+end note
+
+:Click export button;
+
+|System|
+:Validate JWT token;
+:Check super_admin role;
+
+if (Authorized?) then (yes)
+    :Build SQL query with filters;
+    :Execute query;
+    :Fetch filtered tickets;
+
+    if (Format = Excel?) then (yes)
+        :Initialize ExcelJS Workbook;
+        :Create worksheet;
+        :Add styled headers;
+        note right
+          Headers:
+          - No
+          - Kode Tiket
+          - Judul
+          - Deskripsi
+          - Kategori
+          - Status
+          - Divisi User
+          - Divisi Tujuan
+          - Dibuat
+          - Diperbarui
+        end note
+
+        :Add data rows with status colors;
+        :Add summary statistics;
+        :Generate .xlsx buffer;
+        :Set Content-Disposition header;
+        :Return Excel file;
+
+    else (PDF)
+        :Initialize PDFKit document;
+        :Set landscape A4 format;
+        :Add header with title;
+        :Add filter info;
+        :Create table structure;
+
+        while (More tickets?) is (yes)
+            :Add ticket row;
+            if (Page full?) then (yes)
+                :Add new page;
+                :Repeat headers;
+            endif
+        endwhile (no)
+
+        :Add page numbers;
+        :Add summary statistics;
+        :Generate PDF buffer;
+        :Return PDF file;
+    endif
+
+    |Super Admin|
+    :Download file;
+    :Display success message;
+
+else (no)
+    |Super Admin|
+    :Display "Unauthorized" error;
+endif
+
+stop
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - NOTIFICATION FLOW
+' ============================================================
+
+@startuml Activity_NotificationFlow
+!theme plain
+title Activity Diagram - Notification System Flow
+
+|System|
+start
+
+:Event occurs;
+note right
+  Events:
+  - New ticket created
+  - Ticket status updated
+  - Admin notes added
+  - Admin image uploaded
+  - Comment added
+end note
+
+switch (Event type?)
+case (new_ticket)
+    fork
+        :Get admins from user_division;
+    fork again
+        :Get admins from target_divisions;
+    fork again
+        :Get all super_admins;
+    fork again
+        :Get users in target_divisions;
+    end fork
+case (status_update)
+    :Get ticket creator;
+case (admin_action)
+    :Get ticket creator;
+case (comment)
+    if (Commenter is admin?) then (yes)
+        :Get ticket creator;
+    else (no)
+        :Get relevant admins;
+    endif
+endswitch
+
+:Build notification message;
+
+fork
+    :Insert into notifications table;
+fork again
+    :Insert into user_notifications table;
+fork again
+    :Insert into super_admin_notifications table;
+end fork
+
+|Client|
+:Poll every 30 seconds;
+:GET /api/user/notifications;
+:GET /api/admin/notifications;
+:Update unread count badge;
+:Display notification panel;
+
+stop
+
+@enduml
+
+
+' ============================================================
+' ACTIVITY DIAGRAM - USER MANAGEMENT
+' ============================================================
+
+@startuml Activity_UserManagement
+!theme plain
+title Activity Diagram - User Management (Super Admin)
+
+|Super Admin|
+start
+:Open User Management Panel;
+
+split
+    :View Users;
+    :GET /api/super-admin/users;
+    :Display user list with roles;
+split again
+    :Create User;
+    :Fill user form;
+    :Submit POST /api/super-admin/users;
+
+    |System|
+    if (Email unique?) then (yes)
+        :Hash password;
+        :Create user record;
+        :Return success;
+    else (no)
+        :Return "Email exists" error;
+    endif
+
+split again
+    :Update User;
+    :Select user;
+    :Modify user details;
+    :Submit PATCH /api/super-admin/users;
+
+    |System|
+    :Validate changes;
+    :Update user record;
+    :Return success;
+
+split again
+    :Deactivate User;
+    :Select user;
+    :Confirm deactivation;
+    :Submit DELETE /api/super-admin/users;
+
+    |System|
+    :Set is_active = false;
+    note right
+      Soft delete:
+      User record preserved
+      but cannot login
+    end note
+    :Return success;
+
+end split
+
+|Super Admin|
+:Refresh user list;
+:Display result message;
+
+stop
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - LOGIN
+' ============================================================
+
+@startuml Sequence_Login
+!theme plain
+title Sequence Diagram - Login Process
+
+actor User
+participant "Login Page" as LP
+participant "Auth API\n/api/auth/login" as API
+database "MySQL\nDatabase" as DB
+
+User -> LP: Enter email & password
+User -> LP: Click Login
+
+LP -> API: POST /api/auth/login\n{email, password}
+
+API -> DB: SELECT * FROM users\nWHERE email = ?
+DB --> API: User record (or null)
+
+alt User not found
+    API --> LP: 401 Unauthorized\n{error: "Email tidak ditemukan"}
+    LP --> User: Display error message
+else User found
+    API -> API: bcrypt.compare(password, hash)
+
+    alt Password invalid
+        API --> LP: 401 Unauthorized\n{error: "Password salah"}
+        LP --> User: Display error message
+    else Password valid
+        alt User inactive
+            API --> LP: 401 Unauthorized\n{error: "Akun dinonaktifkan"}
+            LP --> User: Display error message
+        else User active
+            API -> API: Generate JWT token\n{userId, role}
+            API -> DB: UPDATE users\nSET last_login = NOW()
+            API --> LP: 200 OK\n{token, user, message}
+            LP -> LP: Store token in localStorage
+            LP --> User: Redirect to dashboard\n(based on role)
+        end
+    end
+end
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - CREATE TICKET
+' ============================================================
+
+@startuml Sequence_CreateTicket
+!theme plain
+title Sequence Diagram - Create Ticket with NLP Classification
+
+actor User
+participant "Ticket Form" as TF
+participant "Tickets API\n/api/tickets" as API
+participant "NLP API\n/api/nlp/classify" as NLP
+participant "Flask NLP\nService" as Flask
+participant "Routing\nService" as RS
+database "MySQL\nDatabase" as DB
+
+User -> TF: Fill ticket details\n(title, description, image)
+User -> TF: Submit ticket
+
+TF -> API: POST /api/tickets\n{title, description, category, image}
+
+API -> API: Validate JWT token
+API -> DB: Get user info\n(division, name)
+
+API -> NLP: POST /api/nlp/classify\n{text: title + description}
+NLP -> Flask: POST /classify\n{text}
+Flask -> Flask: TF-IDF vectorization
+Flask -> Flask: Model prediction
+Flask -> Flask: Extract keywords
+Flask --> NLP: {category, confidence, keywords}
+NLP --> API: NLP classification result
+
+API -> RS: getTargetDivisionsByCategory(nlp_category)
+RS -> DB: SELECT * FROM category_division_mapping\nWHERE nlp_category = ?
+DB --> RS: Target divisions
+RS --> API: target_divisions[]
+
+API -> DB: INSERT INTO tickets\n(all fields including NLP data)
+DB --> API: ticket_id
+
+API -> RS: createTicketNotifications(ticket)
+RS -> DB: Get admins from user_division
+RS -> DB: Get admins from target_divisions
+RS -> DB: Get all super_admins
+RS -> DB: Get users in target_divisions
+
+loop For each recipient
+    RS -> DB: INSERT INTO notifications\n(admin notifications)
+    RS -> DB: INSERT INTO user_notifications\n(user notifications)
+    RS -> DB: INSERT INTO super_admin_notifications
+end
+
+RS --> API: Notifications created
+
+API --> TF: 201 Created\n{ticket, routing_info}
+TF --> User: Display success\nShow ticket code (e.g., IT-001)
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - UPDATE TICKET STATUS
+' ============================================================
+
+@startuml Sequence_UpdateStatus
+!theme plain
+title Sequence Diagram - Update Ticket Status
+
+actor Admin
+participant "Ticket Detail\nModal" as TD
+participant "Tickets API\n/api/tickets/[id]" as API
+database "MySQL\nDatabase" as DB
+
+Admin -> TD: Select new status
+Admin -> TD: Click Update
+
+TD -> API: PATCH /api/tickets/{id}\n{status: "in_progress"}
+
+API -> API: Validate JWT token
+API -> API: Check role (admin/super_admin)
+
+API -> DB: SELECT * FROM tickets\nWHERE id = ?
+DB --> API: Ticket record
+
+alt Status is 'closed'
+    API -> API: Check if admin is ticket creator
+    alt Not the creator
+        API --> TD: 403 Forbidden\n{error: "Hanya pembuat tiket"}
+        TD --> Admin: Display error
+    end
+end
+
+API -> DB: UPDATE tickets\nSET status = ?, updated_at = NOW()
+DB --> API: Success
+
+API -> DB: INSERT INTO ticket_comments\n(comment_type: 'status_change')
+DB --> API: Comment created
+
+API -> DB: SELECT id_user FROM tickets
+API -> DB: INSERT INTO user_notifications\n{type: 'status_update', message}
+DB --> API: Notification created
+
+API --> TD: 200 OK\n{ticket: updated}
+TD -> TD: Refresh ticket data
+TD --> Admin: Display success message
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - NLP CLASSIFICATION
+' ============================================================
+
+@startuml Sequence_NLPClassification
+!theme plain
+title Sequence Diagram - NLP Text Classification
+
+participant "Client" as C
+participant "NLP API\n/api/nlp/classify" as API
+participant "Flask NLP\nService" as Flask
+participant "Model\n(model.pkl)" as Model
+participant "Vectorizer\n(vectorizer.pkl)" as Vec
+
+C -> API: POST /api/nlp/classify\n{text: "Wifi kantor tidak bisa connect"}
+
+API -> Flask: POST http://localhost:8000/classify\n{text}
+
+Flask -> Flask: Preprocess text\n(lowercase, clean)
+
+Flask -> Vec: Transform text to vector
+Vec -> Vec: TF-IDF transformation
+Vec --> Flask: Feature vector
+
+Flask -> Model: Predict category
+Model -> Model: Classification
+Model --> Flask: Predicted category
+
+Flask -> Flask: Calculate confidence score
+Flask -> Flask: Extract matched keywords
+
+Flask --> API: {\n  "category": "IT",\n  "confidence": 92.5,\n  "matched_keywords": ["wifi", "connect"]\n}
+
+API --> C: {\n  "category": "IT",\n  "confidence": 92.5,\n  "keywords": ["wifi", "connect"]\n}
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - EXPORT REPORT
+' ============================================================
+
+@startuml Sequence_ExportReport
+!theme plain
+title Sequence Diagram - Export Report to Excel/PDF
+
+actor "Super Admin" as SA
+participant "Export Panel" as EP
+participant "Export API\n/api/tickets/export" as API
+participant "ExcelJS" as Excel
+participant "PDFKit" as PDF
+database "MySQL\nDatabase" as DB
+
+SA -> EP: Set filters\n(category, date range, status)
+SA -> EP: Click Export Excel
+
+EP -> API: GET /api/tickets/export?\nformat=excel&category=IT&startDate=...
+
+API -> API: Validate JWT (super_admin only)
+
+API -> DB: SELECT * FROM tickets\nWHERE category = ?\nAND created_at BETWEEN ? AND ?
+DB --> API: Filtered tickets[]
+
+alt Format = Excel
+    API -> Excel: Create Workbook
+    Excel -> Excel: Create Worksheet
+    Excel -> Excel: Add styled headers
+
+    loop For each ticket
+        Excel -> Excel: Add row with data
+        Excel -> Excel: Apply status color
+    end
+
+    Excel -> Excel: Add summary row
+    Excel -> Excel: Generate buffer
+    Excel --> API: XLSX buffer
+
+    API --> EP: application/xlsx\nContent-Disposition: attachment
+
+else Format = PDF
+    API -> PDF: Create Document
+    PDF -> PDF: Set A4 Landscape
+    PDF -> PDF: Add header & title
+    PDF -> PDF: Add filter info
+
+    loop For each ticket
+        PDF -> PDF: Add table row
+        PDF -> PDF: Check page break
+    end
+
+    PDF -> PDF: Add page numbers
+    PDF -> PDF: Add summary
+    PDF -> PDF: Generate buffer
+    PDF --> API: PDF buffer
+
+    API --> EP: application/pdf\nContent-Disposition: attachment
+end
+
+EP --> SA: Download file
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - NOTIFICATION POLLING
+' ============================================================
+
+@startuml Sequence_NotificationPolling
+!theme plain
+title Sequence Diagram - Notification Polling
+
+actor User
+participant "Dashboard" as D
+participant "Notification API" as API
+database "MySQL\nDatabase" as DB
+
+== Initial Load ==
+User -> D: Open Dashboard
+
+D -> API: GET /api/user/notifications
+API -> API: Validate JWT
+API -> DB: SELECT * FROM user_notifications\nWHERE id_user = ?\nORDER BY created_at DESC
+DB --> API: Notifications[]
+API --> D: {notifications, unreadCount}
+D -> D: Update notification badge
+D --> User: Show unread count
+
+== Polling Loop (every 30s) ==
+loop Every 30 seconds
+    D -> API: GET /api/user/notifications
+    API -> DB: Get latest notifications
+    DB --> API: Notifications[]
+    API --> D: {notifications, unreadCount}
+    D -> D: Update badge if changed
+end
+
+== Mark as Read ==
+User -> D: Click notification
+D -> API: PATCH /api/user/notifications\n{notification_id, is_read: true}
+API -> DB: UPDATE user_notifications\nSET is_read = true
+DB --> API: Success
+API --> D: Updated notification
+D -> D: Decrease unread count
+D --> User: Navigate to ticket
+
+== Mark All Read ==
+User -> D: Click "Mark All Read"
+D -> API: POST /api/user/notifications/mark-all-read
+API -> DB: UPDATE user_notifications\nSET is_read = true\nWHERE id_user = ?
+DB --> API: Success
+API --> D: {success: true}
+D -> D: Set unread count = 0
+D --> User: All notifications marked read
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - USER MANAGEMENT
+' ============================================================
+
+@startuml Sequence_UserManagement
+!theme plain
+title Sequence Diagram - User Management (Super Admin)
+
+actor "Super Admin" as SA
+participant "User Management\nPanel" as UP
+participant "Users API\n/api/super-admin/users" as API
+database "MySQL\nDatabase" as DB
+
+== List Users ==
+SA -> UP: Open User Management
+UP -> API: GET /api/super-admin/users
+API -> API: Validate JWT (super_admin)
+API -> DB: SELECT * FROM users\nORDER BY created_at DESC
+DB --> API: Users[]
+API --> UP: {users: [...]}
+UP --> SA: Display user list
+
+== Create User ==
+SA -> UP: Click "Add User"
+SA -> UP: Fill form (name, email, password, role, division)
+UP -> API: POST /api/super-admin/users\n{name, email, password, role, division}
+
+API -> DB: SELECT * FROM users WHERE email = ?
+DB --> API: Existing user (or null)
+
+alt Email already exists
+    API --> UP: 400 Bad Request\n{error: "Email sudah terdaftar"}
+    UP --> SA: Display error
+else Email available
+    API -> API: Hash password (bcrypt)
+    API -> DB: INSERT INTO users\n(name, email, password, role, division)
+    DB --> API: New user ID
+    API --> UP: 201 Created\n{user: {...}}
+    UP --> SA: Display success, refresh list
+end
+
+== Update User ==
+SA -> UP: Select user, edit details
+UP -> API: PATCH /api/super-admin/users\n{id, name, email, role, division}
+API -> DB: UPDATE users SET ... WHERE id = ?
+DB --> API: Success
+API --> UP: 200 OK {user: updated}
+UP --> SA: Display success
+
+== Deactivate User ==
+SA -> UP: Click deactivate on user
+SA -> UP: Confirm deactivation
+UP -> API: DELETE /api/super-admin/users\n{id}
+API -> DB: UPDATE users\nSET is_active = false\nWHERE id = ?
+DB --> API: Success
+API --> UP: 200 OK {message: "User dinonaktifkan"}
+UP --> SA: Refresh list, show deactivated
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - DELETE TICKET
+' ============================================================
+
+@startuml Sequence_DeleteTicket
+!theme plain
+title Sequence Diagram - Delete Ticket (Super Admin)
+
+actor "Super Admin" as SA
+participant "Tickets Panel" as TP
+participant "Tickets API\n/api/tickets/[id]" as API
+database "MySQL\nDatabase" as DB
+
+SA -> TP: Click delete button on ticket
+TP -> TP: Open confirmation dialog
+SA -> TP: Confirm deletion
+
+TP -> API: DELETE /api/tickets/{id}
+
+API -> API: Validate JWT token
+API -> API: Check role
+
+alt Role is NOT super_admin
+    API --> TP: 403 Forbidden\n{error: "Hanya Super Admin"}
+    TP --> SA: Display error message
+else Role is super_admin
+    API -> DB: SELECT * FROM tickets WHERE id = ?
+    DB --> API: Ticket record
+
+    alt Ticket not found
+        API --> TP: 404 Not Found\n{error: "Tiket tidak ditemukan"}
+        TP --> SA: Display error
+    else Ticket exists
+        API -> DB: BEGIN TRANSACTION
+
+        API -> DB: DELETE FROM ticket_comments\nWHERE ticket_id = ?
+        DB --> API: Deleted comments
+
+        API -> DB: DELETE FROM user_notifications\nWHERE id_ticket = ?
+        DB --> API: Deleted user notifications
+
+        API -> DB: DELETE FROM notifications\nWHERE id_ticket = ?
+        DB --> API: Deleted admin notifications
+
+        API -> DB: DELETE FROM super_admin_notifications\nWHERE id_ticket = ?
+        DB --> API: Deleted super admin notifications
+
+        API -> DB: DELETE FROM tickets\nWHERE id = ?
+        DB --> API: Ticket deleted
+
+        API -> DB: COMMIT
+
+        API --> TP: 200 OK\n{message: "Tiket berhasil dihapus"}
+        TP -> TP: Close dialog
+        TP -> TP: Refresh ticket list
+        TP --> SA: Display success message
+    end
+end
+
+@enduml
+
+
+' ============================================================
+' SEQUENCE DIAGRAM - COMMENT ON TICKET
+' ============================================================
+
+@startuml Sequence_AddComment
+!theme plain
+title Sequence Diagram - Add Comment to Ticket
+
+actor User
+participant "Ticket Detail\nModal" as TD
+participant "Comments API\n/api/tickets/[id]/comments" as API
+database "MySQL\nDatabase" as DB
+
+User -> TD: Type comment
+User -> TD: Attach file (optional)
+User -> TD: Click Send
+
+TD -> API: POST /api/tickets/{id}/comments\n{comment, attachment}
+
+API -> API: Validate JWT token
+API -> DB: SELECT * FROM tickets WHERE id = ?
+DB --> API: Ticket record
+
+API -> API: Check access rights
+note right
+    User can comment if:
+    - Created the ticket
+    - Admin of user's division
+    - Admin of target division
+    - Super admin
+end note
+
+alt Has access
+    API -> DB: INSERT INTO ticket_comments\n(ticket_id, user_id, comment,\ncomment_type, attachment_path)
+    DB --> API: Comment created
+
+    alt Commenter is admin
+        API -> DB: INSERT INTO user_notifications\n(for ticket creator)
+        DB --> API: Notification created
+    else Commenter is user
+        API -> DB: Get relevant admins
+        API -> DB: INSERT INTO notifications\n(for each admin)
+        DB --> API: Notifications created
+    end
+
+    API --> TD: 201 Created\n{comment: {...}}
+    TD -> TD: Refresh comments list
+    TD --> User: Display new comment
+
+else No access
+    API --> TD: 403 Forbidden
+    TD --> User: Display error
+end
+
+@enduml
+
+
+' ============================================================
+' CLASS DIAGRAM - ENTITIES
+' ============================================================
+
+@startuml Class_Diagram_Entities
+!theme plain
+title Class Diagram - Database Entities
+
+' ========== ENUMS ==========
+enum UserRole {
+    user
+    admin
+    super_admin
+}
+
+enum TicketStatus {
+    new
+    in_progress
+    resolved
+    closed
+}
+
+enum NotificationReason {
+    user_division
+    nlp_category
+    super_admin
+}
+
+enum UserNotificationType {
+    status_update
+    admin_note
+    admin_image
+    ticket_resolved
+    new_ticket
+}
+
+enum CommentType {
+    comment
+    status_change
+    response
+}
+
+' ========== CLASSES ==========
+
+class User {
+    +id: INT <<PK>>
+    +name: VARCHAR(100)
+    +email: VARCHAR(100) <<UNIQUE>>
+    +password: VARCHAR(255)
+    +role: UserRole
+    +division: VARCHAR(100)
+    +notification_email: VARCHAR(100)
+    +profile_image_url: VARCHAR(500)
+    +is_active: BOOLEAN
+    +created_at: TIMESTAMP
+    +updated_at: TIMESTAMP
+    +last_login: TIMESTAMP
+    --
+    +login(email, password): JWT
+    +register(data): User
+    +changePassword(oldPwd, newPwd): void
+    +updateProfile(data): User
+    +deactivate(): void
+}
+
+class Ticket {
+    +id: INT <<PK>>
+    +id_user: INT <<FK>>
+    +title: VARCHAR(255)
+    +description: TEXT
+    +category: VARCHAR(100)
+    +status: TicketStatus
+    +image_user_url: VARCHAR(500)
+    +image_admin_url: VARCHAR(500)
+    +image_admin_uploaded_at: TIMESTAMP
+    +admin_notes: TEXT
+    +user_division: VARCHAR(100)
+    +target_divisions: JSON
+    +nlp_category: VARCHAR(100)
+    +nlp_confidence: DECIMAL(5,2)
+    +nlp_keywords: TEXT
+    +is_nlp_overridden: BOOLEAN
+    +original_nlp_division: VARCHAR(100)
+    +override_reason: TEXT
+    +overridden_by: INT <<FK>>
+    +overridden_at: TIMESTAMP
+    +created_at: TIMESTAMP
+    +updated_at: TIMESTAMP
+    --
+    +create(data): Ticket
+    +updateStatus(status): Ticket
+    +addAdminNotes(notes): Ticket
+    +uploadAdminImage(url): Ticket
+    +overrideNLP(division, reason): Ticket
+    +close(): Ticket
+    +delete(): void
+    +getComments(): Comment[]
+    +generateTicketCode(): String
+}
+
+class Notification {
+    +id: INT <<PK>>
+    +id_admin: INT <<FK>>
+    +id_ticket: INT <<FK>>
+    +id_user: INT <<FK>>
+    +title: VARCHAR(255)
+    +message: TEXT
+    +notification_reason: NotificationReason
+    +is_read: BOOLEAN
+    +created_at: TIMESTAMP
+    --
+    +create(data): Notification
+    +markAsRead(): void
+    +markAllAsRead(adminId): void
+}
+
+class UserNotification {
+    +id: INT <<PK>>
+    +id_user: INT <<FK>>
+    +id_ticket: INT <<FK>>
+    +ticket_title: VARCHAR(255)
+    +message: TEXT
+    +type: UserNotificationType
+    +is_read: BOOLEAN
+    +created_at: TIMESTAMP
+    --
+    +create(data): UserNotification
+    +markAsRead(): void
+    +markAllAsRead(userId): void
+}
+
+class SuperAdminNotification {
+    +id: INT <<PK>>
+    +id_super_admin: INT <<FK>>
+    +id_ticket: INT <<FK>>
+    +id_user: INT <<FK>>
+    +title: VARCHAR(255)
+    +message: TEXT
+    +is_read: BOOLEAN
+    +created_at: TIMESTAMP
+    --
+    +create(data): SuperAdminNotification
+    +markAsRead(): void
+}
+
+class TicketComment {
+    +id: INT <<PK>>
+    +ticket_id: INT <<FK>>
+    +user_id: INT <<FK>>
+    +comment: TEXT
+    +comment_type: CommentType
+    +old_status: VARCHAR(50)
+    +new_status: VARCHAR(50)
+    +attachment_path: VARCHAR(500)
+    +created_at: TIMESTAMP
+    +updated_at: TIMESTAMP
+    --
+    +create(data): TicketComment
+    +getByTicket(ticketId): TicketComment[]
+}
+
+class CategoryDivisionMapping {
+    +id: INT <<PK>>
+    +nlp_category: VARCHAR(100)
+    +target_division: VARCHAR(100)
+    +is_active: BOOLEAN
+    +priority: INT
+    +created_at: TIMESTAMP
+    +updated_at: TIMESTAMP
+    --
+    +create(data): CategoryDivisionMapping
+    +update(data): CategoryDivisionMapping
+    +getByCategory(category): CategoryDivisionMapping[]
+    +getTargetDivisions(category): String[]
+}
+
+' ========== RELATIONSHIPS ==========
+
+User "1" -- "0..*" Ticket : creates >
+User "1" -- "0..*" Notification : receives >
+User "1" -- "0..*" UserNotification : receives >
+User "1" -- "0..*" SuperAdminNotification : receives >
+User "1" -- "0..*" TicketComment : writes >
+User "1" -- "0..*" Ticket : overrides (overridden_by) >
+
+Ticket "1" -- "0..*" Notification : triggers >
+Ticket "1" -- "0..*" UserNotification : triggers >
+Ticket "1" -- "0..*" SuperAdminNotification : triggers >
+Ticket "1" -- "0..*" TicketComment : has >
+
+CategoryDivisionMapping .. Ticket : routes >
+
+@enduml
+
+
+' ============================================================
+' CLASS DIAGRAM - SERVICES & API
+' ============================================================
+
+@startuml Class_Diagram_Services
+!theme plain
+title Class Diagram - Services and API Layer
+
+' ========== INTERFACES ==========
+
+interface IAuthService {
+    +login(email, password): Promise<AuthResponse>
+    +register(data): Promise<User>
+    +validateToken(token): TokenPayload
+    +logout(): void
+}
+
+interface ITicketService {
+    +create(data): Promise<Ticket>
+    +getById(id): Promise<Ticket>
+    +getByUser(userId): Promise<Ticket[]>
+    +getByDivision(division): Promise<Ticket[]>
+    +update(id, data): Promise<Ticket>
+    +delete(id): Promise<void>
+    +search(query): Promise<Ticket[]>
+    +export(format, filters): Promise<Buffer>
+}
+
+interface INLPService {
+    +classify(text): Promise<NLPResult>
+    +getKeywords(text): Promise<String[]>
+}
+
+interface INotificationService {
+    +create(data): Promise<Notification>
+    +getByUser(userId): Promise<Notification[]>
+    +markAsRead(id): Promise<void>
+    +markAllAsRead(userId): Promise<void>
+}
+
+interface IUserService {
+    +getAll(): Promise<User[]>
+    +getById(id): Promise<User>
+    +create(data): Promise<User>
+    +update(id, data): Promise<User>
+    +deactivate(id): Promise<void>
+    +changePassword(id, oldPwd, newPwd): Promise<void>
+}
+
+' ========== SERVICES ==========
+
+class AuthService implements IAuthService {
+    -db: Database
+    -jwtSecret: string
+    --
+    +login(email, password): Promise<AuthResponse>
+    +register(data): Promise<User>
+    +validateToken(token): TokenPayload
+    -hashPassword(password): string
+    -comparePassword(password, hash): boolean
+    -generateToken(userId, role): string
+}
+
+class TicketService implements ITicketService {
+    -db: Database
+    -nlpService: INLPService
+    -notificationService: INotificationService
+    --
+    +create(data): Promise<Ticket>
+    +getById(id): Promise<Ticket>
+    +getByUser(userId): Promise<Ticket[]>
+    +getByDivision(division): Promise<Ticket[]>
+    +update(id, data): Promise<Ticket>
+    +delete(id): Promise<void>
+    +search(query): Promise<Ticket[]>
+    +export(format, filters): Promise<Buffer>
+    +overrideNLP(id, division, reason): Promise<Ticket>
+    -generateTicketCode(category, id): string
+}
+
+class NLPService implements INLPService {
+    -apiUrl: string
+    --
+    +classify(text): Promise<NLPResult>
+    +getKeywords(text): Promise<String[]>
+    -callFlaskAPI(text): Promise<FlaskResponse>
+}
+
+class NotificationService implements INotificationService {
+    -db: Database
+    --
+    +create(data): Promise<Notification>
+    +getByUser(userId): Promise<Notification[]>
+    +getByAdmin(adminId): Promise<Notification[]>
+    +markAsRead(id): Promise<void>
+    +markAllAsRead(userId): Promise<void>
+    +createTicketNotifications(ticket): Promise<void>
+}
+
+class UserService implements IUserService {
+    -db: Database
+    --
+    +getAll(): Promise<User[]>
+    +getById(id): Promise<User>
+    +create(data): Promise<User>
+    +update(id, data): Promise<User>
+    +deactivate(id): Promise<void>
+    +changePassword(id, oldPwd, newPwd): Promise<void>
+    +updateProfileImage(id, url): Promise<void>
+}
+
+class TicketRoutingService {
+    -db: Database
+    --
+    +getTargetDivisionsByCategory(category): Promise<String[]>
+    +getAdminsForTicket(ticket): Promise<User[]>
+    +createTicketNotifications(ticket): Promise<void>
+    +getCategoryMapping(category): Promise<CategoryDivisionMapping>
+}
+
+class ExportService {
+    --
+    +exportToExcel(tickets, filters): Promise<Buffer>
+    +exportToPDF(tickets, filters): Promise<Buffer>
+    -createExcelWorkbook(tickets): Workbook
+    -createPDFDocument(tickets): PDFDocument
+    -formatTicketData(ticket): FormattedTicket
+}
+
+' ========== API ROUTES ==========
+
+class AuthAPI {
+    +POST /api/auth/login
+    +POST /api/auth/register
+}
+
+class TicketsAPI {
+    +GET /api/tickets
+    +POST /api/tickets
+    +GET /api/tickets/[id]
+    +PATCH /api/tickets/[id]
+    +DELETE /api/tickets/[id]
+    +POST /api/tickets/[id]/comments
+    +GET /api/tickets/[id]/comments
+    +POST /api/tickets/override-nlp
+    +GET /api/tickets/export
+}
+
+class AdminAPI {
+    +GET /api/admin/notifications
+    +PATCH /api/admin/notifications
+    +POST /api/admin/notifications/mark-all-read
+    +GET /api/admin/stats
+    +GET /api/admin/category-mapping
+    +POST /api/admin/category-mapping
+}
+
+class SuperAdminAPI {
+    +GET /api/super-admin/users
+    +POST /api/super-admin/users
+    +PATCH /api/super-admin/users
+    +DELETE /api/super-admin/users
+    +GET /api/super-admin/division-stats
+}
+
+class UserAPI {
+    +GET /api/user/profile
+    +GET /api/user/notifications
+    +PATCH /api/user/notifications
+    +POST /api/user/notifications/mark-all-read
+    +POST /api/user/change-password
+    +POST /api/user/profile-image
+}
+
+class NLPAPI {
+    +POST /api/nlp/classify
+}
+
+' ========== RELATIONSHIPS ==========
+
+AuthAPI ..> AuthService : uses
+TicketsAPI ..> TicketService : uses
+TicketsAPI ..> NLPService : uses
+TicketsAPI ..> ExportService : uses
+AdminAPI ..> NotificationService : uses
+SuperAdminAPI ..> UserService : uses
+UserAPI ..> UserService : uses
+UserAPI ..> NotificationService : uses
+NLPAPI ..> NLPService : uses
+
+TicketService ..> TicketRoutingService : uses
+TicketService ..> NotificationService : uses
+
+@enduml
+
+
+' ============================================================
+' CLASS DIAGRAM - COMPONENTS (REACT)
+' ============================================================
+
+@startuml Class_Diagram_Components
+!theme plain
+title Class Diagram - React Components
+
+' ========== PAGES ==========
+package "Pages" {
+    class LoginPage {
+        -email: string
+        -password: string
+        -isLoading: boolean
+        --
+        +handleLogin(): void
+        +render(): JSX
+    }
+
+    class RegisterPage {
+        -formData: RegisterFormData
+        -isLoading: boolean
+        --
+        +handleRegister(): void
+        +render(): JSX
+    }
+
+    class UserDashboard {
+        -user: User
+        -tickets: Ticket[]
+        --
+        +render(): JSX
+    }
+
+    class AdminDashboard {
+        -admin: User
+        -stats: Stats
+        --
+        +render(): JSX
+    }
+
+    class SuperAdminDashboard {
+        -superAdmin: User
+        -allTickets: Ticket[]
+        --
+        +render(): JSX
+    }
+}
+
+' ========== TICKET COMPONENTS ==========
+package "Ticket Components" {
+    class TicketForm {
+        -title: string
+        -description: string
+        -category: string
+        -image: File
+        -isSubmitting: boolean
+        --
+        +handleSubmit(): void
+        +handleImageUpload(): void
+        +render(): JSX
+    }
+
+    class TicketDetailModal {
+        -ticket: Ticket
+        -comments: Comment[]
+        -isOpen: boolean
+        --
+        +generateTicketCode(): string
+        +handleStatusUpdate(): void
+        +handleAddComment(): void
+        +handleClose(): void
+        +render(): JSX
+    }
+
+    class OutgoingTickets {
+        -tickets: Ticket[]
+        -isLoading: boolean
+        --
+        +fetchTickets(): void
+        +handleTicketClick(): void
+        +render(): JSX
+    }
+
+    class IncomingTickets {
+        -tickets: Ticket[]
+        -isLoading: boolean
+        --
+        +fetchTickets(): void
+        +handleTicketClick(): void
+        +render(): JSX
+    }
+
+    class TicketList {
+        -tickets: Ticket[]
+        -filters: Filters
+        --
+        +applyFilters(): Ticket[]
+        +handleSort(): void
+        +render(): JSX
+    }
+}
+
+' ========== ADMIN COMPONENTS ==========
+package "Admin Components" {
+    class AdminStats {
+        -stats: DashboardStats
+        -isLoading: boolean
+        --
+        +fetchStats(): void
+        +render(): JSX
+    }
+
+    class AdminNotificationsPanel {
+        -notifications: Notification[]
+        -unreadCount: number
+        --
+        +fetchNotifications(): void
+        +markAsRead(): void
+        +markAllAsRead(): void
+        +render(): JSX
+    }
+
+    class CategoryMappingPanel {
+        -mappings: CategoryMapping[]
+        --
+        +createMapping(): void
+        +updateMapping(): void
+        +render(): JSX
+    }
+}
+
+' ========== SUPER ADMIN COMPONENTS ==========
+package "Super Admin Components" {
+    class SuperAdminTicketsPanel {
+        -tickets: Ticket[]
+        -filters: ExportFilters
+        -deleteDialogOpen: boolean
+        -ticketToDelete: Ticket
+        --
+        +fetchAllTickets(): void
+        +handleDelete(): void
+        +handleExport(): void
+        +render(): JSX
+    }
+
+    class SuperAdminUserManagement {
+        -users: User[]
+        -selectedUser: User
+        -isEditing: boolean
+        --
+        +fetchUsers(): void
+        +createUser(): void
+        +updateUser(): void
+        +deactivateUser(): void
+        +render(): JSX
+    }
+
+    class DivisionMonitoringDashboard {
+        -divisionStats: DivisionStats[]
+        --
+        +fetchDivisionStats(): void
+        +render(): JSX
+    }
+}
+
+' ========== NOTIFICATION COMPONENTS ==========
+package "Notification Components" {
+    class UserNotificationsPanel {
+        -notifications: UserNotification[]
+        -unreadCount: number
+        --
+        +fetchNotifications(): void
+        +markAsRead(): void
+        +markAllAsRead(): void
+        +handleNotificationClick(): void
+        +render(): JSX
+    }
+
+    class NotificationBadge {
+        -count: number
+        --
+        +render(): JSX
+    }
+}
+
+' ========== UI COMPONENTS ==========
+package "UI Components" {
+    class Sidebar {
+        -user: User
+        -menuItems: MenuItem[]
+        --
+        +getMenuByRole(): MenuItem[]
+        +render(): JSX
+    }
+
+    class ThemeToggle {
+        -theme: Theme
+        --
+        +toggleTheme(): void
+        +render(): JSX
+    }
+
+    class Dialog {
+        -isOpen: boolean
+        -title: string
+        -content: JSX
+        --
+        +onClose(): void
+        +render(): JSX
+    }
+
+    class Button {
+        -variant: ButtonVariant
+        -isLoading: boolean
+        -disabled: boolean
+        --
+        +onClick(): void
+        +render(): JSX
+    }
+}
+
+' ========== RELATIONSHIPS ==========
+UserDashboard *-- TicketForm
+UserDashboard *-- OutgoingTickets
+UserDashboard *-- IncomingTickets
+UserDashboard *-- UserNotificationsPanel
+UserDashboard *-- Sidebar
+
+AdminDashboard *-- AdminStats
+AdminDashboard *-- AdminNotificationsPanel
+AdminDashboard *-- TicketList
+AdminDashboard *-- CategoryMappingPanel
+AdminDashboard *-- Sidebar
+
+SuperAdminDashboard *-- SuperAdminTicketsPanel
+SuperAdminDashboard *-- SuperAdminUserManagement
+SuperAdminDashboard *-- DivisionMonitoringDashboard
+SuperAdminDashboard *-- Sidebar
+
+TicketDetailModal *-- Dialog
+SuperAdminTicketsPanel *-- Dialog
+SuperAdminUserManagement *-- Dialog
+
+@enduml
+
+
+' ============================================================
+' CLASS DIAGRAM - NLP SYSTEM
+' ============================================================
+
+@startuml Class_Diagram_NLP
+!theme plain
+title Class Diagram - NLP Classification System
+
+package "NLP API (Python Flask)" {
+    class FlaskApp {
+        -app: Flask
+        -model: sklearn.Model
+        -vectorizer: TfidfVectorizer
+        --
+        +load_model(): void
+        +classify_text(text): ClassifyResponse
+        +get_keywords(text): String[]
+    }
+
+    class TextClassifier {
+        -model: sklearn.Model
+        -vectorizer: TfidfVectorizer
+        -categories: String[]
+        --
+        +preprocess(text): String
+        +vectorize(text): Vector
+        +predict(vector): String
+        +get_confidence(vector): Float
+        +get_keywords(text): String[]
+    }
+
+    class ModelTrainer {
+        -training_data: DataFrame
+        -model: sklearn.Model
+        -vectorizer: TfidfVectorizer
+        --
+        +load_training_data(): void
+        +train(): void
+        +evaluate(): Metrics
+        +save_model(): void
+    }
+
+    class CategoryKeywords <<data>> {
+        +IT: String[]
+        +ACC: String[]
+        +OPR: String[]
+        +SLS: String[]
+        +CS: String[]
+        +HR: String[]
+        +DKT: String[]
+    }
+}
+
+package "Next.js NLP Integration" {
+    class NLPClassifyAPI {
+        +POST /api/nlp/classify
+        --
+        -callFlaskService(text): Promise<NLPResult>
+    }
+
+    class TicketRoutingService {
+        -db: Database
+        --
+        +getTargetDivisionsByCategory(category): String[]
+        +mapCategoryToDivision(nlpCategory): String[]
+    }
+
+    class CategoryDivisionMapping <<entity>> {
+        +id: INT
+        +nlp_category: String
+        +target_division: String
+        +is_active: Boolean
+        +priority: INT
+    }
+}
+
+' ========== DATA TYPES ==========
+class NLPResult <<data>> {
+    +category: String
+    +confidence: Float
+    +keywords: String[]
+}
+
+class ClassifyRequest <<data>> {
+    +text: String
+}
+
+class ClassifyResponse <<data>> {
+    +category: String
+    +confidence: Float
+    +matched_keywords: String[]
+}
+
+' ========== RELATIONSHIPS ==========
+FlaskApp *-- TextClassifier
+FlaskApp ..> ClassifyRequest : receives
+FlaskApp ..> ClassifyResponse : returns
+
+TextClassifier ..> CategoryKeywords : uses
+ModelTrainer ..> TextClassifier : trains
+
+NLPClassifyAPI ..> FlaskApp : HTTP POST
+NLPClassifyAPI ..> NLPResult : returns
+
+TicketRoutingService ..> CategoryDivisionMapping : queries
+TicketRoutingService ..> NLPResult : uses
+
+@enduml
+
+
+' ============================================================
+' ER DIAGRAM - DATABASE
+' ============================================================
+
+@startuml ER_Diagram
+!theme plain
+title Entity Relationship Diagram - Database Schema
+
+entity "users" as users {
+    *id : INT <<PK>>
+    --
+    *name : VARCHAR(100)
+    *email : VARCHAR(100) <<UNIQUE>>
+    *password : VARCHAR(255)
+    *role : ENUM('super_admin','admin','user')
+    division : VARCHAR(100)
+    notification_email : VARCHAR(100)
+    profile_image_url : VARCHAR(500)
+    *is_active : BOOLEAN
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+    last_login : TIMESTAMP
+}
+
+entity "tickets" as tickets {
+    *id : INT <<PK>>
+    --
+    *id_user : INT <<FK>>
+    *title : VARCHAR(255)
+    *description : TEXT
+    category : VARCHAR(100)
+    *status : ENUM('new','in_progress','resolved','closed')
+    image_user_url : VARCHAR(500)
+    image_admin_url : VARCHAR(500)
+    image_admin_uploaded_at : TIMESTAMP
+    admin_notes : TEXT
+    user_division : VARCHAR(100)
+    target_divisions : JSON
+    nlp_category : VARCHAR(100)
+    nlp_confidence : DECIMAL(5,2)
+    nlp_keywords : TEXT
+    is_nlp_overridden : BOOLEAN
+    original_nlp_division : VARCHAR(100)
+    override_reason : TEXT
+    overridden_by : INT <<FK>>
+    overridden_at : TIMESTAMP
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "notifications" as notifications {
+    *id : INT <<PK>>
+    --
+    *id_admin : INT <<FK>>
+    *id_ticket : INT <<FK>>
+    id_user : INT <<FK>>
+    title : VARCHAR(255)
+    message : TEXT
+    notification_reason : ENUM('user_division','nlp_category','super_admin')
+    *is_read : BOOLEAN
+    created_at : TIMESTAMP
+}
+
+entity "user_notifications" as user_notifications {
+    *id : INT <<PK>>
+    --
+    *id_user : INT <<FK>>
+    *id_ticket : INT <<FK>>
+    ticket_title : VARCHAR(255)
+    message : TEXT
+    type : ENUM('status_update','admin_note','admin_image','ticket_resolved','new_ticket')
+    *is_read : BOOLEAN
+    created_at : TIMESTAMP
+}
+
+entity "super_admin_notifications" as super_admin_notifications {
+    *id : INT <<PK>>
+    --
+    *id_super_admin : INT <<FK>>
+    *id_ticket : INT <<FK>>
+    id_user : INT <<FK>>
+    title : VARCHAR(255)
+    message : TEXT
+    *is_read : BOOLEAN
+    created_at : TIMESTAMP
+}
+
+entity "ticket_comments" as ticket_comments {
+    *id : INT <<PK>>
+    --
+    *ticket_id : INT <<FK>>
+    *user_id : INT <<FK>>
+    *comment : TEXT
+    comment_type : ENUM('comment','status_change','response')
+    old_status : VARCHAR(50)
+    new_status : VARCHAR(50)
+    attachment_path : VARCHAR(500)
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+entity "category_division_mapping" as category_mapping {
+    *id : INT <<PK>>
+    --
+    *nlp_category : VARCHAR(100)
+    *target_division : VARCHAR(100)
+    is_active : BOOLEAN
+    priority : INT
+    created_at : TIMESTAMP
+    updated_at : TIMESTAMP
+}
+
+' ========== RELATIONSHIPS ==========
+users ||--o{ tickets : "creates"
+users ||--o{ notifications : "receives"
+users ||--o{ user_notifications : "receives"
+users ||--o{ super_admin_notifications : "receives"
+users ||--o{ ticket_comments : "writes"
+users ||--o| tickets : "overrides (overridden_by)"
+
+tickets ||--o{ notifications : "generates"
+tickets ||--o{ user_notifications : "generates"
+tickets ||--o{ super_admin_notifications : "generates"
+tickets ||--o{ ticket_comments : "has"
+
+category_mapping }o--|| tickets : "routes"
+
+@enduml
+
+
+' ============================================================
+' STATE DIAGRAM - TICKET
+' ============================================================
+
+@startuml State_Ticket
+!theme plain
+title State Diagram - Ticket Lifecycle
+
+[*] --> New : Ticket created
+
+state New {
+    New : Entry / Classify with NLP
+    New : Entry / Route to divisions
+    New : Entry / Create notifications
+}
+
+New --> InProgress : Admin starts working
+New --> Closed : Creator closes (no action needed)
+
+state InProgress {
+    InProgress : Do / Admin investigates
+    InProgress : Do / Add notes
+    InProgress : Do / Upload images
+}
+
+InProgress --> Resolved : Admin resolves issue
+InProgress --> New : Admin returns to queue
+InProgress --> Closed : Creator closes
+
+state Resolved {
+    Resolved : Entry / Notify creator
+    Resolved : Exit / Wait for confirmation
+}
+
+Resolved --> InProgress : Creator reopens
+Resolved --> Closed : Creator confirms
+
+state Closed {
+    Closed : Entry / Final notification
+    Closed : Entry / Mark complete
+}
+
+Closed --> [*]
+
+note right of New
+  Only the following transitions are allowed:
+  - User creates: New
+  - Admin updates: New → InProgress → Resolved
+  - Creator closes: Any → Closed
+end note
+
+note right of Closed
+  Only ticket creator
+  can close the ticket
+end note
+
+@enduml
+
+
+' ============================================================
+' STATE DIAGRAM - NOTIFICATION
+' ============================================================
+
+@startuml State_Notification
+!theme plain
+title State Diagram - Notification Lifecycle
+
+[*] --> Created : Trigger event occurs
+
+state Created {
+    Created : Entry / Set is_read = false
+    Created : Entry / Store in database
+}
+
+Created --> Unread : Stored in database
+
+state Unread {
+    Unread : Entry / Increment badge count
+    Unread : Do / Appear in notification panel
+}
+
+Unread --> Read : User clicks notification
+Unread --> Read : User marks as read
+Unread --> Read : User marks all as read
+
+state Read {
+    Read : Entry / Set is_read = true
+    Read : Entry / Decrement badge count
+}
+
+Read --> [*] : Notification consumed
+
+note right of Created
+  Triggers:
+  - New ticket created
+  - Status updated
+  - Admin notes added
+  - Admin image uploaded
+  - Comment added
+end note
+
+@enduml
+
+
+' ============================================================
+' STATE DIAGRAM - USER
+' ============================================================
+
+@startuml State_User
+!theme plain
+title State Diagram - User Account Lifecycle
+
+[*] --> Registered : User registers
+
+state Registered {
+    Registered : Entry / Hash password
+    Registered : Entry / Set role = user
+    Registered : Entry / Set is_active = true
+}
+
+Registered --> Active : Registration complete
+
+state Active {
+    Active : Do / Can login
+    Active : Do / Can create tickets
+    Active : Do / Can receive notifications
+}
+
+Active --> LoggedIn : User logs in
+
+state LoggedIn {
+    LoggedIn : Entry / Generate JWT
+    LoggedIn : Entry / Update last_login
+    LoggedIn : Do / Access dashboard
+}
+
+LoggedIn --> Active : User logs out
+LoggedIn --> Active : Token expires
+
+Active --> Inactive : Super admin deactivates
+
+state Inactive {
+    Inactive : Entry / Set is_active = false
+    Inactive : Do / Cannot login
+    Inactive : Do / Account preserved
+}
+
+Inactive --> Active : Super admin reactivates
+
+note right of Active
+  Role can be:
+  - user
+  - admin (promoted by super_admin)
+  - super_admin
+end note
+
+@enduml
+
+
+' ============================================================
+' COMPONENT DIAGRAM
+' ============================================================
+
+@startuml Component_Diagram
+!theme plain
+title Component Diagram - System Architecture
+
+package "Frontend (Next.js)" {
+    component [Pages] as pages
+    component [Components] as components
+    component [Hooks] as hooks
+    component [Utils] as utils
+
+    pages --> components : uses
+    pages --> hooks : uses
+    components --> utils : uses
+}
+
+package "Backend (Next.js API Routes)" {
+    component [Auth API] as authApi
+    component [Tickets API] as ticketsApi
+    component [Admin API] as adminApi
+    component [Super Admin API] as superAdminApi
+    component [User API] as userApi
+    component [NLP API] as nlpApi
+
+    component [Middleware] as middleware
+    component [Database Utils] as dbUtils
+    component [RBAC] as rbac
+
+    authApi --> middleware : uses
+    ticketsApi --> middleware : uses
+    ticketsApi --> rbac : uses
+    adminApi --> middleware : uses
+    adminApi --> rbac : uses
+    superAdminApi --> middleware : uses
+    superAdminApi --> rbac : uses
+    userApi --> middleware : uses
+
+    authApi --> dbUtils : uses
+    ticketsApi --> dbUtils : uses
+    adminApi --> dbUtils : uses
+    superAdminApi --> dbUtils : uses
+    userApi --> dbUtils : uses
+}
+
+package "NLP Service (Python Flask)" {
+    component [Flask App] as flask
+    component [Text Classifier] as classifier
+    component [Model Trainer] as trainer
+
+    flask --> classifier : uses
+    trainer ..> classifier : trains
+}
+
+database "MySQL Database" as mysql {
+    [users]
+    [tickets]
+    [notifications]
+    [user_notifications]
+    [super_admin_notifications]
+    [ticket_comments]
+    [category_division_mapping]
+}
+
+cloud "File Storage" as storage {
+    [Uploaded Images]
+    [Profile Images]
+}
+
+' ========== CONNECTIONS ==========
+pages --> authApi : HTTP
+pages --> ticketsApi : HTTP
+pages --> adminApi : HTTP
+pages --> superAdminApi : HTTP
+pages --> userApi : HTTP
+
+nlpApi --> flask : HTTP
+
+dbUtils --> mysql : TCP
+ticketsApi --> storage : File I/O
+userApi --> storage : File I/O
+
+@enduml
+
+
+' ============================================================
+' DEPLOYMENT DIAGRAM
+' ============================================================
+
+@startuml Deployment_Diagram
+!theme plain
+title Deployment Diagram - System Infrastructure
+
+node "Client Browser" as browser {
+    component [Next.js Frontend] as frontend
+}
+
+node "Next.js Server" as nextServer {
+    component [API Routes] as apiRoutes
+    component [Static Assets] as static
+    component [Server Components] as serverComp
+}
+
+node "Flask Server" as flaskServer {
+    component [NLP API] as nlpService
+    component [ML Model] as mlModel
+}
+
+node "Database Server" as dbServer {
+    database "MySQL" as mysql
+}
+
+node "File Server" as fileServer {
+    folder "uploads" as uploads {
+        folder "tickets" as ticketUploads
+        folder "profiles" as profileUploads
+    }
+}
+
+browser --> nextServer : HTTPS
+apiRoutes --> flaskServer : HTTP (internal)
+apiRoutes --> mysql : TCP (3306)
+apiRoutes --> uploads : File I/O
+
+note right of flaskServer
+  Flask runs on port 8000
+  for NLP classification
+end note
+
+note right of nextServer
+  Next.js runs on port 3000
+  Handles both frontend and API
+end note
+
+@enduml
+
+
+' ============================================================
+' PACKAGE DIAGRAM
+' ============================================================
+
+@startuml Package_Diagram
+!theme plain
+title Package Diagram - Project Structure
+
+package "app" {
+    package "api" {
+        package "auth" {
+            component "login/route.ts" as auth_login
+            component "register/route.ts" as auth_register
+        }
+        package "tickets" {
+            component "route.ts" as tickets_main
+            component "[id]/route.ts" as tickets_id
+            component "[id]/comments/route.ts" as tickets_comments
+            component "export/route.ts" as tickets_export
+            component "override-nlp/route.ts" as tickets_override
+        }
+        package "admin" {
+            component "notifications/route.ts" as admin_notif
+            component "stats/route.ts" as admin_stats
+            component "category-mapping/route.ts" as admin_mapping
+        }
+        package "super-admin" {
+            component "users/route.ts" as sa_users
+            component "division-stats/route.ts" as sa_divstats
+        }
+        package "user" {
+            component "profile/route.ts" as user_profile
+            component "notifications/route.ts" as user_notif
+            component "change-password/route.ts" as user_changepwd
+        }
+        package "nlp" {
+            component "classify/route.ts" as nlp_classify
+        }
+    }
+
+    package "pages" {
+        component "login/page.tsx" as page_login
+        component "register/page.tsx" as page_register
+        component "dashboard/page.tsx" as page_dashboard
+        component "admin/dashboard/page.tsx" as page_admin
+        component "super-admin/dashboard/page.tsx" as page_superadmin
+    }
+}
+
+package "components" {
+    package "ui" {
+        component "button.tsx" as ui_button
+        component "card.tsx" as ui_card
+        component "dialog.tsx" as ui_dialog
+        component "tabs.tsx" as ui_tabs
+        component "badge.tsx" as ui_badge
+    }
+
+    package "ticket" {
+        component "ticket-form.tsx" as comp_ticketform
+        component "ticket-detail-modal.tsx" as comp_ticketdetail
+        component "outgoing-tickets.tsx" as comp_outgoing
+        component "incoming-tickets.tsx" as comp_incoming
+    }
+
+    package "admin" {
+        component "admin-stats.tsx" as comp_adminstats
+        component "admin-notifications-panel.tsx" as comp_adminnotif
+        component "category-mapping-panel.tsx" as comp_catmapping
+    }
+
+    package "super-admin" {
+        component "super-admin-tickets-panel.tsx" as comp_satickets
+        component "super-admin-user-management.tsx" as comp_sausers
+        component "division-monitoring-dashboard.tsx" as comp_divmonitor
+    }
+
+    component "sidebar.tsx" as comp_sidebar
+    component "theme-toggle.tsx" as comp_theme
+}
+
+package "lib" {
+    component "db.ts" as lib_db
+    component "auth.ts" as lib_auth
+    component "rbac.ts" as lib_rbac
+    component "ticket-routing.ts" as lib_routing
+    component "utils.ts" as lib_utils
+}
+
+package "nlp_api" {
+    component "app.py" as nlp_app
+    component "train_model.py" as nlp_train
+    component "model.pkl" as nlp_model
+    component "vectorizer.pkl" as nlp_vec
+}
+
+@enduml
+
+' ============================================================
+' COMMUNICATION DIAGRAM
+' ============================================================
+
+@startuml Communication_Diagram
+!theme plain
+title Communication Diagram - Ticket Creation Flow
+
+actor User as user
+
+participant "Ticket Form" as form
+participant "Tickets API" as ticketsApi
+participant "NLP API" as nlpApi
+participant "Flask Service" as flask
+participant "Routing Service" as routing
+participant "Notification Service" as notifService
+database "MySQL" as db
+
+user -> form : 1: fillForm()
+form -> ticketsApi : 2: POST /api/tickets
+ticketsApi -> nlpApi : 3: classify(text)
+nlpApi -> flask : 4: POST /classify
+flask --> nlpApi : 5: {category, confidence}
+nlpApi --> ticketsApi : 6: NLPResult
+ticketsApi -> routing : 7: getTargetDivisions(category)
+routing -> db : 8: SELECT category_mapping
+db --> routing : 9: mappings
+routing --> ticketsApi : 10: target_divisions[]
+ticketsApi -> db : 11: INSERT ticket
+db --> ticketsApi : 12: ticket_id
+ticketsApi -> notifService : 13: createNotifications(ticket)
+notifService -> db : 14: INSERT notifications
+notifService --> ticketsApi : 15: done
+ticketsApi --> form : 16: {ticket, routing_info}
+form --> user : 17: showSuccess()
+
+@enduml
