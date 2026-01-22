@@ -12,9 +12,10 @@
 
   interface TicketFormProps {
     onSuccess?: () => void
+    onClose?: () => void
   }
 
-  export function TicketForm({ onSuccess }: TicketFormProps) {
+  export function TicketForm({ onSuccess, onClose }: TicketFormProps) {
     const [title, setTitle] = useState("")
     const [description, setDescription] = useState("")
     const [isLoading, setIsLoading] = useState(false)
@@ -144,8 +145,17 @@
     return (
       <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
         <CardHeader className="bg-white dark:bg-black border-b border-gray-200 dark:border-gray-700">
-          <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
-          <CardDescription className="text-gray-600 dark:text-gray-300">Laporkan masalah atau pertanyaan Anda</CardDescription>
+          <div className="flex items-center justify-between">
+            <div>
+              <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
+              <CardDescription className="text-gray-600 dark:text-gray-300">Laporkan masalah atau pertanyaan Anda</CardDescription>
+            </div>
+            {onClose && (
+              <Button variant="ghost" size="sm" onClick={onClose} className="text-gray-600 dark:text-gray-300">
+                Tutup
+              </Button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="bg-white dark:bg-black">
           <form onSubmit={handleSubmit} className="space-y-4">

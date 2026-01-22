@@ -141,14 +141,16 @@ export function DivisionMonitoringDashboard() {
 
   const getStatusIcon = (status: string) => {
     switch (status?.toLowerCase()) {
-      case "resolved":
-        return <CheckCircle2 className="w-4 h-4" />
+      case "new":
+        return <AlertCircle className="w-4 h-4" />
       case "in_progress":
         return <Clock className="w-4 h-4" />
+      case "resolved":
+        return <CheckCircle2 className="w-4 h-4" />
       case "closed":
         return <XCircle className="w-4 h-4" />
       default:
-        return <AlertCircle className="w-4 h-4" />
+        return <AlertCircle className="w-4 h-4" /> // Default to New icon
     }
   }
 
@@ -164,7 +166,7 @@ export function DivisionMonitoringDashboard() {
       case "closed":
         return "bg-gray-600 hover:bg-gray-700" // Abu-abu gelap untuk Closed
       default:
-        return "bg-gray-400 hover:bg-gray-500"
+        return "bg-blue-500 hover:bg-blue-600" // Default to New (Biru)
     }
   }
 
@@ -179,7 +181,7 @@ export function DivisionMonitoringDashboard() {
       case "closed":
         return "Ditutup"
       default:
-        return status
+        return "Baru" // Default label jika status tidak dikenali
     }
   }
 

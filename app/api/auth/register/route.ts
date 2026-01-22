@@ -23,7 +23,7 @@ export async function POST(request: NextRequest) {
 
     // Hash password and create user
     const hashedPassword = await hashPassword(password)
-    const result = await query("INSERT INTO users (name, email, password, divisi, role) VALUES (?, ?, ?, ?, ?)", [
+    const result = await query("INSERT INTO users (name, email, password, division, role) VALUES (?, ?, ?, ?, ?)", [
       name,
       email,
       hashedPassword,

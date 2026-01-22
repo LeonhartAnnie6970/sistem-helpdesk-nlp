@@ -1,8 +1,7 @@
 "use client"
 
 import type React from "react"
-import * as SelectPrimitive from '@radix-ui/react-select'
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
@@ -11,9 +10,11 @@ import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { ThemeProvider } from "@/components/theme-provider"
 import { DIVISIONS } from "@/lib/divisions"
+import { useSession, setSession } from "@/hooks/useSession"
 
 function RegisterContent() {
   const router = useRouter()
+  const { forceLogoutOnPublicPage } = useSession()
   const [name, setName] = useState("")
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
@@ -21,6 +22,37 @@ function RegisterContent() {
   const [divisi, setDivisi] = useState("")
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
+  const [isChecking, setIsChecking] = useState(true)
+  const [sessionMessage, setSessionMessage] = useState("")
+
+  // Security: If user navigates back from dashboard, force logout
+  useEffect(() => {
+    // Check for logout reason from session storage
+    const logoutReason = sessionStorage.getItem("logoutReason")
+    if (logoutReason) {
+      setSessionMessage(logoutReason)
+      sessionStorage.removeItem("logoutReason")
+    }
+
+    // Force logout if user has session but navigated to register page
+    const wasLoggedIn = forceLogoutOnPublicPage()
+
+    if (wasLoggedIn) {
+      // Session was cleared, show message
+      setSessionMessage("Anda harus login kembali untuk melanjutkan.")
+    }
+
+    setIsChecking(false)
+  }, [forceLogoutOnPublicPage])
+
+  // Show loading while checking authentication
+  if (isChecking) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        <div className="text-muted-foreground">Memeriksa sesi...</div>
+      </main>
+    )
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -52,12 +84,17 @@ function RegisterContent() {
         return
       }
 
-      // Save token to localStorage
-      localStorage.setItem("token", data.token)
-      localStorage.setItem("userId", data.userId)
-      localStorage.setItem("role", "user")
+      // Save session data using the hook
+      setSession({
+        token: data.token,
+        role: "user",
+        userId: data.userId,
+        userName: name,
+        division: divisi,
+      })
 
-      router.push("/dashboard")
+      // Use replace instead of push to prevent going back to register page
+      router.replace("/dashboard")
     } catch (err) {
       setError("An error occurred. Please try again.")
     } finally {
@@ -74,6 +111,11 @@ function RegisterContent() {
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
+            {sessionMessage && (
+              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 text-yellow-800 dark:text-yellow-200 text-sm rounded">
+                {sessionMessage}
+              </div>
+            )}
             {error && <div className="p-3 bg-destructive/10 text-destructive text-sm rounded">{error}</div>}
             <div className="space-y-2">
               <label className="text-sm font-medium">Nama</label>

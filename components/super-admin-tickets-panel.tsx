@@ -135,18 +135,18 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
   }
 
   const getStatusBadge = (status: string) => {
-    const config: Record<string, { label: string; variant: any; icon: any }> = {
-      new: { label: "Baru", variant: "default", icon: AlertCircle },
-      in_progress: { label: "Diproses", variant: "secondary", icon: Clock },
-      resolved: { label: "Selesai", variant: "outline", icon: CheckCircle2 },
-      closed: { label: "Ditutup", variant: "destructive", icon: XCircle },
+    const config: Record<string, { label: string; className: string; icon: any }> = {
+      new: { label: "Baru", className: "bg-blue-500 hover:bg-blue-600 text-white", icon: AlertCircle },
+      in_progress: { label: "Diproses", className: "bg-yellow-500 hover:bg-yellow-600 text-white", icon: Clock },
+      resolved: { label: "Selesai", className: "bg-green-500 hover:bg-green-600 text-white", icon: CheckCircle2 },
+      closed: { label: "Ditutup", className: "bg-gray-600 hover:bg-gray-700 text-white", icon: XCircle },
     }
 
     const cfg = config[status] || config.new
     const Icon = cfg.icon
 
     return (
-      <Badge variant={cfg.variant} className="gap-1">
+      <Badge className={`gap-1 ${cfg.className}`}>
         <Icon className="w-3 h-3" />
         {cfg.label}
       </Badge>

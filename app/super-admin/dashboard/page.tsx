@@ -13,11 +13,13 @@ import { Sidebar } from "@/components/dashboard-sidebar"
 import { TicketForm } from "@/components/ticket-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Plus } from "lucide-react"
+import { Plus, X } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSession } from "@/hooks/useSession"
 
 function SuperAdminDashboardContent() {
   const router = useRouter()
+  const { getSessionData, logout, checkSession, updateActivity } = useSession()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
   const [showNotifications, setShowNotifications] = useState(false)
@@ -31,16 +33,32 @@ function SuperAdminDashboardContent() {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token")
-    const role = localStorage.getItem("role")
+    // Check session validity first
+    const session = getSessionData()
 
-    if (!storedToken || role !== "super_admin") {
-      router.replace("/login")
+    if (!session.isAuthenticated) {
+      if (session.isExpired) {
+        logout("Sesi Anda telah berakhir. Silakan login kembali.")
+      } else {
+        router.replace("/login")
+      }
       return
     }
 
+    // Verify role is super_admin
+    if (session.role !== "super_admin") {
+      if (session.role === "admin") {
+        router.replace("/admin/dashboard")
+      } else {
+        router.replace("/dashboard")
+      }
+      return
+    }
+
+    const storedToken = session.token!
     setToken(storedToken)
     setIsAuthenticated(true)
+    updateActivity() // Update activity timestamp
 
     // Replace current history state to prevent back navigation to login
     window.history.replaceState(null, '', window.location.href)
@@ -48,13 +66,15 @@ function SuperAdminDashboardContent() {
     // Fetch initial notification count
     fetchNotificationCount(storedToken)
 
-    // Poll for notifications every 30 seconds
+    // Poll for notifications every 30 seconds and check session
     const interval = setInterval(() => {
-      fetchNotificationCount(storedToken)
+      if (checkSession()) {
+        fetchNotificationCount(storedToken)
+      }
     }, 30000)
 
     return () => clearInterval(interval)
-  }, [router])
+  }, [router, getSessionData, logout, checkSession, updateActivity])
 
   const fetchNotificationCount = async (token: string) => {
     try {
@@ -69,8 +89,7 @@ function SuperAdminDashboardContent() {
   }
 
   const handleLogout = () => {
-    localStorage.clear()
-    router.replace("/login")
+    logout()
   }
 
   const handleTicketSuccess = () => {
@@ -138,10 +157,17 @@ function SuperAdminDashboardContent() {
               </p>
             </div>
             {activeTab === "create-ticket" && (
-              <Button onClick={() => setShowNewTicketForm(!showNewTicketForm)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                {showNewTicketForm ? "Tutup Form" : "Buat Tiket"}
-              </Button>
+              showNewTicketForm ? (
+                <Button onClick={() => setShowNewTicketForm(false)} className="bg-red-600 hover:bg-red-700 text-white">
+                  <X className="w-4 h-4 mr-2" />
+                  Tutup
+                </Button>
+              ) : (
+                <Button onClick={() => setShowNewTicketForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Buat Tiket
+                </Button>
+              )
             )}
           </div>
         </header>
@@ -154,26 +180,14 @@ function SuperAdminDashboardContent() {
 
           {activeTab === "create-ticket" && (
             <div className="space-y-6">
-              {showNewTicketForm && (
+              {showNewTicketForm ? (
+                <TicketForm onSuccess={handleTicketSuccess} />
+              ) : (
                 <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
                   <CardHeader className="bg-white dark:bg-black">
                     <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
                     <CardDescription className="text-gray-600 dark:text-gray-300">
-                      Buat tiket sebagai super admin
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="bg-white dark:bg-black">
-                    <TicketForm onSuccess={handleTicketSuccess} />
-                  </CardContent>
-                </Card>
-              )}
-
-              {!showNewTicketForm && (
-                <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                  <CardHeader className="bg-white dark:bg-black">
-                    <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-300">
-                      Klik tombol di atas untuk membuat tiket baru
+                      Klik tombol di bawah untuk membuat tiket baru
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="bg-white dark:bg-black flex items-center justify-center py-12">

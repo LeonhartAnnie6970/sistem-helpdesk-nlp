@@ -1,19 +1,45 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Brain, BarChart3, Users, Shield } from "lucide-react"
+import { useSession } from "@/hooks/useSession"
 
 function HomeContent() {
   const router = useRouter()
+  const { forceLogoutOnPublicPage } = useSession()
   const [isLoading, setIsLoading] = useState(false)
+  const [isChecking, setIsChecking] = useState(true)
+  const [showLoginMessage, setShowLoginMessage] = useState(false)
+
+  // Security: If user navigates back from dashboard, force logout
+  useEffect(() => {
+    const wasLoggedIn = forceLogoutOnPublicPage()
+
+    if (wasLoggedIn) {
+      // User was logged in but navigated to public page
+      // Show message that they need to re-login
+      setShowLoginMessage(true)
+    }
+
+    setIsChecking(false)
+  }, [forceLogoutOnPublicPage])
 
   const handleGetStarted = () => {
     setIsLoading(true)
     router.push("/login")
+  }
+
+  // Show loading while checking authentication
+  if (isChecking) {
+    return (
+      <main className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
+        <div className="text-muted-foreground">Memeriksa sesi...</div>
+      </main>
+    )
   }
 
   return (
@@ -92,6 +118,11 @@ function HomeContent() {
             <CardDescription>Login untuk mengakses sistem monitoring divisi</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
+            {showLoginMessage && (
+              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md text-sm text-yellow-800 dark:text-yellow-200 text-center">
+                Anda harus login kembali untuk melanjutkan.
+              </div>
+            )}
             <Button onClick={handleGetStarted} disabled={isLoading} className="w-full" size="lg">
               {isLoading ? "Loading..." : "Login / Daftar"}
             </Button>

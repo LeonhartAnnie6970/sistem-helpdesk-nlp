@@ -11,14 +11,16 @@ import { UserProfileModal } from "@/components/user-profile-modal"
 import { UserNotificationsPanel } from "@/components/user-notifications-panel"
 import { TicketDetailModal } from "@/components/ticket-detail-modal"
 import { Button } from "@/components/ui/button"
-import { Plus, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
+import { Plus, X, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { cn } from "@/lib/utils"
+import { useSession } from "@/hooks/useSession"
 
 function DashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { getSessionData, logout, checkSession, updateActivity } = useSession()
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [refreshTrigger, setRefreshTrigger] = useState(0)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -33,12 +35,19 @@ function DashboardContent() {
   const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token")
-    if (!storedToken) {
-      router.replace("/login")
+    // Check session validity first
+    const session = getSessionData()
+
+    if (!session.isAuthenticated) {
+      if (session.isExpired) {
+        logout("Sesi Anda telah berakhir. Silakan login kembali.")
+      } else {
+        router.replace("/login")
+      }
       return
     }
 
+    const storedToken = session.token!
     setToken(storedToken)
 
     // Replace current history state to prevent back navigation to login
@@ -74,19 +83,29 @@ function DashboardContent() {
           return
         }
 
+        if (data.role === "super_admin") {
+          router.replace("/super-admin/dashboard")
+          return
+        }
+
         // user biasa
         setIsAuthenticated(true)
+        updateActivity() // Update activity timestamp
         fetchNotificationCount(storedToken)
 
-        // Poll for notifications every 30 seconds
+        // Poll for notifications every 30 seconds and check session
         const interval = setInterval(() => {
-          fetchNotificationCount(storedToken)
+          if (checkSession()) {
+            fetchNotificationCount(storedToken)
+          }
         }, 30000)
 
         return () => clearInterval(interval)
       })
-      .catch(() => router.replace("/login"))
-  }, [router, searchParams])
+      .catch(() => {
+        logout()
+      })
+  }, [router, searchParams, getSessionData, logout, checkSession, updateActivity])
 
 
   const fetchNotificationCount = async (token: string) => {
@@ -102,10 +121,7 @@ function DashboardContent() {
   }
 
   const handleLogout = () => {
-    localStorage.removeItem("token")
-    localStorage.removeItem("userId")
-    localStorage.removeItem("role")
-    router.push("/login")
+    logout()
   }
 
   const handleTicketSuccess = () => {
@@ -173,10 +189,17 @@ function DashboardContent() {
             </div>
 
             {activeTab === "my-tickets" && (
-              <Button onClick={() => setShowNewTicketForm(!showNewTicketForm)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Buat Tiket Baru
-              </Button>
+              showNewTicketForm ? (
+                <Button onClick={() => setShowNewTicketForm(false)} className="bg-red-600 hover:bg-red-700 text-white">
+                  <X className="w-4 h-4 mr-2" />
+                  Tutup
+                </Button>
+              ) : (
+                <Button onClick={() => setShowNewTicketForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Buat Tiket Baru
+                </Button>
+              )
             )}
           </div>
         </header>
@@ -254,26 +277,7 @@ function DashboardContent() {
             <div className="space-y-6">
               {/* New Ticket Form */}
               {showNewTicketForm && (
-                <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                  <CardHeader className="bg-white dark:bg-black">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
-                        <CardDescription className="text-gray-600 dark:text-gray-300">Laporkan masalah atau pertanyaan Anda</CardDescription>
-                      </div>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => setShowNewTicketForm(false)}
-                      >
-                        Tutup
-                      </Button>
-                    </div>
-                  </CardHeader>
-                  <CardContent className="bg-white dark:bg-black">
-                    <TicketForm onSuccess={handleTicketSuccess} />
-                  </CardContent>
-                </Card>
+                <TicketForm onSuccess={handleTicketSuccess} />
               )}
 
               {/* Tickets List with Tabs */}

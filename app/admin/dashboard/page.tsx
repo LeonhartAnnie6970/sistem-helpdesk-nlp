@@ -13,12 +13,14 @@ import { TicketForm } from "@/components/ticket-form"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Button } from "@/components/ui/button"
-import { Plus, ArrowUpRight, ArrowDownLeft } from "lucide-react"
+import { Plus, X, ArrowUpRight, ArrowDownLeft } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useSession } from "@/hooks/useSession"
 
 function AdminDashboardContent() {
   const router = useRouter()
   const searchParams = useSearchParams()
+  const { getSessionData, logout, checkSession, updateActivity } = useSession()
 
   const [isAuthenticated, setIsAuthenticated] = useState(false)
   const [isProfileOpen, setIsProfileOpen] = useState(false)
@@ -40,12 +42,19 @@ function AdminDashboardContent() {
    * AUTH & PROFILE CHECK
    */
   useEffect(() => {
-    const storedToken = localStorage.getItem("token")
-    if (!storedToken) {
-      router.replace("/login")
+    // Check session validity first
+    const session = getSessionData()
+
+    if (!session.isAuthenticated) {
+      if (session.isExpired) {
+        logout("Sesi Anda telah berakhir. Silakan login kembali.")
+      } else {
+        router.replace("/login")
+      }
       return
     }
 
+    const storedToken = session.token!
     setToken(storedToken)
 
     // Replace current history state to prevent back navigation to login
@@ -58,25 +67,34 @@ function AdminDashboardContent() {
       .then(data => {
         // Hanya admin yang boleh akses halaman ini
         if (data.role !== "admin") {
-          // Redirect user biasa ke dashboard user
-          router.replace("/dashboard")
+          // Redirect user biasa ke dashboard user atau super admin
+          if (data.role === "super_admin") {
+            router.replace("/super-admin/dashboard")
+          } else {
+            router.replace("/dashboard")
+          }
           return
         }
 
         // Admin - izinkan akses
         setIsAuthenticated(true)
         setUserDivision(data.division || "")
+        updateActivity() // Update activity timestamp
         fetchNotificationCount(storedToken)
 
-        // Poll for notifications every 30 seconds
+        // Poll for notifications every 30 seconds and check session
         const interval = setInterval(() => {
-          fetchNotificationCount(storedToken)
+          if (checkSession()) {
+            fetchNotificationCount(storedToken)
+          }
         }, 30000)
 
         return () => clearInterval(interval)
       })
-      .catch(() => router.replace("/login"))
-  }, [router])
+      .catch(() => {
+        logout()
+      })
+  }, [router, getSessionData, logout, checkSession, updateActivity])
 
 
   /**
@@ -118,8 +136,7 @@ function AdminDashboardContent() {
   }
 
   const handleLogout = () => {
-    localStorage.clear()
-    router.push("/login")
+    logout()
   }
 
   const handleTicketSuccess = () => {
@@ -170,10 +187,17 @@ function AdminDashboardContent() {
               </p>
             </div>
             {activeTab === "create-ticket" && (
-              <Button onClick={() => setShowNewTicketForm(!showNewTicketForm)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                {showNewTicketForm ? "Tutup Form" : "Buat Tiket"}
-              </Button>
+              showNewTicketForm ? (
+                <Button onClick={() => setShowNewTicketForm(false)} className="bg-red-600 hover:bg-red-700 text-white">
+                  <X className="w-4 h-4 mr-2" />
+                  Tutup
+                </Button>
+              ) : (
+                <Button onClick={() => setShowNewTicketForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
+                  <Plus className="w-4 h-4 mr-2" />
+                  Buat Tiket
+                </Button>
+              )
             )}
           </div>
         </header>
@@ -218,26 +242,14 @@ function AdminDashboardContent() {
 
           {activeTab === "create-ticket" && (
             <div className="space-y-6">
-              {showNewTicketForm && (
+              {showNewTicketForm ? (
+                <TicketForm onSuccess={handleTicketSuccess} />
+              ) : (
                 <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
                   <CardHeader className="bg-white dark:bg-black">
                     <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
                     <CardDescription className="text-gray-600 dark:text-gray-300">
-                      Buat tiket sebagai admin
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="bg-white dark:bg-black">
-                    <TicketForm onSuccess={handleTicketSuccess} />
-                  </CardContent>
-                </Card>
-              )}
-
-              {!showNewTicketForm && (
-                <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                  <CardHeader className="bg-white dark:bg-black">
-                    <CardTitle className="text-black dark:text-white">Buat Tiket Baru</CardTitle>
-                    <CardDescription className="text-gray-600 dark:text-gray-300">
-                      Klik tombol di atas untuk membuat tiket baru
+                      Klik tombol di bawah untuk membuat tiket baru
                     </CardDescription>
                   </CardHeader>
                   <CardContent className="bg-white dark:bg-black flex items-center justify-center py-12">

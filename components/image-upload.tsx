@@ -112,14 +112,14 @@ export function ImageUpload({
             <img
               src={previewUrl || "/placeholder.svg"}
               alt="Preview"
-              className="w-full max-h-48 object-cover rounded"
+              className="w-full max-h-80 object-contain rounded bg-muted/30"
             />
             {!isLoading && (
               <button
                 onClick={onImageRemove}
-                className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded hover:bg-red-600"
+                className="absolute top-2 right-2 p-1.5 bg-red-500 text-white rounded-full hover:bg-red-600 shadow-md"
               >
-                <X size={16} />
+                <X size={18} />
               </button>
             )}
           </div>
@@ -129,7 +129,7 @@ export function ImageUpload({
           onDragOver={handleDragOver}
           onDragLeave={handleDragLeave}
           onDrop={handleDrop}
-          className={`border-2 border-dashed rounded-lg p-6 text-center transition ${isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25"}`}
+          className={`border-2 border-dashed rounded-lg p-8 min-h-[200px] text-center transition flex items-center justify-center ${isDragging ? "border-primary bg-primary/5" : "border-muted-foreground/25 hover:border-muted-foreground/50"}`}
         >
           <input
             type="file"
@@ -140,10 +140,12 @@ export function ImageUpload({
             id={`file-input-${uploadType}`}
           />
 
-          <label htmlFor={`file-input-${uploadType}`} className="cursor-pointer flex flex-col items-center gap-2">
-            <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
+          <label htmlFor={`file-input-${uploadType}`} className="cursor-pointer flex flex-col items-center gap-3">
+            <div className="w-16 h-16 rounded-full bg-muted/50 flex items-center justify-center">
+              <svg className="w-8 h-8 text-muted-foreground" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+              </svg>
+            </div>
             <span className="text-sm font-medium">
               {isUploading ? "Mengupload..." : "Klik atau drag gambar di sini"}
             </span>

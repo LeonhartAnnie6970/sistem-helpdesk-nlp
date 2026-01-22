@@ -341,6 +341,25 @@ export async function POST(
       attachmentPath = `/uploads/comments/${fileName}`
     }
 
+    // If status changed, update ticket status FIRST (before inserting comment)
+    // This ensures the status is updated even if comment insert fails
+    if (newStatus && commentType === "status_change") {
+      console.log(`[Comment POST] Updating ticket ${ticketId} status from "${oldStatus}" to "${newStatus}"`)
+      try {
+        const updateResult = await query(
+          `UPDATE tickets SET status = ? WHERE id = ?`,
+          [newStatus, ticketId]
+        )
+        console.log(`[Comment POST] Status update result:`, updateResult)
+      } catch (statusError) {
+        console.error(`[Comment POST] CRITICAL - Failed to update ticket status:`, statusError)
+        return NextResponse.json(
+          { error: "Gagal memperbarui status tiket" },
+          { status: 500 }
+        )
+      }
+    }
+
     // Insert comment
     await query(
       `INSERT INTO ticket_comments
@@ -348,14 +367,6 @@ export async function POST(
       VALUES (?, ?, ?, ?, ?, ?, ?)`,
       [ticketId, decoded.userId, comment, commentType, oldStatus, newStatus, attachmentPath]
     )
-
-    // If status changed, update ticket status
-    if (newStatus && commentType === "status_change") {
-      await query(
-        `UPDATE tickets SET status = ? WHERE id = ?`,
-        [newStatus, ticketId]
-      )
-    }
 
     // Get commenter name for notification
     const commenterInfo: any = await query(

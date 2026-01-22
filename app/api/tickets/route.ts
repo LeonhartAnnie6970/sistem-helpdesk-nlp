@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     // 🔴 SUPER ADMIN → lihat semua ticket
     if (decoded.role === "super_admin") {
       tickets = await query(`
-        SELECT 
+        SELECT
           t.*,
           u.name,
           u.email,
@@ -38,6 +38,37 @@ export async function GET(request: NextRequest) {
         JOIN users u ON t.id_user = u.id
         ORDER BY t.created_at DESC
       `)
+
+      // Auto-repair: Fix tickets with NULL/empty status by checking comments history
+      if (Array.isArray(tickets)) {
+        for (const t of tickets as any[]) {
+          if (!t.status || t.status === '' || t.status === null) {
+            console.log(`[GET /api/tickets] WARNING - Ticket #${t.id} has NULL/empty status, checking comments...`)
+
+            // Check comments for the latest status
+            const latestStatusComment: any = await query(
+              `SELECT new_status FROM ticket_comments
+               WHERE ticket_id = ? AND new_status IS NOT NULL AND new_status != ''
+               ORDER BY created_at DESC LIMIT 1`,
+              [t.id]
+            )
+
+            if (Array.isArray(latestStatusComment) && latestStatusComment.length > 0) {
+              const correctStatus = latestStatusComment[0].new_status
+              console.log(`[GET /api/tickets] Found status "${correctStatus}" in comments for ticket #${t.id}, repairing...`)
+
+              // Update the ticket status in database
+              await query(`UPDATE tickets SET status = ? WHERE id = ?`, [correctStatus, t.id])
+              t.status = correctStatus // Update the response object too
+            } else {
+              // Default to 'new' if no status found in comments
+              console.log(`[GET /api/tickets] No status found in comments for ticket #${t.id}, defaulting to 'new'`)
+              await query(`UPDATE tickets SET status = 'new' WHERE id = ?`, [t.id])
+              t.status = 'new'
+            }
+          }
+        }
+      }
     }
 
     // 🟠 ADMIN → lihat ticket berdasarkan:
