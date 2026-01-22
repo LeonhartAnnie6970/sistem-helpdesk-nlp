@@ -328,6 +328,7 @@ function DashboardContent() {
               token={token}
               onTicketClick={handleNotificationTicketClick}
               onClose={() => setShowNotifications(false)}
+              onNotificationRead={() => fetchNotificationCount(token)}
             />
           </div>
         </div>

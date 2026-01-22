@@ -19,9 +19,10 @@ interface UserNotificationsPanelProps {
   token: string
   onTicketClick?: (ticketId: number) => void
   onClose?: () => void
+  onNotificationRead?: () => void // Callback to refresh parent's notification count
 }
 
-export function UserNotificationsPanel({ token, onTicketClick, onClose }: UserNotificationsPanelProps) {
+export function UserNotificationsPanel({ token, onTicketClick, onClose, onNotificationRead }: UserNotificationsPanelProps) {
   const [unreadCount, setUnreadCount] = useState(0)
   const [notifications, setNotifications] = useState<Notification[]>([])
 
@@ -56,6 +57,8 @@ export function UserNotificationsPanel({ token, onTicketClick, onClose }: UserNo
         body: JSON.stringify({ notificationId }),
       })
       fetchNotifications()
+      // Notify parent to refresh sidebar count
+      if (onNotificationRead) onNotificationRead()
     } catch (error) {
       console.error("Error marking notification as read:", error)
     }
@@ -68,6 +71,8 @@ export function UserNotificationsPanel({ token, onTicketClick, onClose }: UserNo
         headers: { Authorization: `Bearer ${token}` },
       })
       fetchNotifications()
+      // Notify parent to refresh sidebar count
+      if (onNotificationRead) onNotificationRead()
     } catch (error) {
       console.error("Error marking all as read:", error)
     }

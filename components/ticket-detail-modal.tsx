@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Upload, Send, User, Clock, MessageSquare, Image as ImageIcon } from "lucide-react"
+import { Send, User, Clock, MessageSquare, Image as ImageIcon, Building2 } from "lucide-react"
 import { format } from "date-fns"
 
 // Helper function to generate formatted ticket ID based on user's division
@@ -92,8 +92,9 @@ interface Ticket {
   title: string
   description: string
   category: string
+  nlp_category?: string
   status: string
-  target_division: string
+  target_divisions: string // JSON array string
   created_at: string
   user_name: string
   user_email: string
@@ -235,15 +236,16 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
   }
 
   const getStatusBadge = (status: string) => {
-    const statusColors: { [key: string]: string } = {
-      new: "bg-blue-500",
-      in_progress: "bg-yellow-500",
-      resolved: "bg-green-500",
-      closed: "bg-gray-500"
+    const statusConfig: { [key: string]: { color: string; label: string } } = {
+      new: { color: "bg-blue-500", label: "Baru" },
+      in_progress: { color: "bg-yellow-500", label: "Diproses" },
+      resolved: { color: "bg-green-500", label: "Selesai" },
+      closed: { color: "bg-gray-600", label: "Ditutup" }
     }
+    const config = statusConfig[status?.toLowerCase()] || { color: "bg-blue-500", label: "Baru" }
     return (
-      <Badge className={`${statusColors[status] || "bg-gray-500"} text-white`}>
-        {status.replace("_", " ").toUpperCase()}
+      <Badge className={`${config.color} text-white`}>
+        {config.label}
       </Badge>
     )
   }
@@ -293,12 +295,13 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                     </h3>
                     <div className="flex flex-wrap gap-2 mb-3">
                       {getStatusBadge(ticket.status)}
-                      <Badge variant="outline" className="border-gray-300 dark:border-gray-600">
-                        {ticket.category}
-                      </Badge>
-                      <Badge variant="outline" className="border-gray-300 dark:border-gray-600">
-                        {ticket.target_division}
-                      </Badge>
+                      {/* Divisi Tujuan dari NLP */}
+                      {(ticket.nlp_category || ticket.category) && (
+                        <Badge className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 gap-1">
+                          <Building2 className="w-3 h-3" />
+                          {ticket.nlp_category || ticket.category}
+                        </Badge>
+                      )}
                     </div>
                   </div>
                 </div>

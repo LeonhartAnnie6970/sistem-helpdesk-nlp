@@ -64,6 +64,30 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
 
     const ticket = tickets[0] as any
 
+    // Auto-repair: Fix ticket with NULL/empty status by checking comments history
+    if (!ticket.status || ticket.status === '' || ticket.status === null) {
+      console.log(`[GET /api/tickets/${id}] WARNING - Ticket has NULL/empty status, checking comments...`)
+
+      const latestStatusComment: any = await query(
+        `SELECT new_status FROM ticket_comments
+         WHERE ticket_id = ? AND new_status IS NOT NULL AND new_status != ''
+         ORDER BY created_at DESC LIMIT 1`,
+        [id]
+      )
+
+      if (Array.isArray(latestStatusComment) && latestStatusComment.length > 0) {
+        const correctStatus = latestStatusComment[0].new_status
+        console.log(`[GET /api/tickets/${id}] Found status "${correctStatus}" in comments, repairing...`)
+
+        await query(`UPDATE tickets SET status = ? WHERE id = ?`, [correctStatus, id])
+        ticket.status = correctStatus
+      } else {
+        console.log(`[GET /api/tickets/${id}] No status found in comments, defaulting to 'new'`)
+        await query(`UPDATE tickets SET status = 'new' WHERE id = ?`, [id])
+        ticket.status = 'new'
+      }
+    }
+
     // Check authorization based on role
     if (decoded.role === "user") {
       // User can see if:
@@ -365,7 +389,7 @@ export async function DELETE(request: NextRequest, { params }: { params: Promise
 
     // Delete related notifications
     await query(`DELETE FROM user_notifications WHERE id_ticket = ?`, [id])
-    await query(`DELETE FROM admin_notifications WHERE id_ticket = ?`, [id])
+    await query(`DELETE FROM notifications WHERE id_ticket = ?`, [id])
 
     // Delete the ticket
     await query(`DELETE FROM tickets WHERE id = ?`, [id])

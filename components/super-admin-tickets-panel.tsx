@@ -468,7 +468,7 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                           </div>
                         </div>
 
-                        <div className="flex gap-2">
+                        <div className="flex items-center gap-2">
                           <Button
                             variant="outline"
                             size="sm"
@@ -481,8 +481,10 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                           </Button>
                           <Button
                             variant="destructive"
-                            size="sm"
+                            size="icon"
+                            className="bg-red-600 hover:bg-red-700 text-white h-9 w-9"
                             onClick={(e) => handleDeleteClick(ticket, e)}
+                            title="Hapus Tiket"
                           >
                             <Trash2 className="w-4 h-4" />
                           </Button>
@@ -499,30 +501,40 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700">
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Tiket?</AlertDialogTitle>
-            <AlertDialogDescription>
+            <AlertDialogTitle className="text-black dark:text-white text-lg font-semibold">
+              Hapus Tiket?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-600 dark:text-gray-300">
               Apakah Anda yakin ingin menghapus tiket ini?
-              {ticketToDelete && (
-                <div className="mt-3 p-3 bg-muted rounded-lg">
-                  <p className="font-semibold">{ticketToDelete.title}</p>
-                  <p className="text-sm text-muted-foreground">
-                    Dibuat oleh: {ticketToDelete.name} ({ticketToDelete.user_division})
-                  </p>
-                </div>
-              )}
-              <p className="mt-3 text-destructive font-medium">
-                Tindakan ini tidak dapat dibatalkan. Semua data tiket termasuk komentar dan notifikasi terkait akan dihapus secara permanen.
-              </p>
             </AlertDialogDescription>
           </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel disabled={isDeleting}>Batal</AlertDialogCancel>
+
+          {ticketToDelete && (
+            <div className="my-4 p-4 bg-gray-100 dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
+              <p className="font-semibold text-black dark:text-white">{ticketToDelete.title}</p>
+              <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
+                Dibuat oleh: {ticketToDelete.name} ({ticketToDelete.user_division})
+              </p>
+            </div>
+          )}
+
+          <p className="text-red-600 dark:text-red-400 font-medium text-sm">
+            Tindakan ini tidak dapat dibatalkan. Semua data tiket termasuk komentar dan notifikasi terkait akan dihapus secara permanen.
+          </p>
+
+          <AlertDialogFooter className="mt-4">
+            <AlertDialogCancel
+              disabled={isDeleting}
+              className="bg-gray-100 dark:bg-gray-800 text-black dark:text-white border-gray-300 dark:border-gray-600 hover:bg-gray-200 dark:hover:bg-gray-700"
+            >
+              Batal
+            </AlertDialogCancel>
             <AlertDialogAction
               onClick={handleConfirmDelete}
               disabled={isDeleting}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              className="bg-red-600 hover:bg-red-700 text-white"
             >
               {isDeleting ? "Menghapus..." : "Hapus Tiket"}
             </AlertDialogAction>
