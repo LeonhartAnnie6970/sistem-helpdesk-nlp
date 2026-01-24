@@ -159,19 +159,26 @@ export function AdminStats() {
                 </div>
                 <div className="flex items-center gap-2">
                   {ticket.category && (
-                    <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded">{ticket.category}</span>
+                    <span className="text-xs bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200 px-2 py-1 rounded">{ticket.category}</span>
                   )}
-                  <span
-                    className={`text-xs px-2 py-1 rounded ${
-                      ticket.status === "new"
-                        ? "bg-blue-100 text-blue-800"
-                        : ticket.status === "in_progress"
-                          ? "bg-yellow-100 text-yellow-800"
-                          : "bg-green-100 text-green-800"
-                    }`}
-                  >
-                    {ticket.status}
-                  </span>
+                  {(() => {
+                    const status = (ticket.status || "").toLowerCase().trim()
+                    const statusColor = status === "new" ? "bg-blue-500"
+                      : status === "in_progress" ? "bg-yellow-500"
+                      : status === "resolved" ? "bg-green-500"
+                      : status === "closed" || status === "ditutup" ? "bg-gray-600"
+                      : "bg-blue-500"
+                    const statusLabel = status === "new" ? "Baru"
+                      : status === "in_progress" ? "Diproses"
+                      : status === "resolved" ? "Selesai"
+                      : status === "closed" || status === "ditutup" ? "Ditutup"
+                      : "Baru"
+                    return (
+                      <span className={`text-xs px-2 py-1 rounded text-white font-medium ${statusColor}`}>
+                        {statusLabel}
+                      </span>
+                    )
+                  })()}
                 </div>
               </div>
             ))}

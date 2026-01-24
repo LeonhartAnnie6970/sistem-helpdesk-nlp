@@ -143,22 +143,25 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
   }
 
   const getStatusColor = (status: string) => {
-    switch (status) {
+    const s = (status || "").toLowerCase().trim()
+    switch (s) {
       case "new":
-        return "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+        return "bg-blue-500 text-white"
       case "in_progress":
-        return "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+        return "bg-yellow-500 text-white"
       case "resolved":
-        return "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+        return "bg-green-500 text-white"
       case "closed":
-        return "bg-gray-100 text-gray-800 dark:bg-gray-700 dark:text-gray-200"
+      case "ditutup":
+        return "bg-gray-600 text-white"
       default:
-        return "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+        return "bg-blue-500 text-white"
     }
   }
 
   const getStatusLabel = (status: string) => {
-    switch (status) {
+    const s = (status || "").toLowerCase().trim()
+    switch (s) {
       case "new":
         return "Baru"
       case "in_progress":
@@ -166,9 +169,10 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
       case "resolved":
         return "Selesai"
       case "closed":
+      case "ditutup":
         return "Ditutup"
       default:
-        return status
+        return status || "Baru"
     }
   }
 
@@ -188,6 +192,8 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
   const handleCloseModal = () => {
     setIsModalOpen(false)
     setSelectedTicketId(null)
+    // Refresh list when modal closes to get updated status
+    fetchUserDivisionAndTickets()
   }
 
   const handleTicketUpdate = () => {

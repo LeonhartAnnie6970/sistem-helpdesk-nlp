@@ -113,6 +113,33 @@ export async function GET(request: NextRequest) {
           [adminDivision, JSON.stringify(adminDivision)]
         )
       }
+
+      // Auto-repair: Fix tickets with NULL/empty status for admin
+      if (Array.isArray(tickets)) {
+        for (const t of tickets as any[]) {
+          if (!t.status || t.status === '' || t.status === null) {
+            console.log(`[GET /api/tickets] ADMIN - Ticket #${t.id} has NULL/empty status, checking comments...`)
+
+            const latestStatusComment: any = await query(
+              `SELECT new_status FROM ticket_comments
+               WHERE ticket_id = ? AND new_status IS NOT NULL AND new_status != ''
+               ORDER BY created_at DESC LIMIT 1`,
+              [t.id]
+            )
+
+            if (Array.isArray(latestStatusComment) && latestStatusComment.length > 0) {
+              const correctStatus = latestStatusComment[0].new_status
+              console.log(`[GET /api/tickets] Found status "${correctStatus}" in comments for ticket #${t.id}, repairing...`)
+              await query(`UPDATE tickets SET status = ? WHERE id = ?`, [correctStatus, t.id])
+              t.status = correctStatus
+            } else {
+              console.log(`[GET /api/tickets] No status found in comments for ticket #${t.id}, defaulting to 'new'`)
+              await query(`UPDATE tickets SET status = 'new' WHERE id = ?`, [t.id])
+              t.status = 'new'
+            }
+          }
+        }
+      }
     }
 
     // 🟢 USER → lihat ticket sendiri DAN ticket yang ditargetkan ke divisinya
@@ -160,6 +187,33 @@ export async function GET(request: NextRequest) {
         )
 
         console.log('[GET /api/tickets] User division:', userDivision)
+      }
+
+      // Auto-repair: Fix tickets with NULL/empty status for user
+      if (Array.isArray(tickets)) {
+        for (const t of tickets as any[]) {
+          if (!t.status || t.status === '' || t.status === null) {
+            console.log(`[GET /api/tickets] USER - Ticket #${t.id} has NULL/empty status, checking comments...`)
+
+            const latestStatusComment: any = await query(
+              `SELECT new_status FROM ticket_comments
+               WHERE ticket_id = ? AND new_status IS NOT NULL AND new_status != ''
+               ORDER BY created_at DESC LIMIT 1`,
+              [t.id]
+            )
+
+            if (Array.isArray(latestStatusComment) && latestStatusComment.length > 0) {
+              const correctStatus = latestStatusComment[0].new_status
+              console.log(`[GET /api/tickets] Found status "${correctStatus}" in comments for ticket #${t.id}, repairing...`)
+              await query(`UPDATE tickets SET status = ? WHERE id = ?`, [correctStatus, t.id])
+              t.status = correctStatus
+            } else {
+              console.log(`[GET /api/tickets] No status found in comments for ticket #${t.id}, defaulting to 'new'`)
+              await query(`UPDATE tickets SET status = 'new' WHERE id = ?`, [t.id])
+              t.status = 'new'
+            }
+          }
+        }
       }
 
       console.log('[GET /api/tickets] Tickets found:', Array.isArray(tickets) ? tickets.length : 0)

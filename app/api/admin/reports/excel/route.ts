@@ -1,6 +1,7 @@
-import { neon } from "@neondatabase/serverless"
 import { type NextRequest, NextResponse } from "next/server"
 import ExcelJS from "exceljs"
+import { query } from "@/lib/db"
+import { verifyToken } from "@/lib/auth"
 
 export async function POST(request: NextRequest) {
   try {
@@ -10,64 +11,112 @@ export async function POST(request: NextRequest) {
     }
 
     // Verify token is admin
-    const sql = neon(process.env.DATABASE_URL!)
-    const authResult = await sql("SELECT role FROM users WHERE token = ?", [token])
-    if (!authResult || authResult.length === 0 || authResult[0].role !== "admin") {
+    const decoded = verifyToken(token)
+    if (!decoded || decoded.role !== "admin") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 })
     }
 
-    const { status } = await request.json()
+    // Get admin's division
+    const adminInfo: any = await query(
+      "SELECT division FROM users WHERE id = ?",
+      [decoded.userId]
+    )
+    const adminDivision = adminInfo[0]?.division
 
-    // Fetch tickets berdasarkan status
-    let query = `
-      SELECT t.id, t.title, t.description, t.category, t.status, t.created_at, u.name, u.divisi, u.email
-      FROM tickets t
-      JOIN users u ON t.user_id = u.id
-      ORDER BY t.created_at DESC
-    `
-
-    let ticketsData
-    if (status && status !== "all") {
-      query = query.replace("ORDER BY", `WHERE t.status = ? ORDER BY`)
-      ticketsData = await sql(query, [status])
-    } else {
-      ticketsData = await sql(query)
+    if (!adminDivision) {
+      return NextResponse.json({ error: "Admin division not found" }, { status: 400 })
     }
+
+    const { status: filterStatus } = await request.json()
+
+    // Fetch tickets filtered by admin's division
+    // Tickets from users in admin's division OR targeted to admin's division
+    let sqlQuery = `
+      SELECT DISTINCT t.id, t.title, t.description, t.nlp_category as category, t.status, t.created_at, u.name, u.division as divisi, u.email
+      FROM tickets t
+      JOIN users u ON t.id_user = u.id
+      WHERE (u.division = ? OR JSON_CONTAINS(t.target_divisions, JSON_QUOTE(?)))
+    `
+    const params: any[] = [adminDivision, adminDivision]
+
+    if (filterStatus && filterStatus !== "all") {
+      sqlQuery += ` AND t.status = ?`
+      params.push(filterStatus)
+    }
+
+    sqlQuery += ` ORDER BY t.created_at DESC`
+
+    const ticketsData: any = await query(sqlQuery, params)
 
     // Create workbook
     const workbook = new ExcelJS.Workbook()
     const worksheet = workbook.addWorksheet("Laporan Tiket")
 
-    // Add header
-    worksheet.columns = [
-      { header: "ID", key: "id", width: 10 },
-      { header: "Judul", key: "title", width: 25 },
-      { header: "Deskripsi", key: "description", width: 35 },
-      { header: "Kategori", key: "category", width: 15 },
-      { header: "Status", key: "status", width: 12 },
-      { header: "User", key: "name", width: 15 },
-      { header: "Divisi", key: "divisi", width: 15 },
-      { header: "Email", key: "email", width: 20 },
-      { header: "Tanggal", key: "created_at", width: 18 },
-    ]
+    // Add title row
+    worksheet.mergeCells('A1:I1')
+    const titleCell = worksheet.getCell('A1')
+    titleCell.value = 'Laporan Tiket Helpdesk'
+    titleCell.font = { bold: true, size: 16 }
+    titleCell.alignment = { horizontal: 'center' }
+
+    // Add division info
+    worksheet.mergeCells('A2:I2')
+    const divisionCell = worksheet.getCell('A2')
+    divisionCell.value = `Divisi: ${adminDivision}`
+    divisionCell.alignment = { horizontal: 'center' }
+
+    // Add date info
+    worksheet.mergeCells('A3:I3')
+    const dateCell = worksheet.getCell('A3')
+    dateCell.value = `Tanggal Export: ${new Date().toLocaleDateString("id-ID")}`
+    dateCell.alignment = { horizontal: 'center' }
+
+    // Add filter info if applicable
+    if (filterStatus && filterStatus !== "all") {
+      worksheet.mergeCells('A4:I4')
+      const filterCell = worksheet.getCell('A4')
+      filterCell.value = `Filter Status: ${filterStatus.toUpperCase()}`
+      filterCell.alignment = { horizontal: 'center' }
+    }
+
+    // Add empty row
+    worksheet.addRow([])
+
+    // Add header row
+    const headerRow = worksheet.addRow([
+      "ID", "Judul", "Deskripsi", "Kategori", "Status", "User", "Divisi", "Email", "Tanggal"
+    ])
 
     // Style header
-    worksheet.getRow(1).font = { bold: true, color: { argb: "FFFFFFFF" } }
-    worksheet.getRow(1).fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3b82f6" } }
+    headerRow.font = { bold: true, color: { argb: "FFFFFFFF" } }
+    headerRow.fill = { type: "pattern", pattern: "solid", fgColor: { argb: "FF3b82f6" } }
+
+    // Set column widths
+    worksheet.columns = [
+      { width: 10 },
+      { width: 25 },
+      { width: 35 },
+      { width: 15 },
+      { width: 12 },
+      { width: 15 },
+      { width: 15 },
+      { width: 20 },
+      { width: 18 },
+    ]
 
     // Add data rows
     ticketsData.forEach((ticket: any) => {
-      worksheet.addRow({
-        id: ticket.id,
-        title: ticket.title,
-        description: ticket.description,
-        category: ticket.category,
-        status: ticket.status,
-        name: ticket.name,
-        divisi: ticket.divisi,
-        email: ticket.email,
-        created_at: new Date(ticket.created_at).toLocaleDateString("id-ID"),
-      })
+      worksheet.addRow([
+        ticket.id,
+        ticket.title,
+        ticket.description,
+        ticket.category,
+        ticket.status,
+        ticket.name,
+        ticket.divisi,
+        ticket.email,
+        new Date(ticket.created_at).toLocaleDateString("id-ID"),
+      ])
     })
 
     // Generate buffer
@@ -76,7 +125,7 @@ export async function POST(request: NextRequest) {
     return new NextResponse(buffer, {
       headers: {
         "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        "Content-Disposition": `attachment; filename="laporan-tiket-${new Date().getTime()}.xlsx"`,
+        "Content-Disposition": `attachment; filename="laporan-tiket-${adminDivision}-${new Date().getTime()}.xlsx"`,
       },
     })
   } catch (error) {
