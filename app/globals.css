@@ -125,3 +125,34 @@
     @apply bg-white dark:bg-black text-black dark:text-white;
   }
 }
+
+/* Glassmorphism utilities */
+@layer components {
+  .glass {
+    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-700/30;
+  }
+
+  .glass-light {
+    @apply bg-white/50 backdrop-blur-sm border border-white/30;
+  }
+
+  .glass-dark {
+    @apply bg-gray-900/50 backdrop-blur-sm border border-gray-700/30;
+  }
+
+  .glass-card {
+    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-lg;
+  }
+
+  .glass-panel {
+    @apply bg-gradient-to-br from-white/60 to-white/30 dark:from-gray-900/60 dark:to-gray-900/30 backdrop-blur-xl border border-white/20 dark:border-gray-700/20;
+  }
+
+  .glass-button {
+    @apply bg-white/20 dark:bg-gray-800/20 backdrop-blur-md border border-white/30 dark:border-gray-700/30 hover:bg-white/30 dark:hover:bg-gray-800/30 transition-all duration-300;
+  }
+
+  .glass-input {
+    @apply bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 focus:bg-white/70 dark:focus:bg-gray-800/70 transition-all duration-300;
+  }
+}

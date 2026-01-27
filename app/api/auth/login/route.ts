@@ -10,14 +10,25 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email and password required" }, { status: 400 })
     }
 
-    // Find user
-    const users = await query("SELECT id, password, role FROM users WHERE email = ?", [email])
+    // Find user with is_active check
+    const users = await query("SELECT id, password, role, is_active FROM users WHERE email = ?", [email])
 
     if (!Array.isArray(users) || users.length === 0) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
     }
 
     const user = users[0] as any
+
+    // Block inactive users (is_active = FALSE or 0)
+    console.log(`[Login] User ${email} is_active from DB: ${user.is_active}`)
+
+    if (!user.is_active || user.is_active === 0 || user.is_active === false) {
+      console.log(`[Login] BLOCKED - User ${email} is inactive (is_active = ${user.is_active})`)
+      return NextResponse.json({
+        error: "Akun Anda telah dinonaktifkan. Silakan hubungi administrator."
+      }, { status: 403 })
+    }
+
     const passwordMatch = await verifyPassword(password, user.password)
 
     if (!passwordMatch) {

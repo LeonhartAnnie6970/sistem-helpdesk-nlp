@@ -5,8 +5,10 @@ import Image from "next/image"
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { TicketImageModal } from "./ticket-image-modal"
+import { ImageGallerySkeleton } from "@/components/ui/skeleton"
 import { formatTicketId } from "@/lib/utils"
 import { Hash, User, Building2, ImageIcon } from "lucide-react"
+import { motion } from "framer-motion"
 
 interface TicketWithImage {
   id: number
@@ -101,7 +103,7 @@ export function TicketImagesGallery() {
       </CardHeader>
 
       <CardContent className="bg-white dark:bg-black">
-        {isLoading && <div className="text-gray-600 dark:text-gray-300">Loading...</div>}
+        {isLoading && <ImageGallerySkeleton count={6} />}
         {error && <div className="text-red-600 dark:text-red-400">{error}</div>}
 
         {!isLoading && !error && tickets.length === 0 && (
@@ -115,11 +117,14 @@ export function TicketImagesGallery() {
         )}
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-          {tickets.map((ticket) =>
+          {tickets.map((ticket, index) =>
             ticket.image_user_url ? (
-              <div
+              <motion.div
                 key={ticket.id}
-                className="border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 hover:shadow-md transition-shadow"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.3, delay: index * 0.05 }}
+                className="group border border-gray-200 dark:border-gray-700 rounded-lg overflow-hidden bg-white dark:bg-gray-800 transition-all duration-300 ease-in-out hover:shadow-xl hover:border-gray-300 dark:hover:border-gray-600 hover:-translate-y-1"
               >
                 {/* Image Section */}
                 <button
@@ -135,15 +140,16 @@ export function TicketImagesGallery() {
                       userDivision: ticket.user_division || ticket.user_division_name,
                     })
                   }
-                  className="relative w-full aspect-video overflow-hidden block hover:opacity-90 transition-opacity"
+                  className="relative w-full aspect-video overflow-hidden block"
                 >
                   <Image
                     src={ticket.image_user_url}
                     alt={ticket.title}
                     fill
-                    className="object-cover"
+                    className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
                     unoptimized
                   />
+                  <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 </button>
 
                 {/* Ticket Info Section */}
@@ -196,7 +202,7 @@ export function TicketImagesGallery() {
                     })}
                   </p>
                 </div>
-              </div>
+              </motion.div>
             ) : null
           )}
         </div>

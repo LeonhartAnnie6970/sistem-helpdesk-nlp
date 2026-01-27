@@ -8,6 +8,7 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
       data-slot="card"
       className={cn(
         'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
+        'transition-all duration-300 ease-in-out hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600',
         className,
       )}
       {...props}
@@ -81,6 +82,24 @@ function CardFooter({ className, ...props }: React.ComponentProps<'div'>) {
   )
 }
 
+// Glassmorphism Card variant
+function GlassCard({ className, ...props }: React.ComponentProps<'div'>) {
+  return (
+    <div
+      data-slot="glass-card"
+      className={cn(
+        'flex flex-col gap-6 rounded-xl py-6 shadow-lg',
+        'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg',
+        'border border-gray-200/50 dark:border-gray-700/50',
+        'transition-all duration-300 ease-in-out',
+        'hover:shadow-xl hover:bg-white/90 dark:hover:bg-gray-900/90',
+        className,
+      )}
+      {...props}
+    />
+  )
+}
+
 export {
   Card,
   CardHeader,
@@ -89,4 +108,5 @@ export {
   CardAction,
   CardDescription,
   CardContent,
+  GlassCard,
 }
