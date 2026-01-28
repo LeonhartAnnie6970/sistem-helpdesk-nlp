@@ -4,74 +4,76 @@
 
 
 :root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
+  /* Corporate Blue Theme - Light Mode */
+  --background: oklch(0.985 0.005 250);           /* Putih dengan hint biru sangat tipis */
+  --foreground: oklch(0.2 0.02 250);              /* Teks gelap dengan hint biru */
+  --card: oklch(1 0 0);                           /* Kartu putih bersih */
+  --card-foreground: oklch(0.2 0.02 250);         /* Teks kartu */
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
+  --popover-foreground: oklch(0.2 0.02 250);
+  --primary: oklch(0.4 0.15 250);                 /* Biru utama (navy blue) */
+  --primary-foreground: oklch(0.98 0 0);          /* Teks putih di atas primary */
+  --secondary: oklch(0.95 0.02 250);              /* Biru sangat muda */
+  --secondary-foreground: oklch(0.3 0.1 250);     /* Teks biru gelap */
+  --muted: oklch(0.96 0.01 250);                  /* Abu-abu dengan hint biru */
+  --muted-foreground: oklch(0.5 0.02 250);        /* Teks muted */
+  --accent: oklch(0.5 0.18 250);                  /* Biru aksen */
+  --accent-foreground: oklch(0.98 0 0);           /* Teks putih */
   --destructive: oklch(0.577 0.245 27.325);
-  --destructive-foreground: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.646 0.222 41.116);
-  --chart-2: oklch(0.6 0.118 184.704);
-  --chart-3: oklch(0.398 0.07 227.392);
-  --chart-4: oklch(0.828 0.189 84.429);
-  --chart-5: oklch(0.769 0.188 70.08);
+  --destructive-foreground: oklch(0.98 0 0);
+  --border: oklch(0.9 0.02 250);                  /* Border dengan hint biru */
+  --input: oklch(0.95 0.01 250);                  /* Input background */
+  --ring: oklch(0.5 0.15 250);                    /* Ring biru */
+  --chart-1: oklch(0.5 0.18 250);                 /* Chart biru */
+  --chart-2: oklch(0.6 0.15 200);                 /* Chart cyan */
+  --chart-3: oklch(0.55 0.12 280);                /* Chart ungu */
+  --chart-4: oklch(0.7 0.15 180);                 /* Chart teal */
+  --chart-5: oklch(0.45 0.2 250);                 /* Chart navy */
   --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+  --sidebar: oklch(0.25 0.1 250);                 /* Sidebar biru gelap */
+  --sidebar-foreground: oklch(0.95 0 0);          /* Teks sidebar putih */
+  --sidebar-primary: oklch(0.5 0.18 250);         /* Primary sidebar */
+  --sidebar-primary-foreground: oklch(0.98 0 0);
+  --sidebar-accent: oklch(0.35 0.12 250);         /* Aksen sidebar */
+  --sidebar-accent-foreground: oklch(0.95 0 0);
+  --sidebar-border: oklch(0.35 0.08 250);         /* Border sidebar */
+  --sidebar-ring: oklch(0.5 0.15 250);
 }
 
 .dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.145 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.145 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.985 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.396 0.141 25.723);
-  --destructive-foreground: oklch(0.637 0.237 25.331);
-  --border: oklch(0.269 0 0);
-  --input: oklch(0.269 0 0);
-  --ring: oklch(0.439 0 0);
-  --chart-1: oklch(0.488 0.243 264.376);
-  --chart-2: oklch(0.696 0.17 162.48);
-  --chart-3: oklch(0.769 0.188 70.08);
-  --chart-4: oklch(0.627 0.265 303.9);
-  --chart-5: oklch(0.645 0.246 16.439);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(0.269 0 0);
-  --sidebar-ring: oklch(0.439 0 0);
+  /* Corporate Blue Theme - Dark Mode */
+  --background: oklch(0.15 0.03 250);             /* Background gelap dengan hint biru */
+  --foreground: oklch(0.95 0.01 250);             /* Teks terang */
+  --card: oklch(0.18 0.03 250);                   /* Kartu gelap */
+  --card-foreground: oklch(0.95 0.01 250);
+  --popover: oklch(0.18 0.03 250);
+  --popover-foreground: oklch(0.95 0.01 250);
+  --primary: oklch(0.6 0.15 250);                 /* Biru lebih terang untuk dark mode */
+  --primary-foreground: oklch(0.1 0.02 250);
+  --secondary: oklch(0.25 0.05 250);
+  --secondary-foreground: oklch(0.9 0.01 250);
+  --muted: oklch(0.25 0.03 250);
+  --muted-foreground: oklch(0.65 0.02 250);
+  --accent: oklch(0.5 0.15 250);
+  --accent-foreground: oklch(0.95 0 0);
+  --destructive: oklch(0.5 0.2 25);
+  --destructive-foreground: oklch(0.95 0 0);
+  --border: oklch(0.3 0.04 250);
+  --input: oklch(0.22 0.03 250);
+  --ring: oklch(0.55 0.15 250);
+  --chart-1: oklch(0.6 0.18 250);
+  --chart-2: oklch(0.65 0.15 200);
+  --chart-3: oklch(0.6 0.12 280);
+  --chart-4: oklch(0.7 0.15 180);
+  --chart-5: oklch(0.55 0.2 250);
+  --sidebar: oklch(0.12 0.04 250);                /* Sidebar lebih gelap */
+  --sidebar-foreground: oklch(0.9 0 0);
+  --sidebar-primary: oklch(0.55 0.18 250);
+  --sidebar-primary-foreground: oklch(0.95 0 0);
+  --sidebar-accent: oklch(0.25 0.06 250);
+  --sidebar-accent-foreground: oklch(0.9 0 0);
+  --sidebar-border: oklch(0.25 0.04 250);
+  --sidebar-ring: oklch(0.5 0.15 250);
 }
 
 :root {
@@ -122,37 +124,51 @@
     outline-color: rgb(var(--ring) / 0.5);
   }
   body {
-    @apply bg-white dark:bg-black text-black dark:text-white;
+    @apply bg-[--background] text-[--foreground];
+    background: linear-gradient(135deg, oklch(0.98 0.01 250) 0%, oklch(1 0 0) 50%, oklch(0.97 0.02 250) 100%);
+  }
+  .dark body {
+    background: linear-gradient(135deg, oklch(0.12 0.04 250) 0%, oklch(0.15 0.03 250) 50%, oklch(0.13 0.04 250) 100%);
   }
 }
 
-/* Glassmorphism utilities */
+/* Glassmorphism utilities - Corporate Blue Theme */
 @layer components {
   .glass {
-    @apply bg-white/70 dark:bg-gray-900/70 backdrop-blur-md border border-white/20 dark:border-gray-700/30;
+    @apply bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border border-blue-100/30 dark:border-blue-900/30;
   }
 
   .glass-light {
-    @apply bg-white/50 backdrop-blur-sm border border-white/30;
+    @apply bg-white/60 backdrop-blur-sm border border-blue-50/40;
   }
 
   .glass-dark {
-    @apply bg-gray-900/50 backdrop-blur-sm border border-gray-700/30;
+    @apply bg-slate-900/60 backdrop-blur-sm border border-blue-900/40;
   }
 
   .glass-card {
-    @apply bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border border-gray-200/50 dark:border-gray-700/50 shadow-lg;
+    @apply bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg border border-blue-100/40 dark:border-blue-800/40 shadow-lg shadow-blue-900/5;
   }
 
   .glass-panel {
-    @apply bg-gradient-to-br from-white/60 to-white/30 dark:from-gray-900/60 dark:to-gray-900/30 backdrop-blur-xl border border-white/20 dark:border-gray-700/20;
+    @apply bg-gradient-to-br from-white/70 to-blue-50/30 dark:from-slate-900/70 dark:to-blue-950/30 backdrop-blur-xl border border-blue-100/30 dark:border-blue-800/30;
   }
 
   .glass-button {
-    @apply bg-white/20 dark:bg-gray-800/20 backdrop-blur-md border border-white/30 dark:border-gray-700/30 hover:bg-white/30 dark:hover:bg-gray-800/30 transition-all duration-300;
+    @apply bg-blue-50/30 dark:bg-blue-900/30 backdrop-blur-md border border-blue-200/40 dark:border-blue-700/40 hover:bg-blue-100/40 dark:hover:bg-blue-800/40 transition-all duration-300;
   }
 
   .glass-input {
-    @apply bg-white/50 dark:bg-gray-800/50 backdrop-blur-sm border border-gray-200/50 dark:border-gray-700/50 focus:bg-white/70 dark:focus:bg-gray-800/70 transition-all duration-300;
+    @apply bg-white/70 dark:bg-slate-800/70 backdrop-blur-sm border border-blue-200/40 dark:border-blue-700/40 focus:bg-white/90 dark:focus:bg-slate-800/90 focus:border-blue-400 transition-all duration-300;
+  }
+
+  /* Primary button dengan tema biru */
+  .btn-primary {
+    @apply bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white font-medium px-4 py-2 rounded-lg shadow-md shadow-blue-500/20 hover:shadow-lg hover:shadow-blue-500/30 transition-all duration-300;
+  }
+
+  /* Secondary button */
+  .btn-secondary {
+    @apply bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 hover:bg-blue-100 dark:hover:bg-blue-800/40 font-medium px-4 py-2 rounded-lg border border-blue-200 dark:border-blue-700 transition-all duration-300;
   }
 }

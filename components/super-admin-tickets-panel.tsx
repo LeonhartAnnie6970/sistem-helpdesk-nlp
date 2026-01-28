@@ -25,7 +25,8 @@ import {
   FileSpreadsheet,
   FileText,
   Download,
-  Calendar
+  Calendar,
+  Ticket as TicketIcon
 } from 'lucide-react'
 import {
   AlertDialog,
@@ -248,34 +249,66 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
   return (
     <div className="space-y-6">
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Total Tickets</CardDescription>
-            <CardTitle className="text-3xl">{stats.total}</CardTitle>
-          </CardHeader>
-        </Card>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        {/* Total Tickets - Merah */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-5 shadow-lg shadow-red-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-red-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <TicketIcon className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{stats.total}</div>
+            <div className="text-sm font-medium text-white/80">Total Tickets</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>New</CardDescription>
-            <CardTitle className="text-3xl text-orange-600">{stats.new}</CardTitle>
-          </CardHeader>
-        </Card>
+        {/* New - Biru */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{stats.new}</div>
+            <div className="text-sm font-medium text-white/80">New</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>In Progress</CardDescription>
-            <CardTitle className="text-3xl text-blue-600">{stats.inProgress}</CardTitle>
-          </CardHeader>
-        </Card>
+        {/* In Progress - Orange */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-5 shadow-lg shadow-orange-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{stats.inProgress}</div>
+            <div className="text-sm font-medium text-white/80">In Progress</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card>
-          <CardHeader className="pb-3">
-            <CardDescription>Resolved</CardDescription>
-            <CardTitle className="text-3xl text-green-600">{stats.resolved}</CardTitle>
-          </CardHeader>
-        </Card>
+        {/* Resolved - Hijau */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-5 shadow-lg shadow-green-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{stats.resolved}</div>
+            <div className="text-sm font-medium text-white/80">Resolved</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
       </div>
 
       {/* Filters */}

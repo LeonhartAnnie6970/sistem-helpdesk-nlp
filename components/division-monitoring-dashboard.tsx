@@ -273,53 +273,80 @@ export function DivisionMonitoringDashboard() {
     <div className="space-y-6">
       {/* Analytics Section - Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-          <CardHeader className="pb-2 bg-white dark:bg-black">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300 flex items-center gap-2">
-              <TicketIcon className="w-4 h-4" />
-              Total Tiket
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="bg-white dark:bg-black">
-            <div className="text-3xl font-bold text-black dark:text-white">{overallStats.total}</div>
-          </CardContent>
-        </Card>
+        {/* Total Tiket - Merah */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-red-500 to-red-600 p-5 shadow-lg shadow-red-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-red-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <TicketIcon className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{overallStats.total}</div>
+            <div className="text-sm font-medium text-white/80">Total Tiket</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 border-l-4 border-l-blue-500">
-          <CardHeader className="pb-2 bg-white dark:bg-black">
-            <CardTitle className="text-sm font-medium text-blue-600 dark:text-blue-400">Baru</CardTitle>
-          </CardHeader>
-          <CardContent className="bg-white dark:bg-black">
-            <div className="text-2xl font-bold text-black dark:text-white">{overallStats.new}</div>
-          </CardContent>
-        </Card>
+        {/* Baru - Biru */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-5 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <AlertCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{overallStats.new}</div>
+            <div className="text-sm font-medium text-white/80">Baru</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 border-l-4 border-l-yellow-500">
-          <CardHeader className="pb-2 bg-white dark:bg-black">
-            <CardTitle className="text-sm font-medium text-yellow-600 dark:text-yellow-400">Dalam Proses</CardTitle>
-          </CardHeader>
-          <CardContent className="bg-white dark:bg-black">
-            <div className="text-2xl font-bold text-black dark:text-white">{overallStats.inProgress}</div>
-          </CardContent>
-        </Card>
+        {/* Dalam Proses - Orange */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-orange-500 to-orange-600 p-5 shadow-lg shadow-orange-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-orange-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <Clock className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{overallStats.inProgress}</div>
+            <div className="text-sm font-medium text-white/80">Dalam Proses</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 border-l-4 border-l-green-500">
-          <CardHeader className="pb-2 bg-white dark:bg-black">
-            <CardTitle className="text-sm font-medium text-green-600 dark:text-green-400">Selesai</CardTitle>
-          </CardHeader>
-          <CardContent className="bg-white dark:bg-black">
-            <div className="text-2xl font-bold text-black dark:text-white">{overallStats.resolved}</div>
-          </CardContent>
-        </Card>
+        {/* Selesai - Hijau */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-green-500 to-green-600 p-5 shadow-lg shadow-green-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-green-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <CheckCircle2 className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{overallStats.resolved}</div>
+            <div className="text-sm font-medium text-white/80">Selesai</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
 
-        <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700 border-l-4 border-l-gray-500">
-          <CardHeader className="pb-2 bg-white dark:bg-black">
-            <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-400">Ditutup</CardTitle>
-          </CardHeader>
-          <CardContent className="bg-white dark:bg-black">
-            <div className="text-2xl font-bold text-black dark:text-white">{overallStats.closed}</div>
-          </CardContent>
-        </Card>
+        {/* Ditutup - Abu-abu gelap */}
+        <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-gray-600 to-gray-700 p-5 shadow-lg shadow-gray-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-gray-500/30 hover:-translate-y-1">
+          <div className="relative z-10">
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-white/20 rounded-lg">
+                <XCircle className="w-5 h-5 text-white" />
+              </div>
+            </div>
+            <div className="text-4xl font-bold text-white mb-1">{overallStats.closed}</div>
+            <div className="text-sm font-medium text-white/80">Ditutup</div>
+          </div>
+          <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+          <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+        </div>
       </div>
 
       {/* Charts Section */}

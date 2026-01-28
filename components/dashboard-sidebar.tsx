@@ -80,14 +80,14 @@ export function Sidebar({
   return (
     <aside
       className={cn(
-        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 border-r bg-background flex flex-col",
+        "fixed left-0 top-0 z-40 h-screen transition-all duration-300 border-r border-blue-900/50 bg-gradient-to-b from-slate-900 to-blue-950 flex flex-col shadow-xl shadow-blue-950/50",
         collapsed ? "w-16" : "w-64"
       )}
     >
       {/* Header */}
-      <div className="flex items-center justify-between h-16 px-4 border-b flex-shrink: 0">
+      <div className="flex items-center justify-between h-16 px-4 border-b border-blue-800/30 flex-shrink-0">
         {!collapsed && (
-          <h2 className="text-lg font-bold">
+          <h2 className="text-lg font-bold text-white">
             {role === "super_admin" ? "Super Admin" :
              role === "admin" ? "Admin Panel" :
              "User Dashboard"}
@@ -97,7 +97,7 @@ export function Sidebar({
           variant="ghost"
           size="icon"
           onClick={handleToggleCollapsed}
-          className={cn("", collapsed ? "" : "ml-auto")}
+          className={cn("text-blue-200 hover:text-white hover:bg-blue-800/50", collapsed ? "" : "ml-auto")}
         >
           {collapsed ? (
             <ChevronRight className="w-4 h-4" />
@@ -112,13 +112,16 @@ export function Sidebar({
         {menuItems.map((item) => {
           const Icon = item.icon
           const isActive = activeTab === item.id
-          
+
           return (
             <Button
               key={item.id}
               variant={isActive ? "default" : "ghost"}
               className={cn(
                 "w-full justify-start",
+                isActive
+                  ? "bg-blue-600 hover:bg-blue-700 text-white shadow-md shadow-blue-600/30"
+                  : "text-blue-200 hover:text-white hover:bg-blue-800/50",
                 collapsed && "justify-center px-2"
               )}
               onClick={() => onTabChange(item.id)}
@@ -131,15 +134,15 @@ export function Sidebar({
       </nav>
 
       {/* Divider */}
-      <div className="border-t" />
+      <div className="border-t border-blue-800/30" />
 
       {/* Footer Actions */}
-      <div className="p-4 space-y-2 flex-shrink: 0">
+      <div className="p-4 space-y-2 flex-shrink-0">
         {/* Notifications */}
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start relative",
+            "w-full justify-start relative text-blue-200 hover:text-white hover:bg-blue-800/50",
             collapsed && "justify-center px-2"
           )}
           onClick={onOpenNotifications}
@@ -159,7 +162,7 @@ export function Sidebar({
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start",
+            "w-full justify-start text-blue-200 hover:text-white hover:bg-blue-800/50",
             collapsed && "justify-center px-2"
           )}
           onClick={onOpenProfile}
@@ -172,7 +175,7 @@ export function Sidebar({
         <Button
           variant="ghost"
           className={cn(
-            "w-full justify-start text-destructive hover:text-destructive hover:bg-destructive/10",
+            "w-full justify-start text-red-400 hover:text-red-300 hover:bg-red-900/30",
             collapsed && "justify-center px-2"
           )}
           onClick={onLogout}

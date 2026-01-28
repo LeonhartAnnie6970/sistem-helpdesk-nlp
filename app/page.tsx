@@ -113,7 +113,7 @@ function HomeContent() {
         </div>
 
         <Card className="border-primary/20 bg-primary/5">
-          <CardHeader>
+          <CardHeader className="text-center">
             <CardTitle>Mulai Sekarang</CardTitle>
             <CardDescription>Login untuk mengakses sistem monitoring divisi</CardDescription>
           </CardHeader>

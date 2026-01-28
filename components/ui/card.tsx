@@ -7,8 +7,8 @@ function Card({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="card"
       className={cn(
-        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border py-6 shadow-sm',
-        'transition-all duration-300 ease-in-out hover:shadow-lg hover:border-gray-300 dark:hover:border-gray-600',
+        'bg-card text-card-foreground flex flex-col gap-6 rounded-xl border border-blue-100 dark:border-blue-900/50 py-6 shadow-sm',
+        'transition-all duration-300 ease-in-out hover:shadow-lg hover:shadow-blue-500/10 hover:border-blue-200 dark:hover:border-blue-800',
         className,
       )}
       {...props}
@@ -88,11 +88,11 @@ function GlassCard({ className, ...props }: React.ComponentProps<'div'>) {
     <div
       data-slot="glass-card"
       className={cn(
-        'flex flex-col gap-6 rounded-xl py-6 shadow-lg',
-        'bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg',
-        'border border-gray-200/50 dark:border-gray-700/50',
+        'flex flex-col gap-6 rounded-xl py-6 shadow-lg shadow-blue-500/5',
+        'bg-white/90 dark:bg-slate-900/90 backdrop-blur-lg',
+        'border border-blue-100/50 dark:border-blue-800/50',
         'transition-all duration-300 ease-in-out',
-        'hover:shadow-xl hover:bg-white/90 dark:hover:bg-gray-900/90',
+        'hover:shadow-xl hover:shadow-blue-500/10 hover:bg-white/95 dark:hover:bg-slate-900/95',
         className,
       )}
       {...props}
