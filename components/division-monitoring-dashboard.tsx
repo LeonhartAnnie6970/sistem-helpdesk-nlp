@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { AlertCircle, CheckCircle2, Clock, XCircle, Users, Ticket as TicketIcon, TrendingUp, BarChart3 } from "lucide-react"
 import { TicketDetailModal } from "@/components/ticket-detail-modal"
 import { BarChart, Bar, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from "recharts"
+import { DIVISIONS } from "@/lib/divisions"
 
 interface Ticket {
   id: number
@@ -80,7 +81,20 @@ export function DivisionMonitoringDashboard() {
   }
 
   const calculateDivisionStats = () => {
+    // Initialize all divisions from DIVISIONS constant with zero values
     const divisionMap = new Map<string, DivisionStats>()
+
+    // Pre-populate with all known divisions (so all divisions appear even with 0 tickets)
+    DIVISIONS.forEach((div) => {
+      divisionMap.set(div, {
+        division: div,
+        totalTickets: 0,
+        newTickets: 0,
+        inProgressTickets: 0,
+        resolvedTickets: 0,
+        closedTickets: 0,
+      })
+    })
 
     console.log("[DivisionMonitoring] Calculating stats for", tickets.length, "tickets")
 
@@ -92,6 +106,7 @@ export function DivisionMonitoringDashboard() {
       // Skip tickets with no division (Unknown)
       if (!division || division === "Unknown" || division === "") return
 
+      // If division doesn't exist in map (custom division), add it
       if (!divisionMap.has(division)) {
         divisionMap.set(division, {
           division,
@@ -122,7 +137,15 @@ export function DivisionMonitoringDashboard() {
       }
     })
 
-    setDivisionStats(Array.from(divisionMap.values()).sort((a, b) => b.totalTickets - a.totalTickets))
+    // Sort by total tickets descending, but keep divisions with 0 tickets at the end
+    setDivisionStats(Array.from(divisionMap.values()).sort((a, b) => {
+      // If both have tickets or both don't, sort by total
+      if ((a.totalTickets > 0) === (b.totalTickets > 0)) {
+        return b.totalTickets - a.totalTickets
+      }
+      // Divisions with tickets come first
+      return b.totalTickets - a.totalTickets
+    }))
   }
 
   const handleOpenTicketDetail = (ticketId: number) => {
@@ -215,9 +238,26 @@ export function DivisionMonitoringDashboard() {
     { name: "Ditutup", value: overallStats.closed, color: "#4b5563" },
   ].filter(item => item.value > 0)
 
+  // Mapping singkatan nama divisi untuk chart
+  const divisionShortNames: Record<string, string> = {
+    "IT": "IT",
+    "ACC/FINANCE": "ACC/FNC",
+    "OPERASIONAL": "OPR",
+    "SALES": "SLS",
+    "CUSTOMER SERVICE": "CS",
+    "HR": "HR",
+    "DIREKSI/DIREKTUR": "DIR",
+  }
+
+  // Helper to get short name for division
+  const getShortDivisionName = (division: string): string => {
+    return divisionShortNames[division] || division
+  }
+
   // Data for Bar Chart (Division Distribution)
   const divisionChartData = divisionStats.map(stat => ({
-    name: stat.division,
+    name: getShortDivisionName(stat.division),
+    fullName: stat.division,
     total: stat.totalTickets,
     baru: stat.newTickets,
     proses: stat.inProgressTickets,
@@ -347,6 +387,13 @@ export function DivisionMonitoringDashboard() {
                       backgroundColor: 'white',
                       border: '1px solid #e5e7eb',
                       borderRadius: '8px'
+                    }}
+                    labelFormatter={(label, payload) => {
+                      // Show full division name in tooltip
+                      if (payload && payload.length > 0) {
+                        return payload[0]?.payload?.fullName || label
+                      }
+                      return label
                     }}
                   />
                   <Legend />

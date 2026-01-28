@@ -1,7 +1,8 @@
 {
-  "/api/auth/login/route": "app/api/auth/login/route.js",
-  "/page": "app/page.js",
-  "/super-admin/dashboard/page": "app/super-admin/dashboard/page.js",
+  "/api/admin/notifications/route": "app/api/admin/notifications/route.js",
   "/login/page": "app/login/page.js",
-  "/dashboard/page": "app/dashboard/page.js"
+  "/register/page": "app/register/page.js",
+  "/page": "app/page.js",
+  "/admin/dashboard/page": "app/admin/dashboard/page.js",
+  "/super-admin/dashboard/page": "app/super-admin/dashboard/page.js"
 }

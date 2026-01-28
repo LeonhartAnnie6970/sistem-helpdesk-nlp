@@ -2029,6 +2029,9 @@ video {
 .pt-4 {
   padding-top: 1rem;
 }
+.pt-1 {
+  padding-top: 0.25rem;
+}
 .text-left {
   text-align: left;
 }
@@ -2244,6 +2247,10 @@ video {
 .text-zinc-900 {
   --tw-text-opacity: 1;
   color: rgb(24 24 27 / var(--tw-text-opacity, 1));
+}
+.text-blue-700 {
+  --tw-text-opacity: 1;
+  color: rgb(29 78 216 / var(--tw-text-opacity, 1));
 }
 .underline-offset-4 {
   text-underline-offset: 4px;
@@ -3644,6 +3651,10 @@ video {
   --tw-text-opacity: 1;
   color: rgb(244 244 245 / var(--tw-text-opacity, 1));
 }
+.dark\:text-blue-300:is(.dark *) {
+  --tw-text-opacity: 1;
+  color: rgb(147 197 253 / var(--tw-text-opacity, 1));
+}
 .dark\:file\:bg-blue-900:is(.dark *)::file-selector-button {
   --tw-bg-opacity: 1;
   background-color: rgb(30 58 138 / var(--tw-bg-opacity, 1));
@@ -3941,6 +3952,10 @@ video {
 
   .xl\:grid-cols-6 {
     grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .xl\:grid-cols-4 {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 .\[\&\+\[data-slot\=item-content\]\]\:flex-none+[data-slot=item-content] {

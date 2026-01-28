@@ -5,12 +5,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select"
 import {
   AlertCircle,
@@ -37,6 +37,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { SuperAdminImagesGallery } from "./super-admin-images-gallery"
 
 interface Ticket {
   id: number
@@ -498,6 +499,9 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
           )}
         </CardContent>
       </Card>
+
+      {/* Image Gallery */}
+      <SuperAdminImagesGallery onTicketClick={onTicketClick} />
 
       {/* Delete Confirmation Dialog */}
       <AlertDialog open={deleteDialogOpen} onOpenChange={setDeleteDialogOpen}>
