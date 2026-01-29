@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge"
 import { DashboardStatsSkeleton, ChartSkeleton, TicketListSkeleton } from "@/components/ui/skeleton"
 import { AnimatedCard, AnimatedList, AnimatedListItem, fadeInUp, staggerContainer } from "@/components/ui/motion"
 import { motion } from "framer-motion"
+import { Ticket, Users } from "lucide-react"
 
 interface Stats {
   totalTickets: number
@@ -108,26 +109,38 @@ export function AdminStats() {
         className="grid grid-cols-1 md:grid-cols-2 gap-4"
         variants={fadeInUp}
       >
+        {/* Total Tiket - Blue Gradient */}
         <AnimatedCard delay={0}>
-          <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-            <CardHeader className="pb-2 bg-white dark:bg-black">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Total Tiket</CardTitle>
-            </CardHeader>
-            <CardContent className="bg-white dark:bg-black">
-              <div className="text-3xl font-bold text-black dark:text-white">{stats.totalTickets}</div>
-            </CardContent>
-          </Card>
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-1">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Ticket className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="text-4xl font-bold text-white mb-1">{stats.totalTickets}</div>
+              <div className="text-sm font-medium text-blue-100">Total Tiket</div>
+            </div>
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+          </div>
         </AnimatedCard>
 
+        {/* Total User - Green Gradient */}
         <AnimatedCard delay={0.1}>
-          <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-            <CardHeader className="pb-2 bg-white dark:bg-black">
-              <CardTitle className="text-sm font-medium text-gray-600 dark:text-gray-300">Total User</CardTitle>
-            </CardHeader>
-            <CardContent className="bg-white dark:bg-black">
-              <div className="text-3xl font-bold text-black dark:text-white">{stats.totalUsers}</div>
-            </CardContent>
-          </Card>
+          <div className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-1">
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-4">
+                <div className="p-3 bg-white/20 rounded-xl">
+                  <Users className="w-6 h-6 text-white" />
+                </div>
+              </div>
+              <div className="text-4xl font-bold text-white mb-1">{stats.totalUsers}</div>
+              <div className="text-sm font-medium text-emerald-100">Total User</div>
+            </div>
+            <div className="absolute -right-4 -bottom-4 w-24 h-24 bg-white/10 rounded-full" />
+            <div className="absolute -right-8 -bottom-8 w-32 h-32 bg-white/5 rounded-full" />
+          </div>
         </AnimatedCard>
       </motion.div>
 

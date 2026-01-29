@@ -509,14 +509,14 @@ export function SuperAdminUserManagement() {
                 placeholder="Name or email..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                className="bg-white dark:bg-black text-black dark:text-white border-blue-300 dark:border-blue-400 focus:border-blue-500 placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
             </div>
 
             <div>
               <Label className="text-black dark:text-white">Role</Label>
               <Select value={filterRole} onValueChange={setFilterRole}>
-                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
+                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-blue-300 dark:border-blue-400 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
@@ -531,7 +531,7 @@ export function SuperAdminUserManagement() {
             <div>
               <Label className="text-black dark:text-white">Division</Label>
               <Select value={filterDivision} onValueChange={setFilterDivision}>
-                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
+                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-blue-300 dark:border-blue-400 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">
@@ -546,7 +546,7 @@ export function SuperAdminUserManagement() {
             <div>
               <Label className="text-black dark:text-white">Status</Label>
               <Select value={filterStatus} onValueChange={setFilterStatus}>
-                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
+                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-blue-300 dark:border-blue-400 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">

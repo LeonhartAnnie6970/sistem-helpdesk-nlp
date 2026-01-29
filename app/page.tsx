@@ -3,9 +3,8 @@
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { ThemeProvider } from "@/components/theme-provider"
-import { Brain, BarChart3, Users, Shield } from "lucide-react"
+import { Brain, BarChart3, Users, Shield, ArrowRight, Building2, Sparkles } from "lucide-react"
 import { useSession } from "@/hooks/useSession"
 
 function HomeContent() {
@@ -15,16 +14,11 @@ function HomeContent() {
   const [isChecking, setIsChecking] = useState(true)
   const [showLoginMessage, setShowLoginMessage] = useState(false)
 
-  // Security: If user navigates back from dashboard, force logout
   useEffect(() => {
     const wasLoggedIn = forceLogoutOnPublicPage()
-
     if (wasLoggedIn) {
-      // User was logged in but navigated to public page
-      // Show message that they need to re-login
       setShowLoginMessage(true)
     }
-
     setIsChecking(false)
   }, [forceLogoutOnPublicPage])
 
@@ -33,107 +27,141 @@ function HomeContent() {
     router.push("/login")
   }
 
-  // Show loading while checking authentication
   if (isChecking) {
     return (
-      <main className="min-h-screen bg-gradient-to-br from-background to-muted flex items-center justify-center p-4">
-        <div className="text-muted-foreground">Memeriksa sesi...</div>
+      <main className="h-screen bg-gradient-to-br from-blue-600 to-blue-800 flex items-center justify-center">
+        <div className="text-white/80 flex items-center gap-2">
+          <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          Memeriksa sesi...
+        </div>
       </main>
     )
   }
 
   return (
-    <main className="min-h-screen bg-gradient-to-br from-background via-background to-muted flex items-center justify-center p-4">
-      <div className="w-full max-w-4xl space-y-8">
-        <div className="text-center space-y-4">
-          <h1 className="text-4xl md:text-5xl font-bold text-balance">Sistem Monitoring Divisi dengan NLP</h1>
-          <p className="text-lg text-muted-foreground text-balance">
-            Platform monitoring dan analisis tiket antar divisi dengan klasifikasi otomatis berbasis AI (NLP) untuk
-            meningkatkan efisiensi koordinasi
-          </p>
+    <main className="h-screen overflow-hidden flex flex-col">
+      {/* Blue Hero Section - Top */}
+      <div className="relative bg-gradient-to-br from-blue-600 via-blue-700 to-blue-900 flex-shrink-0">
+        {/* Background Pattern */}
+        <div className="absolute inset-0 opacity-10">
+          <div className="absolute top-0 left-0 w-72 h-72 bg-white rounded-full -translate-x-1/2 -translate-y-1/2" />
+          <div className="absolute bottom-0 right-0 w-96 h-96 bg-white rounded-full translate-x-1/3 translate-y-1/3" />
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Brain className="h-5 w-5 text-blue-600" />
-                Klasifikasi NLP Otomatis
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Sistem NLP menganalisis tiket dan menentukan divisi target dengan confidence level yang dapat
-                di-override
-              </p>
-            </CardContent>
-          </Card>
+        <div className="relative z-10 container mx-auto px-6 py-8">
+          {/* Hero Content */}
+          <div className="text-center pb-10">
+            <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm rounded-full px-3 py-1.5 mb-4">
+              <Sparkles className="w-3 h-3 text-yellow-300" />
+              <span className="text-blue-100 text-xs font-medium">Powered by AI & NLP Technology</span>
+            </div>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <BarChart3 className="h-5 w-5 text-green-600" />
-                Dashboard Monitoring Real-time
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Super Admin dapat memantau performa setiap divisi dengan visualisasi data dan statistik lengkap
-              </p>
-            </CardContent>
-          </Card>
+            <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-white mb-3 leading-tight">
+              Sistem Helpdesk &<br />
+              <span className="text-blue-200">Monitoring Divisi</span>
+            </h1>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Users className="h-5 w-5 text-purple-600" />
-                Role-Based Access Control
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                3 tingkat akses: Super Admin (monitoring semua), Admin Divisi (kelola divisi), User (buat tiket)
-              </p>
-            </CardContent>
-          </Card>
+            <p className="text-sm md:text-base text-blue-100 mb-5 max-w-xl mx-auto leading-relaxed">
+              Platform tiket cerdas dengan klasifikasi otomatis berbasis AI untuk koordinasi antar divisi yang efisien
+            </p>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-lg flex items-center gap-2">
-                <Shield className="h-5 w-5 text-orange-600" />
-                Laporan & Analisis NLP
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm text-muted-foreground">
-                Export laporan dengan analisis confidence level, override statistics, dan performa divisi
-              </p>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="border-primary/20 bg-primary/5">
-          <CardHeader className="text-center">
-            <CardTitle>Mulai Sekarang</CardTitle>
-            <CardDescription>Login untuk mengakses sistem monitoring divisi</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3">
             {showLoginMessage && (
-              <div className="p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-md text-sm text-yellow-800 dark:text-yellow-200 text-center">
-                Anda harus login kembali untuk melanjutkan.
+              <div className="mb-4 inline-block p-2 bg-yellow-500/20 backdrop-blur-sm border border-yellow-400/30 rounded-lg text-xs text-yellow-100">
+                Sesi Anda telah berakhir. Silakan login kembali.
               </div>
             )}
-            <Button onClick={handleGetStarted} disabled={isLoading} className="w-full" size="lg">
-              {isLoading ? "Loading..." : "Login / Daftar"}
+
+            <Button
+              onClick={handleGetStarted}
+              disabled={isLoading}
+              size="lg"
+              className="bg-white text-blue-700 hover:bg-blue-50 shadow-xl shadow-blue-900/30 px-6 py-5 text-base font-semibold rounded-xl transition-all duration-300 hover:scale-105"
+            >
+              {isLoading ? (
+                <span className="flex items-center gap-2">
+                  <div className="w-4 h-4 border-2 border-blue-300 border-t-blue-700 rounded-full animate-spin" />
+                  Loading...
+                </span>
+              ) : (
+                <span className="flex items-center gap-2">
+                  Masuk ke Sistem
+                  <ArrowRight className="w-4 h-4" />
+                </span>
+              )}
             </Button>
-            <div className="text-xs text-center text-muted-foreground space-y-1">
-              <p className="font-semibold">Demo Accounts (lihat database script):</p>
-              <p>Super Admin: it@company.com / Direksi001@</p>
-              <p>Admin Divisi: admin.acc@company.com / AdminAcc001@</p>
-              <p>User: user1@company.com / User001@</p>
+          </div>
+        </div>
+
+        {/* Wave Divider */}
+        <div className="absolute bottom-0 left-0 right-0">
+          <svg viewBox="0 0 1440 60" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full">
+            <path d="M0 60L60 55C120 50 240 40 360 35C480 30 600 30 720 32.5C840 35 960 40 1080 42.5C1200 45 1320 45 1380 45L1440 45V60H1380C1320 60 1200 60 1080 60C960 60 840 60 720 60C600 60 480 60 360 60C240 60 120 60 60 60H0Z" fill="#f9fafb"/>
+          </svg>
+        </div>
+      </div>
+
+      {/* White Features Section - Bottom */}
+      <div className="flex-1 bg-gray-50 flex flex-col">
+        <div className="container mx-auto px-6 py-6 flex-1 flex flex-col justify-center">
+          {/* Features Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4 max-w-4xl mx-auto">
+            {/* Feature 1 */}
+            <div className="bg-white rounded-xl p-4 shadow-md shadow-gray-200/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 text-center">
+              <div className="w-11 h-11 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Brain className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-1">Klasifikasi NLP</h3>
+              <p className="text-gray-500 text-xs leading-relaxed">AI analisis tiket otomatis</p>
             </div>
-          </CardContent>
-        </Card>
+
+            {/* Feature 2 */}
+            <div className="bg-white rounded-xl p-4 shadow-md shadow-gray-200/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 text-center">
+              <div className="w-11 h-11 bg-gradient-to-br from-green-500 to-green-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <BarChart3 className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-1">Monitoring Real-time</h3>
+              <p className="text-gray-500 text-xs leading-relaxed">Dashboard performa divisi</p>
+            </div>
+
+            {/* Feature 3 */}
+            <div className="bg-white rounded-xl p-4 shadow-md shadow-gray-200/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 text-center">
+              <div className="w-11 h-11 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Users className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-1">Role-Based Access</h3>
+              <p className="text-gray-500 text-xs leading-relaxed">3 tingkat hak akses</p>
+            </div>
+
+            {/* Feature 4 */}
+            <div className="bg-white rounded-xl p-4 shadow-md shadow-gray-200/50 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 text-center">
+              <div className="w-11 h-11 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl flex items-center justify-center mx-auto mb-3">
+                <Shield className="w-5 h-5 text-white" />
+              </div>
+              <h3 className="font-semibold text-gray-900 text-sm mb-1">Export Laporan</h3>
+              <p className="text-gray-500 text-xs leading-relaxed">Excel/PDF dengan analisis</p>
+            </div>
+          </div>
+        </div>
+
+        {/* Footer */}
+        <footer className="bg-gray-900 py-4">
+          <div className="container mx-auto px-6">
+            <div className="flex flex-col md:flex-row items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <div className="w-8 h-8 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <Building2 className="w-4 h-4 text-white" />
+                </div>
+                <div>
+                  <p className="font-semibold text-white text-xs">PT. SINAR JAYA PRIMA LANGGENG</p>
+                  <p className="text-gray-400 text-[10px]">Sistem Helpdesk & Monitoring Divisi</p>
+                </div>
+              </div>
+              <p className="text-gray-400 text-xs">
+                &copy; {new Date().getFullYear()} All Rights Reserved
+              </p>
+            </div>
+          </div>
+        </footer>
       </div>
     </main>
   )

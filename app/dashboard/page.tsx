@@ -218,33 +218,42 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="space-y-4 bg-white dark:bg-black">
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <Button
-                      className="h-24 border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                      variant="outline"
+                    {/* Buat Tiket Baru - Biru */}
+                    <div
+                      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-1 cursor-pointer"
                       onClick={() => {
                         setActiveTab("my-tickets")
                         setShowNewTicketForm(true)
                       }}
                     >
-                      <div className="text-center">
-                        <Plus className="w-6 h-6 mx-auto mb-2" />
-                        <p className="font-medium">Buat Tiket Baru</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-300">Laporkan masalah Anda</p>
+                      <div className="relative z-10 text-center">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-xl flex items-center justify-center">
+                          <Plus className="w-6 h-6 text-white" />
+                        </div>
+                        <p className="font-semibold text-white text-lg">Buat Tiket Baru</p>
+                        <p className="text-sm text-white/80 mt-1">Laporkan masalah Anda</p>
                       </div>
-                    </Button>
-                    <Button
-                      className="h-24 border-gray-300 dark:border-gray-600 text-black dark:text-white hover:bg-gray-100 dark:hover:bg-gray-800"
-                      variant="outline"
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full" />
+                      <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-white/5 rounded-full" />
+                    </div>
+
+                    {/* Lihat Tiket Saya - Hijau */}
+                    <div
+                      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-1 cursor-pointer"
                       onClick={() => setActiveTab("my-tickets")}
                     >
-                      <div className="text-center">
-                        <svg className="w-6 h-6 mx-auto mb-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <p className="font-medium">Lihat Tiket Saya</p>
-                        <p className="text-xs text-gray-600 dark:text-gray-300">Monitor status ticket</p>
+                      <div className="relative z-10 text-center">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-xl flex items-center justify-center">
+                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                          </svg>
+                        </div>
+                        <p className="font-semibold text-white text-lg">Lihat Tiket Saya</p>
+                        <p className="text-sm text-white/80 mt-1">Monitor status ticket</p>
                       </div>
-                    </Button>
+                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full" />
+                      <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-white/5 rounded-full" />
+                    </div>
                   </div>
                 </CardContent>
               </Card>
@@ -288,12 +297,18 @@ function DashboardContent() {
                 </CardHeader>
                 <CardContent className="bg-white dark:bg-black">
                   <Tabs value={activeTicketTab} onValueChange={setActiveTicketTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-4">
-                      <TabsTrigger value="outgoing">
+                    <TabsList className="grid w-full grid-cols-2 mb-4 h-12 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                      <TabsTrigger
+                        value="outgoing"
+                        className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-400 rounded-lg border-2 border-transparent data-[state=active]:border-blue-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
+                      >
                         <ArrowUpRight className="w-4 h-4 mr-2" />
                         Tiket Keluar
                       </TabsTrigger>
-                      <TabsTrigger value="incoming">
+                      <TabsTrigger
+                        value="incoming"
+                        className="data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-400 rounded-lg border-2 border-transparent data-[state=active]:border-green-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
+                      >
                         <ArrowDownLeft className="w-4 h-4 mr-2" />
                         Tiket Masuk
                       </TabsTrigger>

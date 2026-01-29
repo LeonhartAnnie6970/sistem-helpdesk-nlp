@@ -509,7 +509,7 @@ export function DivisionMonitoringDashboard() {
               </CardDescription>
             </div>
             <Select value={selectedDivision} onValueChange={setSelectedDivision}>
-              <SelectTrigger className="w-48 bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
+              <SelectTrigger className="w-48 bg-white dark:bg-black text-black dark:text-white border-blue-300 dark:border-blue-400 focus:border-blue-500">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent className="bg-white dark:bg-black border-gray-300 dark:border-gray-600">

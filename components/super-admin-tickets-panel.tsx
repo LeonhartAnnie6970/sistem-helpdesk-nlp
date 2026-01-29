@@ -348,12 +348,12 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                 placeholder="Search..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-9"
+                className="pl-9 border-blue-300 focus:border-blue-500"
               />
             </div>
 
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger>
+              <SelectTrigger className="border-blue-300 focus:border-blue-500">
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
               <SelectContent>
@@ -366,7 +366,7 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
             </Select>
 
             <Select value={filterDivision} onValueChange={setFilterDivision}>
-              <SelectTrigger>
+              <SelectTrigger className="border-blue-300 focus:border-blue-500">
                 <SelectValue placeholder="Division" />
               </SelectTrigger>
               <SelectContent>
@@ -378,7 +378,7 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
             </Select>
 
             <Select value={filterCategory} onValueChange={setFilterCategory}>
-              <SelectTrigger>
+              <SelectTrigger className="border-blue-300 focus:border-blue-500">
                 <SelectValue placeholder="Category" />
               </SelectTrigger>
               <SelectContent>
@@ -395,7 +395,7 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                 placeholder="Dari Tanggal"
                 value={startDate}
                 onChange={(e) => setStartDate(e.target.value)}
-                className="w-full"
+                className="w-full border-blue-300 focus:border-blue-500"
               />
             </div>
 
@@ -405,7 +405,7 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                 placeholder="Sampai Tanggal"
                 value={endDate}
                 onChange={(e) => setEndDate(e.target.value)}
-                className="w-full"
+                className="w-full border-blue-300 focus:border-blue-500"
               />
             </div>
           </div>

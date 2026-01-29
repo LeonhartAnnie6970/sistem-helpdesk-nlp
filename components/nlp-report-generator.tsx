@@ -100,7 +100,7 @@ export function NLPReportGenerator() {
             <div>
               <label className="text-sm font-medium mb-2 block">Filter Status</label>
               <Select value={status} onValueChange={setStatus}>
-                <SelectTrigger>
+                <SelectTrigger className="border-blue-300 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
@@ -115,14 +115,14 @@ export function NLPReportGenerator() {
             <div>
               <label className="text-sm font-medium mb-2 block">Filter Divisi</label>
               <Select value={division} onValueChange={setDivision}>
-                <SelectTrigger>
+                <SelectTrigger className="border-blue-300 focus:border-blue-500">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">Semua Divisi</SelectItem>
                   {DIVISIONS.map((div) => (
-                    <SelectItem key={div.value} value={div.value}>
-                      {div.label}
+                    <SelectItem key={div} value={div}>
+                      {div}
                     </SelectItem>
                   ))}
                 </SelectContent>

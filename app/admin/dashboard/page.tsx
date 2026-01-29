@@ -217,12 +217,18 @@ function AdminDashboardContent() {
               </CardHeader>
               <CardContent className="bg-white dark:bg-black">
                 <Tabs value={ticketSubTab} onValueChange={setTicketSubTab} className="w-full">
-                  <TabsList className="grid w-full grid-cols-2 mb-4">
-                    <TabsTrigger value="outgoing">
+                  <TabsList className="grid w-full grid-cols-2 mb-4 h-12 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
+                    <TabsTrigger
+                      value="outgoing"
+                      className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-400 rounded-lg border-2 border-transparent data-[state=active]:border-blue-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
+                    >
                       <ArrowUpRight className="w-4 h-4 mr-2" />
                       Tiket Keluar
                     </TabsTrigger>
-                    <TabsTrigger value="incoming">
+                    <TabsTrigger
+                      value="incoming"
+                      className="data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-400 rounded-lg border-2 border-transparent data-[state=active]:border-green-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
+                    >
                       <ArrowDownLeft className="w-4 h-4 mr-2" />
                       Tiket Masuk
                     </TabsTrigger>
