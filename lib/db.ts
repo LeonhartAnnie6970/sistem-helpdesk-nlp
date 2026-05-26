@@ -1,5 +1,7 @@
 import mysql from "mysql2/promise"
 
+const isProduction = process.env.NODE_ENV === "production"
+
 const pool = mysql.createPool({
   host: process.env.DB_HOST || "localhost",
   port: Number(process.env.DB_PORT) || 3306,
@@ -7,9 +9,10 @@ const pool = mysql.createPool({
   password: process.env.DB_PASSWORD || "",
   database: process.env.DB_NAME || "sistem_helpdesk_nlp",
   waitForConnections: true,
-  connectionLimit: process.env.NODE_ENV === "production" ? 3 : 10,
+  connectionLimit: isProduction ? 3 : 10,
   queueLimit: 0,
   connectTimeout: 10000,
+  ssl: isProduction ? { rejectUnauthorized: true } : undefined,
 })
 
 export async function query(sql: string, values?: any[]) {
