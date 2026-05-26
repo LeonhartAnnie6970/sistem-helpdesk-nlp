@@ -2,7 +2,7 @@
 
 export const dynamic = 'force-dynamic'
 
-import { useEffect, useState } from "react"
+import { useEffect, useState, Suspense } from "react"
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Sidebar } from "@/components/dashboard-sidebar"
 import { TicketForm } from "@/components/ticket-form"
@@ -374,7 +374,9 @@ function DashboardContent() {
 export default function DashboardPage() {
   return (
     <ThemeProvider>
-      <DashboardContent />
+      <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
+        <DashboardContent />
+      </Suspense>
     </ThemeProvider>
   )
 }
