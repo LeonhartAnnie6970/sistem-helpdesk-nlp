@@ -1,12 +1,11 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
-import { 
+import {
   getTicketRoutingDivisions,
-  createTicketNotifications 
+  createTicketNotifications
 } from "@/lib/ticket-routing"
-
-const NLP_API_URL = process.env.NLP_API_URL || "http://localhost:8000"
+import { classify } from "@/lib/nlp-classifier"
 
 
 // app/api/tickets/route.ts (GET method - updated)
@@ -283,20 +282,11 @@ export async function POST(request: NextRequest) {
     let nlpKeywords: string | null = null
 
     try {
-      const nlpResponse = await fetch(`${NLP_API_URL}/classify`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text: `${title} ${description}` }),
-      })
-
-      if (nlpResponse.ok) {
-        const nlpResult = await nlpResponse.json()
-        nlpCategory = nlpResult.category || 'General'
-        nlpConfidence = typeof nlpResult.confidence === "number" ? nlpResult.confidence : 0
-        
-        if (nlpResult.matched_keywords && Array.isArray(nlpResult.matched_keywords)) {
-          nlpKeywords = JSON.stringify(nlpResult.matched_keywords)
-        }
+      const nlpResult = classify(`${title} ${description}`)
+      nlpCategory = nlpResult.category || 'General'
+      nlpConfidence = typeof nlpResult.confidence === "number" ? nlpResult.confidence : 0
+      if (nlpResult.matched_keywords && Array.isArray(nlpResult.matched_keywords)) {
+        nlpKeywords = JSON.stringify(nlpResult.matched_keywords)
       }
     } catch (nlpError) {
       console.error("[Tickets] NLP classification error:", nlpError)
