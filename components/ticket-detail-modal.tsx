@@ -99,7 +99,7 @@ interface Ticket {
   user_name: string
   user_email: string
   user_division?: string
-  image_path?: string
+  image_user_url?: string
 }
 
 interface TicketDetailModalProps {
@@ -326,13 +326,13 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                   </p>
                 </div>
 
-                {ticket.image_path && (
+                {ticket.image_user_url && (
                   <div className="mt-4">
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Lampiran:
                     </p>
                     <img
-                      src={ticket.image_path}
+                      src={ticket.image_user_url}
                       alt="Ticket attachment"
                       className="max-w-md rounded-lg border border-gray-200 dark:border-gray-700"
                     />
