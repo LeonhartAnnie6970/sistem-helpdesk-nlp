@@ -46,7 +46,10 @@ export async function POST(req: NextRequest) {
     const safeFilename = originalFilename.replace(/\s+/g, "_")
     const blobFilename = `${type}_${decoded.userId}_${timestamp}_${safeFilename}`
 
-    const blob = await put(blobFilename, file, { access: "public" })
+    const blob = await put(blobFilename, file, {
+      access: "public",
+      token: process.env.BLOB_PUBLIC_READ_WRITE_TOKEN,
+    })
 
     return NextResponse.json({
       success: true,
