@@ -112,8 +112,8 @@ export function OutgoingTickets({ refreshTrigger }: OutgoingTicketsProps) {
     if (!targetDivisions) return []
     if (Array.isArray(targetDivisions)) return targetDivisions
     const t = (targetDivisions as string).trim()
-    if (t.startsWith(\'[\')) { try { return JSON.parse(t) } catch {} }
-    return t.split(\',\').map((d) => d.trim()).filter(Boolean)
+    if (t.startsWith('[')) { try { return JSON.parse(t) } catch {} }
+    return t.split(',').map((d) => d.trim()).filter(Boolean)
   }
 
   const handleOpenTicket = (ticketId: number) => {
