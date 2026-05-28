@@ -3,6 +3,13 @@ import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
 
+function parseTargetDivisions(value: string | null | undefined): string[] {
+  if (!value) return []
+  const t = value.trim()
+  if (t.startsWith('[')) { try { return JSON.parse(t) } catch {} }
+  return t.split(',').map((d) => d.trim()).filter(Boolean)
+}
+
 // Helper function to create notification for ticket creator
 async function notifyTicketCreator(
   ticketId: number,
@@ -103,7 +110,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       // Parse target_divisions JSON array
       let targetDivisions = []
       try {
-        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticket.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }
@@ -128,7 +135,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
       // Parse target_divisions JSON array
       let targetDivisions = []
       try {
-        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticket.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }
@@ -201,7 +208,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       // Parse target_divisions JSON array
       let targetDivisions: string[] = []
       try {
-        targetDivisions = JSON.parse(ticketData?.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticketData?.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }

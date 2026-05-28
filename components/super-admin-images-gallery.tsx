@@ -99,11 +99,12 @@ export function SuperAdminImagesGallery({ onTicketClick }: SuperAdminImagesGalle
   }
 
   const parseTargetDivisions = (targetDivisions: string): string[] => {
-    try {
-      return JSON.parse(targetDivisions || '[]')
-    } catch {
-      return []
+    if (!targetDivisions) return []
+    const t = targetDivisions.trim()
+    if (t.startsWith('[')) {
+      try { return JSON.parse(t) } catch {}
     }
+    return t.split(',').map((d) => d.trim()).filter(Boolean)
   }
 
   return (

@@ -5,6 +5,13 @@ import { verifyToken } from "@/lib/auth"
 import ExcelJS from "exceljs"
 import PDFDocument from "pdfkit"
 
+function parseTargetDivisions(value: string | null | undefined): string[] {
+  if (!value) return []
+  const t = value.trim()
+  if (t.startsWith('[')) { try { return JSON.parse(t) } catch {} }
+  return t.split(',').map((d) => d.trim()).filter(Boolean)
+}
+
 // Helper function to generate ticket code
 const generateTicketCode = (category: string, ticketId: number): string => {
   const divisionPrefixes: { [key: string]: string } = {
@@ -220,7 +227,7 @@ async function generateExcel(
   tickets.forEach((ticket, index) => {
     let targetDivs = ""
     try {
-      targetDivs = JSON.parse(ticket.target_divisions || "[]").join(", ")
+      targetDivs = parseTargetDivisions(ticket.target_divisions).join(", ")
     } catch (e) {
       targetDivs = ticket.target_divisions || ""
     }

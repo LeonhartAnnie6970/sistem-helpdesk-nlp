@@ -3,6 +3,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { parseTargetDivisions } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -102,7 +103,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
     // Filter by source (why admin gets this ticket)
     if (sourceFilter !== "all" && adminDivision) {
       filtered = filtered.filter(ticket => {
-        const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+        const targetDivs = parseTargetDivisions(ticket.target_divisions)
         
         if (sourceFilter === "user_division") {
           return ticket.user_division === adminDivision
@@ -137,7 +138,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
   }
 
   const getTicketSource = (ticket: Ticket): "user_division" | "nlp_category" | "both" => {
-    const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+    const targetDivs = parseTargetDivisions(ticket.target_divisions)
     const fromUserDiv = ticket.user_division === adminDivision
     const fromNlpCat = targetDivs.includes(adminDivision) && ticket.user_division !== adminDivision
 
@@ -154,7 +155,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
     resolved: filteredTickets.filter(t => t.status === "resolved").length,
     fromUserDivision: filteredTickets.filter(t => t.user_division === adminDivision).length,
     fromNlpCategory: filteredTickets.filter(t => {
-      const targetDivs = JSON.parse(t.target_divisions || '[]')
+      const targetDivs = parseTargetDivisions(t.target_divisions)
       return targetDivs.includes(adminDivision) && t.user_division !== adminDivision
     }).length
   }
@@ -299,7 +300,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
             ) : (
               filteredTickets.map((ticket) => {
                 const source = getTicketSource(ticket)
-                const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+                const targetDivs = parseTargetDivisions(ticket.target_divisions)
 
                 return (
                   <Card
@@ -407,7 +408,7 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
               <div className="col-span-2">
                 <label className="text-sm font-medium text-black dark:text-white">Target Divisions</label>
                 <div className="flex flex-wrap gap-1 mt-1">
-                  {JSON.parse(selectedTicket.target_divisions || '[]').map((div: string) => (
+                  {parseTargetDivisions(selectedTicket.target_divisions).map((div: string) => (
                     <Badge key={div} variant="outline" className="border-gray-300 dark:border-gray-600 text-black dark:text-white">{div}</Badge>
                   ))}
                 </div>

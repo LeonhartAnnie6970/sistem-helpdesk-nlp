@@ -94,7 +94,7 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
         // Parse target_divisions
         let targetDivisions: string[] = []
         try {
-          targetDivisions = JSON.parse(t.target_divisions || '[]')
+          targetDivisions = parseTargetDivisions(t.target_divisions)
         } catch (e) {
           console.error('[IncomingTickets] Failed to parse target_divisions for ticket:', t.id, e)
           return false
@@ -177,11 +177,12 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
   }
 
   const parseTargetDivisions = (targetDivisions: string): string[] => {
-    try {
-      return JSON.parse(targetDivisions || '[]')
-    } catch (e) {
-      return []
+    if (!targetDivisions) return []
+    const t = targetDivisions.trim()
+    if (t.startsWith('[')) {
+      try { return JSON.parse(t) } catch {}
     }
+    return t.split(',').map((d) => d.trim()).filter(Boolean)
   }
 
   const handleOpenTicket = (ticketId: number) => {

@@ -1,6 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
+import { parseTargetDivisions } from "@/lib/utils"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -462,7 +463,7 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
           ) : (
             <div className="space-y-3">
               {filteredTickets.map(ticket => {
-                const targetDivs = JSON.parse(ticket.target_divisions || '[]')
+                const targetDivs = parseTargetDivisions(ticket.target_divisions)
 
                 return (
                   <Card key={ticket.id} className="hover:shadow-md transition-shadow cursor-pointer" onClick={() => onTicketClick?.(ticket.id)}>

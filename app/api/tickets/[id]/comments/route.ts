@@ -4,6 +4,13 @@ import { verifyToken } from "@/lib/auth"
 import { writeFile } from "fs/promises"
 import path from "path"
 
+function parseTargetDivisions(value: string | null | undefined): string[] {
+  if (!value) return []
+  const t = value.trim()
+  if (t.startsWith('[')) { try { return JSON.parse(t) } catch {} }
+  return t.split(',').map((d) => d.trim()).filter(Boolean)
+}
+
 // Helper function to create notification for ticket creator (user_notifications table)
 async function notifyTicketCreator(
   ticketId: number,
@@ -134,7 +141,7 @@ export async function GET(
       // Parse target_divisions JSON array
       let targetDivisions = []
       try {
-        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticket.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }
@@ -159,7 +166,7 @@ export async function GET(
       // Parse target_divisions JSON array
       let targetDivisions = []
       try {
-        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticket.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }
@@ -258,7 +265,7 @@ export async function POST(
       // Parse target_divisions JSON array
       let targetDivisions = []
       try {
-        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticket.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }
@@ -280,7 +287,7 @@ export async function POST(
       // Parse target_divisions JSON array
       let targetDivisions = []
       try {
-        targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+        targetDivisions = parseTargetDivisions(ticket.target_divisions)
       } catch (e) {
         console.error("Failed to parse target_divisions:", e)
       }
@@ -379,7 +386,7 @@ export async function POST(
     // Parse target divisions for notifications
     let targetDivisions: string[] = []
     try {
-      targetDivisions = JSON.parse(ticket.target_divisions || '[]')
+      targetDivisions = parseTargetDivisions(ticket.target_divisions)
     } catch (e) {
       console.error("Failed to parse target_divisions:", e)
     }

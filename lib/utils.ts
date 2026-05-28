@@ -39,6 +39,25 @@ export const showToast = {
 }
 
 /**
+ * Safely parse target_divisions — handles both JSON array and legacy comma-separated strings.
+ * e.g. '["IT","HR"]' → ["IT","HR"]
+ *      "IT,HR"        → ["IT","HR"]
+ *      null/""        → []
+ */
+export function parseTargetDivisions(value: string | null | undefined): string[] {
+  if (!value) return []
+  const trimmed = value.trim()
+  if (trimmed.startsWith('[')) {
+    try {
+      return JSON.parse(trimmed)
+    } catch {
+      // fall through
+    }
+  }
+  return trimmed.split(',').map((d) => d.trim()).filter(Boolean)
+}
+
+/**
  * Format ticket ID dengan prefix divisi
  * @param ticketId - ID ticket numeric dari database
  * @param division - Nama divisi (contoh: "ACC/FINANCE", "Operasional", "HR")
