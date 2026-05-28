@@ -30,6 +30,7 @@ interface Ticket {
   name: string // user name
   email: string
   created_at: string
+  updated_at: string
   nlp_confidence: number
 }
 
@@ -362,7 +363,12 @@ export function AdminDivisionTickets({ selectedTicketId }: { selectedTicketId?: 
                           </div>
 
                           <div className="text-xs text-gray-600 dark:text-gray-300">
-                            {new Date(ticket.created_at).toLocaleString("id-ID")}
+                            Dibuat: {new Date(ticket.created_at).toLocaleString("id-ID")}
+                            {ticket.updated_at && ticket.updated_at !== ticket.created_at && (
+                              <span className="ml-2 text-blue-600 dark:text-blue-400">
+                                · Diupdate: {new Date(ticket.updated_at).toLocaleString("id-ID")}
+                              </span>
+                            )}
                           </div>
                         </div>
                       </div>
