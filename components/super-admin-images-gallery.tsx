@@ -98,13 +98,12 @@ export function SuperAdminImagesGallery({ onTicketClick }: SuperAdminImagesGalle
     }
   }
 
-  const parseTargetDivisions = (targetDivisions: string): string[] => {
+  const parseTargetDivisions = (targetDivisions: string | string[]): string[] => {
     if (!targetDivisions) return []
-    const t = targetDivisions.trim()
-    if (t.startsWith('[')) {
-      try { return JSON.parse(t) } catch {}
-    }
-    return t.split(',').map((d) => d.trim()).filter(Boolean)
+    if (Array.isArray(targetDivisions)) return targetDivisions
+    const t = (targetDivisions as string).trim()
+    if (t.startsWith(\'[\')) { try { return JSON.parse(t) } catch {} }
+    return t.split(\',\').map((d) => d.trim()).filter(Boolean)
   }
 
   return (

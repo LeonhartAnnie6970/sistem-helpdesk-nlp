@@ -44,8 +44,10 @@ export const showToast = {
  *      "IT,HR"        → ["IT","HR"]
  *      null/""        → []
  */
-export function parseTargetDivisions(value: string | null | undefined): string[] {
+export function parseTargetDivisions(value: string | string[] | null | undefined): string[] {
   if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value !== 'string') return []
   const trimmed = value.trim()
   if (trimmed.startsWith('[')) {
     try {

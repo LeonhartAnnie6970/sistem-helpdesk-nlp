@@ -5,8 +5,10 @@ import { verifyToken } from "@/lib/auth"
 import ExcelJS from "exceljs"
 import PDFDocument from "pdfkit"
 
-function parseTargetDivisions(value: string | null | undefined): string[] {
+function parseTargetDivisions(value: string | string[] | null | undefined): string[] {
   if (!value) return []
+  if (Array.isArray(value)) return value
+  if (typeof value !== 'string') return []
   const t = value.trim()
   if (t.startsWith('[')) { try { return JSON.parse(t) } catch {} }
   return t.split(',').map((d) => d.trim()).filter(Boolean)
