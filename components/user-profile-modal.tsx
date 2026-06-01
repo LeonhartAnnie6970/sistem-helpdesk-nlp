@@ -10,6 +10,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { X, Eye, EyeOff, Save, Edit2, Camera, Loader2, ZoomIn, ZoomOut, Check } from 'lucide-react'
 import { DIVISIONS } from "@/lib/divisions"
 import Cropper from "react-easy-crop"
+import "react-easy-crop/react-easy-crop.css"
 
 interface UserProfile {
   id: number
