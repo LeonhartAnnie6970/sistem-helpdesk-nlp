@@ -43,22 +43,35 @@ export async function POST(req: NextRequest) {
     const safeOriginal = (file.name || "uploaded").replace(/[^a-zA-Z0-9._-]/g, "_")
     const fileName = `profile-${decoded.userId}-${Date.now()}-${safeOriginal}`
 
-    // Try upload to Vercel Blob first; if it fails, fall back to local storage
+    // Try upload to Vercel Blob first (with 8s timeout); if it fails, fall back to local storage
     let publicUrl: string | null = null
     let returnedFilename: string | null = null
 
-    try {
-      const blob = await put(fileName, buffer, {
-        access: "public",
-        contentType: file.type,
-      })
+    const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN
 
-      // blob.url is expected; handle variations defensively
-      publicUrl = (blob as any).url || (blob as any).publicUrl || null
-      returnedFilename = (blob as any).name || (blob as any).pathname || fileName
-    } catch (uploadErr) {
-      console.error("Vercel blob upload failed, falling back to local storage:", uploadErr)
+    if (useBlobStorage) {
+      try {
+        const abortController = new AbortController()
+        const blobTimeout = setTimeout(() => abortController.abort(), 8000)
 
+        try {
+          const blob = await put(fileName, buffer, {
+            access: "public",
+            contentType: file.type,
+            abortSignal: abortController.signal,
+          })
+          publicUrl = blob.url || null
+          returnedFilename = blob.pathname || fileName
+        } finally {
+          clearTimeout(blobTimeout)
+        }
+      } catch (uploadErr) {
+        console.error("Vercel blob upload failed, falling back to local storage:", uploadErr)
+      }
+    }
+
+    // Local storage fallback
+    if (!publicUrl) {
       try {
         const uploadsDir = path.join(process.cwd(), "public", "uploads", "profiles")
         if (!existsSync(uploadsDir)) {
@@ -73,12 +86,12 @@ export async function POST(req: NextRequest) {
         returnedFilename = localFilename
       } catch (localErr) {
         console.error("Local fallback save failed:", localErr)
-        throw localErr
+        throw new Error(`Gagal menyimpan file: ${localErr instanceof Error ? localErr.message : String(localErr)}`)
       }
     }
 
     if (!publicUrl) {
-      throw new Error("Upload did not return a public URL")
+      throw new Error("Upload tidak menghasilkan URL yang valid")
     }
 
     // Persist profile image URL
@@ -94,6 +107,7 @@ export async function POST(req: NextRequest) {
     )
   } catch (error) {
     console.error("Profile image upload error:", error)
-    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
+    const message = error instanceof Error ? error.message : "Terjadi kesalahan saat upload"
+    return NextResponse.json({ error: message }, { status: 500 })
   }
 }
