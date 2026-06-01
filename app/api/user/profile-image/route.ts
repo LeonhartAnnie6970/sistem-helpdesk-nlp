@@ -47,7 +47,8 @@ export async function POST(req: NextRequest) {
     let publicUrl: string | null = null
     let returnedFilename: string | null = null
 
-    const useBlobStorage = !!process.env.BLOB_READ_WRITE_TOKEN
+    const blobToken = process.env.BLOB_PROFILE_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN
+    const useBlobStorage = !!blobToken
 
     if (useBlobStorage) {
       try {
@@ -59,6 +60,7 @@ export async function POST(req: NextRequest) {
             access: "public",
             contentType: file.type,
             abortSignal: abortController.signal,
+            token: blobToken,
           })
           publicUrl = blob.url || null
           returnedFilename = blob.pathname || fileName
