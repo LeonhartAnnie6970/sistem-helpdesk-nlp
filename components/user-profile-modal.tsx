@@ -1,14 +1,15 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { X, Eye, EyeOff, Save, Edit2, Camera, Loader2 } from 'lucide-react'
+import { X, Eye, EyeOff, Save, Edit2, Camera, Loader2, ZoomIn, ZoomOut, Check } from 'lucide-react'
 import { DIVISIONS } from "@/lib/divisions"
+import Cropper from "react-easy-crop"
 
 interface UserProfile {
   id: number
@@ -43,6 +44,33 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
   const [showCurrentPassword, setShowCurrentPassword] = useState(false)
   const [showNewPassword, setShowNewPassword] = useState(false)
   const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+
+  // Crop state
+  const [cropModalOpen, setCropModalOpen] = useState(false)
+  const [rawImageSrc, setRawImageSrc] = useState<string | null>(null)
+  const [rawFile, setRawFile] = useState<File | null>(null)
+  const [crop, setCrop] = useState({ x: 0, y: 0 })
+  const [zoom, setZoom] = useState(1)
+  const [croppedAreaPixels, setCroppedAreaPixels] = useState<any>(null)
+
+  const onCropComplete = useCallback((_: any, croppedPixels: any) => {
+    setCroppedAreaPixels(croppedPixels)
+  }, [])
+
+  const getCroppedBlob = async (imageSrc: string, pixelCrop: any): Promise<Blob> => {
+    const image = await new Promise<HTMLImageElement>((resolve, reject) => {
+      const img = new Image()
+      img.onload = () => resolve(img)
+      img.onerror = reject
+      img.src = imageSrc
+    })
+    const canvas = document.createElement("canvas")
+    canvas.width = pixelCrop.width
+    canvas.height = pixelCrop.height
+    const ctx = canvas.getContext("2d")!
+    ctx.drawImage(image, pixelCrop.x, pixelCrop.y, pixelCrop.width, pixelCrop.height, 0, 0, pixelCrop.width, pixelCrop.height)
+    return new Promise((resolve, reject) => canvas.toBlob(b => b ? resolve(b) : reject(new Error("Canvas empty")), "image/jpeg", 0.92))
+  }
 
   useEffect(() => {
     if (isOpen) {
@@ -94,35 +122,50 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
     }
   }
 
-  const handleProfileImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProfileImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
     if (!file) return
+    e.target.value = ""
 
-    // Validasi tipe file
     if (!file.type.startsWith("image/")) {
       setError("File harus berupa gambar (JPG, PNG, GIF, dll)")
       return
     }
 
-    // Validasi ukuran file (max 5MB)
     if (file.size > 5 * 1024 * 1024) {
       setError("Ukuran file maksimal 5MB")
       return
     }
 
+    // Buka crop modal
+    const reader = new FileReader()
+    reader.onload = () => {
+      setRawImageSrc(reader.result as string)
+      setRawFile(file)
+      setCrop({ x: 0, y: 0 })
+      setZoom(1)
+      setCropModalOpen(true)
+    }
+    reader.readAsDataURL(file)
+  }
+
+  const handleCropConfirm = async () => {
+    if (!rawImageSrc || !croppedAreaPixels || !rawFile) return
     try {
       setUploadingImage(true)
       setError("")
       setSuccess("")
+      setCropModalOpen(false)
+
+      const croppedBlob = await getCroppedBlob(rawImageSrc, croppedAreaPixels)
+      const croppedFile = new File([croppedBlob], rawFile.name, { type: "image/jpeg" })
 
       const formData = new FormData()
-      formData.append("file", file)
+      formData.append("file", croppedFile)
 
       const response = await fetch("/api/user/profile-image", {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${token}`,
-        },
+        headers: { Authorization: `Bearer ${token}` },
         body: formData,
       })
 
@@ -132,19 +175,15 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
       }
 
       const data = await response.json()
-      
-      // Update profile state dengan URL gambar baru
       setProfile((prev) => (prev ? { ...prev, profile_image_url: data.url } : null))
       setSuccess("Foto profil berhasil diupdate!")
-      
-      // Clear success message setelah 3 detik
       setTimeout(() => setSuccess(""), 3000)
     } catch (err) {
       setError(err instanceof Error ? err.message : "Gagal upload gambar")
     } finally {
       setUploadingImage(false)
-      // Reset input file
-      e.target.value = ""
+      setRawImageSrc(null)
+      setRawFile(null)
     }
   }
 
@@ -251,6 +290,61 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
   if (!isOpen) return null
 
   return (
+    <>
+    {/* Crop Modal */}
+    {cropModalOpen && rawImageSrc && (
+      <div className="fixed inset-0 z-[60] flex flex-col items-center justify-center bg-black bg-opacity-80">
+        <div className="bg-white dark:bg-gray-900 rounded-xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-gray-200 dark:border-gray-700">
+            <h3 className="font-semibold text-gray-900 dark:text-white">Sesuaikan Foto Profil</h3>
+            <button onClick={() => setCropModalOpen(false)} className="text-gray-500 hover:text-gray-700">
+              <X className="w-5 h-5" />
+            </button>
+          </div>
+
+          {/* Crop area */}
+          <div className="relative w-full bg-gray-800" style={{ height: 320 }}>
+            <Cropper
+              image={rawImageSrc}
+              crop={crop}
+              zoom={zoom}
+              aspect={1}
+              cropShape="round"
+              showGrid={false}
+              onCropChange={setCrop}
+              onZoomChange={setZoom}
+              onCropComplete={onCropComplete}
+            />
+          </div>
+
+          {/* Zoom slider */}
+          <div className="px-4 py-3 flex items-center gap-3 border-t border-gray-200 dark:border-gray-700">
+            <ZoomOut className="w-4 h-4 text-gray-500 flex-shrink-0" />
+            <input
+              type="range"
+              min={1}
+              max={3}
+              step={0.05}
+              value={zoom}
+              onChange={(e) => setZoom(Number(e.target.value))}
+              className="flex-1 accent-blue-600"
+            />
+            <ZoomIn className="w-4 h-4 text-gray-500 flex-shrink-0" />
+          </div>
+
+          <div className="flex gap-2 px-4 pb-4">
+            <Button variant="outline" onClick={() => setCropModalOpen(false)} className="flex-1">
+              Batal
+            </Button>
+            <Button onClick={handleCropConfirm} className="flex-1 bg-blue-600 hover:bg-blue-700 text-white">
+              <Check className="w-4 h-4 mr-2" />
+              Simpan Foto
+            </Button>
+          </div>
+        </div>
+      </div>
+    )}
+
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
       <Card className="w-full max-w-2xl shadow-2xl border-gray-200 dark:border-gray-700" style={{ backgroundColor: isDark ? 'black' : 'white' }}>
         <CardHeader className="flex flex-row items-center justify-between space-y-0 border-b border-gray-200 dark:border-gray-700" style={{ backgroundColor: isDark ? 'black' : 'white' }}>
@@ -551,5 +645,6 @@ export function UserProfileModal({ isOpen, onClose, token }: UserProfileModalPro
         </CardContent>
       </Card>
     </div>
+    </>
   )
 }
