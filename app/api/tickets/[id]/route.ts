@@ -60,7 +60,8 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         u.name as user_name,
         u.email as user_email,
         u.role as user_role,
-        u.division as user_division
+        u.division as user_division,
+        (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence
        FROM tickets t
        JOIN users u ON t.id_user = u.id
        WHERE t.id = ?`,

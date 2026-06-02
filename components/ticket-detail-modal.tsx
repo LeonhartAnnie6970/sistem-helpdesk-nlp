@@ -100,6 +100,7 @@ interface Ticket {
   user_email: string
   user_division?: string
   image_user_url?: string
+  ticket_sequence?: number
 }
 
 interface TicketDetailModalProps {
@@ -275,7 +276,7 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-black border-gray-200 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-black dark:text-white">
-            Detail Tiket {ticket ? generateTicketCode(ticket.user_division, ticket.id) : `#${ticketId}`}
+            Detail Tiket {ticket ? generateTicketCode(ticket.user_division, ticket.ticket_sequence ?? ticket.id) : `#${ticketId}`}
           </DialogTitle>
         </DialogHeader>
 
