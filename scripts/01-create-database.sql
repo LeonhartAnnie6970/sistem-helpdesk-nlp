@@ -44,7 +44,7 @@ CREATE TABLE IF NOT EXISTS tickets (
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     category VARCHAR(100) DEFAULT NULL COMMENT 'Kategori manual dari user',
-    status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
+    status ENUM('new', 'in_progress', 'resolved', 'closed') DEFAULT 'new',
 
     -- Gambar lampiran
     image_user_url VARCHAR(500) DEFAULT NULL COMMENT 'Gambar dari user',
