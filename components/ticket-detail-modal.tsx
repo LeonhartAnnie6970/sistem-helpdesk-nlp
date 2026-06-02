@@ -9,66 +9,7 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Send, User, Clock, MessageSquare, Image as ImageIcon, Building2 } from "lucide-react"
 import { format } from "date-fns"
-
-// Helper function to generate formatted ticket ID based on user's division
-// Contoh: User dari divisi SALES membuat tiket ID 9 → SLS-009
-const generateTicketCode = (userDivision: string | null | undefined, ticketId: number): string => {
-  // Map divisi ke kode prefix (sesuai database)
-  const divisionPrefixes: { [key: string]: string } = {
-    // IT
-    "IT": "IT",
-    "Information Technology": "IT",
-    // Akuntansi / Finance
-    "Akuntansi": "ACC",
-    "ACC": "ACC",
-    "Finance": "ACC",
-    "Keuangan": "ACC",
-    // Operasional
-    "Operasional": "OPR",
-    "OPR": "OPR",
-    "Operations": "OPR",
-    // Sales
-    "Sales": "SLS",
-    "SLS": "SLS",
-    "Penjualan": "SLS",
-    // Customer Service
-    "Customer Service": "CS",
-    "CS": "CS",
-    "Pelayanan": "CS",
-    // HR / HRD
-    "HR": "HR",
-    "HRD": "HR",
-    "Human Resource": "HR",
-    "SDM": "HR",
-    // Direksi / Direktur
-    "Direksi": "DKT",
-    "Direktur": "DKT",
-    "DKT": "DKT",
-    "Management": "DKT",
-  }
-
-  // Cari prefix yang sesuai (case-insensitive)
-  let prefix = "TKT" // default prefix jika divisi tidak dikenali
-
-  // Null check untuk userDivision
-  if (userDivision) {
-    const divisionLower = userDivision.toLowerCase()
-
-    for (const [key, value] of Object.entries(divisionPrefixes)) {
-      if (divisionLower === key.toLowerCase() ||
-          divisionLower.includes(key.toLowerCase()) ||
-          key.toLowerCase().includes(divisionLower)) {
-        prefix = value
-        break
-      }
-    }
-  }
-
-  // Format nomor dengan padding 3 digit
-  const paddedNumber = String(ticketId).padStart(3, '0')
-
-  return `${prefix}-${paddedNumber}`
-}
+import { formatTicketId } from "@/lib/utils"
 
 interface Comment {
   id: number
@@ -276,7 +217,7 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto bg-white dark:bg-black border-gray-200 dark:border-gray-700">
         <DialogHeader>
           <DialogTitle className="text-xl font-bold text-black dark:text-white">
-            Detail Tiket {ticket ? generateTicketCode(ticket.user_division, ticket.ticket_sequence ?? ticket.id) : `#${ticketId}`}
+            Detail Tiket {ticket ? formatTicketId(ticket.id, ticket.user_division, ticket.ticket_sequence) : `#${ticketId}`}
           </DialogTitle>
         </DialogHeader>
 

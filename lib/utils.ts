@@ -66,26 +66,44 @@ export function parseTargetDivisions(value: string | string[] | null | undefined
  * @returns Formatted ticket ID (contoh: "ACC-001", "OPR-003", "HR-012")
  */
 export function formatTicketId(ticketId: number, division?: string | null, sequence?: number | null): string {
-  // Mapping divisi ke prefix
+  // Mapping divisi ke prefix — single source of truth untuk seluruh aplikasi
   const divisionPrefixMap: Record<string, string> = {
-    'ACC/FINANCE': 'ACC',
-    'ACCOUNTING/FINANCE': 'ACC',
-    'ACCOUNTING': 'ACC',
-    'FINANCE': 'FIN',
-    'OPERASIONAL': 'OPR',
-    'OPERATIONAL': 'OPR',
-    'HR': 'HR',
-    'HUMAN RESOURCE': 'HR',
-    'HUMAN RESOURCES': 'HR',
+    // IT
     'IT': 'IT',
     'INFORMATION TECHNOLOGY': 'IT',
     'TEKNOLOGI INFORMASI': 'IT',
-    'MARKETING': 'MKT',
+    // Akuntansi / Finance
+    'ACC/FINANCE': 'ACC',
+    'ACCOUNTING/FINANCE': 'ACC',
+    'ACCOUNTING': 'ACC',
+    'FINANCE': 'ACC',
+    'KEUANGAN': 'ACC',
+    'AKUNTANSI': 'ACC',
+    // Operasional
+    'OPERASIONAL': 'OPR',
+    'OPERATIONAL': 'OPR',
+    'OPERATIONS': 'OPR',
+    // Sales
     'SALES': 'SLS',
+    'PENJUALAN': 'SLS',
+    // Customer Service
     'CUSTOMER SERVICE': 'CS',
+    'PELAYANAN': 'CS',
+    // HR
+    'HR': 'HR',
+    'HRD': 'HR',
+    'HUMAN RESOURCE': 'HR',
+    'HUMAN RESOURCES': 'HR',
+    'SDM': 'HR',
+    // Direksi / Direktur
     'DIREKSI/DIREKTUR': 'DIR',
+    'DIREKSI': 'DIR',
+    'DIREKTUR': 'DIR',
+    'MANAGEMENT': 'DIR',
+    // General
     'GENERAL': 'GEN',
     'UMUM': 'GEN',
+    'MARKETING': 'MKT',
   }
 
   // Handle null/undefined division
@@ -97,10 +115,20 @@ export function formatTicketId(ticketId: number, division?: string | null, seque
   // Normalisasi division name (uppercase dan trim)
   const normalizedDivision = division.toUpperCase().trim()
 
-  // Cari prefix yang cocok
+  // Cari prefix yang cocok (exact match dulu, lalu partial match)
   let prefix = divisionPrefixMap[normalizedDivision]
 
-  // Jika tidak ditemukan di mapping, gunakan 3 huruf pertama dari divisi
+  if (!prefix) {
+    // Coba partial match
+    for (const [key, value] of Object.entries(divisionPrefixMap)) {
+      if (normalizedDivision.includes(key) || key.includes(normalizedDivision)) {
+        prefix = value
+        break
+      }
+    }
+  }
+
+  // Fallback: 3 huruf pertama
   if (!prefix) {
     prefix = normalizedDivision.substring(0, 3).replace(/[^A-Z]/g, '')
     if (prefix.length === 0) prefix = 'GEN'
