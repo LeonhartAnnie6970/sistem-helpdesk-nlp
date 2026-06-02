@@ -1,7 +1,11 @@
+export const runtime = "nodejs"
+
 import { NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
-import { writeFile } from "fs/promises"
+import { put } from "@vercel/blob"
+import { writeFile, mkdir } from "fs/promises"
+import { existsSync } from "fs"
 import path from "path"
 
 function parseTargetDivisions(value: string | string[] | null | undefined): string[] {
@@ -337,17 +341,45 @@ export async function POST(
       const timestamp = Date.now()
       const safeFileName = attachment.name.replace(/[^a-zA-Z0-9.-]/g, "_")
       const fileName = `comment_${ticketId}_${timestamp}_${safeFileName}`
-      const uploadDir = path.join(process.cwd(), "public", "uploads", "comments")
 
-      // Create directory if it doesn't exist
-      const fs = require('fs')
-      if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true })
+      const blobToken = process.env.BLOB_PUBLIC_READ_WRITE_TOKEN || process.env.BLOB_PROFILE_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN
+
+      if (blobToken) {
+        // Upload to Vercel Blob with 8s timeout
+        try {
+          const abortController = new AbortController()
+          const blobTimeout = setTimeout(() => abortController.abort(), 8000)
+          try {
+            const blob = await put(fileName, buffer, {
+              access: "public",
+              contentType: attachment.type || "image/jpeg",
+              token: blobToken,
+              abortSignal: abortController.signal,
+            })
+            attachmentPath = blob.url
+          } finally {
+            clearTimeout(blobTimeout)
+          }
+        } catch (blobErr) {
+          console.error("Blob upload failed for comment, falling back to local:", blobErr)
+        }
       }
 
-      const filePath = path.join(uploadDir, fileName)
-      await writeFile(filePath, buffer)
-      attachmentPath = `/uploads/comments/${fileName}`
+      // Local fallback (for dev environment)
+      if (!attachmentPath) {
+        try {
+          const uploadDir = path.join(process.cwd(), "public", "uploads", "comments")
+          if (!existsSync(uploadDir)) {
+            await mkdir(uploadDir, { recursive: true })
+          }
+          const filePath = path.join(uploadDir, fileName)
+          await writeFile(filePath, buffer)
+          attachmentPath = `/uploads/comments/${fileName}`
+        } catch (localErr) {
+          console.error("Local fallback failed for comment attachment:", localErr)
+          // Continue without attachment rather than failing the whole comment
+        }
+      }
     }
 
     // If status changed, update ticket status FIRST (before inserting comment)
