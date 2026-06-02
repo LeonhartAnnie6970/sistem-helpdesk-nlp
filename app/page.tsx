@@ -9,18 +9,26 @@ import { useSession } from "@/hooks/useSession"
 
 function HomeContent() {
   const router = useRouter()
-  const { forceLogoutOnPublicPage } = useSession()
+  const { redirectIfAuthenticated } = useSession()
   const [isLoading, setIsLoading] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
   const [showLoginMessage, setShowLoginMessage] = useState(false)
 
   useEffect(() => {
-    const wasLoggedIn = forceLogoutOnPublicPage()
-    if (wasLoggedIn) {
+    const logoutReason = sessionStorage.getItem("logoutReason")
+    if (logoutReason) {
       setShowLoginMessage(true)
+      sessionStorage.removeItem("logoutReason")
+      setIsChecking(false)
+      return
     }
-    setIsChecking(false)
-  }, [forceLogoutOnPublicPage])
+
+    // Redirect to dashboard if already logged in
+    const redirected = redirectIfAuthenticated()
+    if (!redirected) {
+      setIsChecking(false)
+    }
+  }, [redirectIfAuthenticated])
 
   const handleGetStarted = () => {
     setIsLoading(true)

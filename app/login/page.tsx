@@ -14,7 +14,7 @@ import { AlertCircle, Clock } from "lucide-react"
 
 function LoginContent() {
   const router = useRouter()
-  const { forceLogoutOnPublicPage } = useSession()
+  const { redirectIfAuthenticated } = useSession()
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState("")
@@ -22,25 +22,22 @@ function LoginContent() {
   const [isLoading, setIsLoading] = useState(false)
   const [isChecking, setIsChecking] = useState(true)
 
-  // Security: If user navigates back from dashboard, force logout
   useEffect(() => {
     // Check for logout reason from session storage
     const logoutReason = sessionStorage.getItem("logoutReason")
     if (logoutReason) {
       setSessionMessage(logoutReason)
       sessionStorage.removeItem("logoutReason")
+      setIsChecking(false)
+      return
     }
 
-    // Force logout if user has session but navigated to login page
-    const wasLoggedIn = forceLogoutOnPublicPage()
-
-    if (wasLoggedIn) {
-      // Session was cleared, show message
-      setSessionMessage("Anda harus login kembali untuk melanjutkan.")
+    // Redirect to dashboard if already logged in
+    const redirected = redirectIfAuthenticated()
+    if (!redirected) {
+      setIsChecking(false)
     }
-
-    setIsChecking(false)
-  }, [forceLogoutOnPublicPage])
+  }, [redirectIfAuthenticated])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
