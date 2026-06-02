@@ -578,9 +578,17 @@ export function SuperAdminUserManagement() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center gap-4 flex-1">
                         {/* Avatar */}
-                        <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
-                          {user.name.charAt(0).toUpperCase()}
-                        </div>
+                        {user.profile_image_url ? (
+                          <img
+                            src={user.profile_image_url}
+                            alt={user.name}
+                            className="w-12 h-12 rounded-full object-cover border-2 border-gray-200 dark:border-gray-700"
+                          />
+                        ) : (
+                          <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-400 to-purple-600 flex items-center justify-center text-white font-bold text-lg">
+                            {user.name.charAt(0).toUpperCase()}
+                          </div>
+                        )}
 
                         {/* User Info */}
                         <div className="flex-1">
