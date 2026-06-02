@@ -159,7 +159,7 @@ export function TicketImagesGallery() {
                     <div className="flex items-center gap-1 text-xs text-gray-500 dark:text-gray-400">
                       <Hash className="w-3 h-3" />
                       <span className="font-mono">
-                        {formatTicketId(ticket.id, ticket.user_division || ticket.user_division_name)}
+                        {formatTicketId(ticket.id, ticket.user_division || ticket.user_division_name, ticket.ticket_sequence)}
                       </span>
                     </div>
                     <Badge className={`text-xs ${getStatusColor(ticket.status)}`}>

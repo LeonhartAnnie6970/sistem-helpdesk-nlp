@@ -136,7 +136,7 @@ export function TicketList({ refreshTrigger }: TicketListProps) {
                   <div className="flex items-center gap-2 mb-2">
                     <Badge variant="outline" className="font-mono text-xs border-gray-300 dark:border-gray-600 text-black dark:text-white">
                       <Hash className="w-3 h-3 mr-1" />
-                      {formatTicketId(ticket.id, ticket.divisi || 'GENERAL')}
+                      {formatTicketId(ticket.id, ticket.divisi || 'GENERAL', ticket.ticket_sequence)}
                     </Badge>
                   </div>
                   <CardTitle className="text-lg text-black dark:text-white">{ticket.title}</CardTitle>

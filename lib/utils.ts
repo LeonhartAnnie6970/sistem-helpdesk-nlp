@@ -65,7 +65,7 @@ export function parseTargetDivisions(value: string | string[] | null | undefined
  * @param division - Nama divisi (contoh: "ACC/FINANCE", "Operasional", "HR")
  * @returns Formatted ticket ID (contoh: "ACC-001", "OPR-003", "HR-012")
  */
-export function formatTicketId(ticketId: number, division?: string | null): string {
+export function formatTicketId(ticketId: number, division?: string | null, sequence?: number | null): string {
   // Mapping divisi ke prefix
   const divisionPrefixMap: Record<string, string> = {
     'ACC/FINANCE': 'ACC',
@@ -106,8 +106,9 @@ export function formatTicketId(ticketId: number, division?: string | null): stri
     if (prefix.length === 0) prefix = 'GEN'
   }
 
-  // Format ID dengan padding 3 digit
-  const paddedId = ticketId.toString().padStart(3, '0')
+  // Gunakan sequence number jika tersedia, fallback ke ticketId
+  const displayNumber = sequence ?? ticketId
+  const paddedId = displayNumber.toString().padStart(3, '0')
 
   return `${prefix}-${paddedId}`
 }

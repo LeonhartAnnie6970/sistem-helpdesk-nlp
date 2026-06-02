@@ -29,7 +29,7 @@ export async function GET(request: NextRequest) {
     if (decoded.role === "super_admin") {
       tickets = await query(`
         SELECT
-          t.*,
+          t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
           u.name,
           u.email,
           u.division AS user_division_name
@@ -87,7 +87,7 @@ export async function GET(request: NextRequest) {
         console.log('[GET /api/tickets] Admin has no division, showing all tickets')
         tickets = await query(
           `SELECT
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name,
             u.email,
             u.division AS user_division_name
@@ -99,7 +99,7 @@ export async function GET(request: NextRequest) {
         // Query dengan JSON_CONTAINS untuk cek target_divisions
         tickets = await query(
           `SELECT
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name,
             u.email,
             u.division AS user_division_name
@@ -158,7 +158,7 @@ export async function GET(request: NextRequest) {
         console.log('[GET /api/tickets] User has no division, showing only own tickets')
         tickets = await query(
           `SELECT
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name,
             u.email,
             u.division AS user_division_name
@@ -174,7 +174,7 @@ export async function GET(request: NextRequest) {
         // 2. Ticket yang ditargetkan ke divisi user (untuk incoming)
         tickets = await query(
           `SELECT
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name,
             u.email,
             u.division AS user_division_name

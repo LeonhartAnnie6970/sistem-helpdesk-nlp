@@ -34,7 +34,7 @@ export async function GET(request: NextRequest) {
       if (filterDivision) {
         tickets = await query(
           `SELECT
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name as user_name,
             u.email as user_email,
             u.role as user_role,
@@ -49,7 +49,7 @@ export async function GET(request: NextRequest) {
       } else {
         tickets = await query(
           `SELECT
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name as user_name,
             u.email as user_email,
             u.role as user_role,
@@ -77,7 +77,7 @@ export async function GET(request: NextRequest) {
 
       tickets = await query(
         `SELECT
-          t.*,
+          t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
           u.name as user_name,
           u.email as user_email,
           u.role as user_role,
@@ -103,7 +103,7 @@ export async function GET(request: NextRequest) {
 
       tickets = await query(
         `SELECT
-          t.*,
+          t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
           u.name as user_name,
           u.email as user_email,
           u.role as user_role,

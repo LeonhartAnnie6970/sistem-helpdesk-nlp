@@ -27,7 +27,7 @@ export async function GET(request: NextRequest) {
       if (filterDivision) {
         tickets = await query(
           `SELECT 
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name,
             u.email,
             u.division AS user_division_name
@@ -42,7 +42,7 @@ export async function GET(request: NextRequest) {
       } else {
         tickets = await query(
           `SELECT 
-            t.*,
+            t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
             u.name,
             u.email,
             u.division AS user_division_name
@@ -67,7 +67,7 @@ export async function GET(request: NextRequest) {
       // Admin: auto filter by their division
       tickets = await query(
         `SELECT 
-          t.*,
+          t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
           u.name,
           u.email,
           u.division AS user_division_name
@@ -85,7 +85,7 @@ export async function GET(request: NextRequest) {
       // User: only their tickets
       tickets = await query(
         `SELECT 
-          t.*,
+          t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
           u.name,
           u.email,
           u.division AS user_division_name

@@ -245,7 +245,7 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
                   <div className="flex items-center gap-2 mb-2">
                     <Hash className="w-4 h-4 text-gray-500 dark:text-gray-400" />
                     <span className="text-sm font-mono text-gray-600 dark:text-gray-300">
-                      {formatTicketId(ticket.id, ticket.user_division || ticket.user_division_name)}
+                      {formatTicketId(ticket.id, ticket.user_division || ticket.user_division_name, ticket.ticket_sequence)}
                     </span>
                     <Badge className={getStatusColor(ticket.status)}>
                       {getStatusLabel(ticket.status)}
