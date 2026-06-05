@@ -31,22 +31,61 @@ function PdfExportButton({
       })
 
       if (!response.ok) {
-        alert("Failed to generate report")
+        alert("Gagal membuat laporan PDF")
         return
       }
 
-      const htmlContent = await response.text()
-      const newWindow = window.open('', '_blank')
-      if (newWindow) {
-        newWindow.document.write(htmlContent)
-        newWindow.document.close()
-        setTimeout(() => {
-          newWindow.print()
-        }, 500)
+      const data = await response.json()
+      const tickets = data.tickets
+      const division = data.division
+
+      const { default: jsPDF } = await import("jspdf")
+      const { default: autoTable } = await import("jspdf-autotable")
+
+      const doc = new jsPDF({ orientation: "landscape" })
+
+      const statusLabels: Record<string, string> = {
+        new: "Baru",
+        in_progress: "Diproses",
+        resolved: "Selesai",
+        closed: "Ditutup",
       }
+
+      // Header
+      doc.setFontSize(16)
+      doc.setFont("helvetica", "bold")
+      doc.text("Laporan Tiket Helpdesk", doc.internal.pageSize.width / 2, 18, { align: "center" })
+
+      doc.setFontSize(11)
+      doc.setFont("helvetica", "normal")
+      doc.text(`Divisi: ${division}`, doc.internal.pageSize.width / 2, 26, { align: "center" })
+      doc.text(`Tanggal: ${new Date().toLocaleDateString("id-ID")}`, doc.internal.pageSize.width / 2, 32, { align: "center" })
+      doc.text(`Total Tiket: ${tickets.length}`, doc.internal.pageSize.width / 2, 38, { align: "center" })
+
+      // Table
+      autoTable(doc, {
+        startY: 45,
+        head: [["ID", "Judul", "User", "Email", "Divisi", "Kategori", "Status", "Tanggal"]],
+        body: tickets.map((t: any) => [
+          t.id,
+          t.title,
+          t.name,
+          t.email,
+          t.divisi,
+          t.category || "-",
+          statusLabels[t.status] || t.status,
+          new Date(t.created_at).toLocaleDateString("id-ID"),
+        ]),
+        styles: { fontSize: 9 },
+        headStyles: { fillColor: [59, 130, 246] },
+        alternateRowStyles: { fillColor: [249, 250, 251] },
+      })
+
+      const filename = `laporan-tiket-${division}-${Date.now()}.pdf`
+      doc.save(filename)
     } catch (error) {
       console.error("Export error:", error)
-      alert("An error occurred while exporting")
+      alert("Terjadi kesalahan saat export PDF")
     } finally {
       setIsLoading(false)
     }

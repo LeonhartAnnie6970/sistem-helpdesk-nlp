@@ -30,6 +30,8 @@
     "exceljs": "4.4.0",
     "framer-motion": "^12.29.2",
     "jsonwebtoken": "^9.0.2",
+    "jspdf": "^4.2.1",
+    "jspdf-autotable": "^5.0.8",
     "lucide-react": "^0.408.0",
     "mysql2": "^3.6.5",
     "next": "^15.0.0",
