@@ -62,12 +62,28 @@ function PdfExportButton({
       doc.text(`Tanggal: ${new Date().toLocaleDateString("id-ID")}`, doc.internal.pageSize.width / 2, 32, { align: "center" })
       doc.text(`Total Tiket: ${tickets.length}`, doc.internal.pageSize.width / 2, 38, { align: "center" })
 
+      const divPrefixMap: Record<string, string> = {
+        'IT': 'IT', 'INFORMATION TECHNOLOGY': 'IT',
+        'ACC/FINANCE': 'ACC', 'ACCOUNTING': 'ACC', 'FINANCE': 'ACC', 'KEUANGAN': 'ACC',
+        'OPERASIONAL': 'OPR', 'OPERATIONAL': 'OPR',
+        'SALES': 'SLS', 'PENJUALAN': 'SLS',
+        'CUSTOMER SERVICE': 'CS',
+        'HR': 'HR', 'HRD': 'HR', 'HUMAN RESOURCE': 'HR',
+        'DIREKSI/DIREKTUR': 'DIR', 'DIREKSI': 'DIR', 'DIREKTUR': 'DIR',
+      }
+      const getPrefix = (div: string) => divPrefixMap[div?.toUpperCase()?.trim()] || div?.substring(0, 3).toUpperCase() || 'TKT'
+      const formatId = (t: any) => {
+        const prefix = getPrefix(t.divisi)
+        const seq = t.ticket_sequence ?? t.id
+        return `${prefix}-${String(seq).padStart(3, '0')}`
+      }
+
       // Table
       autoTable(doc, {
         startY: 45,
-        head: [["ID", "Judul", "User", "Email", "Divisi", "Kategori", "Status", "Tanggal"]],
+        head: [["No. Tiket", "Judul", "User", "Email", "Divisi", "Kategori", "Status", "Tanggal"]],
         body: tickets.map((t: any) => [
-          t.id,
+          formatId(t),
           t.title,
           t.name,
           t.email,

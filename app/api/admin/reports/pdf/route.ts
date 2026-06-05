@@ -31,7 +31,8 @@ export async function POST(request: NextRequest) {
     // Fetch tickets filtered by admin's division
     // Tickets from users in admin's division OR targeted to admin's division
     let sqlQuery = `
-      SELECT DISTINCT t.id, t.title, t.description, t.nlp_category as category, t.status, t.created_at, u.name, u.division as divisi, u.email
+      SELECT DISTINCT t.id, t.title, t.description, t.nlp_category as category, t.status, t.created_at, u.name, u.division as divisi, u.email,
+        (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence
       FROM tickets t
       JOIN users u ON t.id_user = u.id
       WHERE (u.division = ? OR JSON_CONTAINS(t.target_divisions, JSON_QUOTE(?)))

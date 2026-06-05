@@ -32,7 +32,8 @@ export async function POST(request: NextRequest) {
     // Fetch tickets filtered by admin's division
     // Tickets from users in admin's division OR targeted to admin's division
     let sqlQuery = `
-      SELECT DISTINCT t.id, t.title, t.description, t.nlp_category as category, t.status, t.created_at, u.name, u.division as divisi, u.email
+      SELECT DISTINCT t.id, t.title, t.description, t.nlp_category as category, t.status, t.created_at, u.name, u.division as divisi, u.email,
+        (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence
       FROM tickets t
       JOIN users u ON t.id_user = u.id
       WHERE (u.division = ? OR JSON_CONTAINS(t.target_divisions, JSON_QUOTE(?)))
@@ -104,10 +105,27 @@ export async function POST(request: NextRequest) {
       { width: 18 },
     ]
 
+    // Format ticket ID as sequential number with division prefix
+    const divisionPrefixMap: Record<string, string> = {
+      'IT': 'IT', 'INFORMATION TECHNOLOGY': 'IT',
+      'ACC/FINANCE': 'ACC', 'ACCOUNTING': 'ACC', 'FINANCE': 'ACC', 'KEUANGAN': 'ACC',
+      'OPERASIONAL': 'OPR', 'OPERATIONAL': 'OPR',
+      'SALES': 'SLS', 'PENJUALAN': 'SLS',
+      'CUSTOMER SERVICE': 'CS',
+      'HR': 'HR', 'HRD': 'HR', 'HUMAN RESOURCE': 'HR',
+      'DIREKSI/DIREKTUR': 'DIR', 'DIREKSI': 'DIR', 'DIREKTUR': 'DIR',
+    }
+    const getPrefix = (div: string) => divisionPrefixMap[div?.toUpperCase()?.trim()] || div?.substring(0, 3).toUpperCase() || 'TKT'
+    const formatId = (ticket: any) => {
+      const prefix = getPrefix(ticket.divisi)
+      const seq = ticket.ticket_sequence ?? ticket.id
+      return `${prefix}-${String(seq).padStart(3, '0')}`
+    }
+
     // Add data rows
     ticketsData.forEach((ticket: any) => {
       worksheet.addRow([
-        ticket.id,
+        formatId(ticket),
         ticket.title,
         ticket.description,
         ticket.category,
