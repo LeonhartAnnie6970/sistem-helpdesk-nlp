@@ -194,6 +194,39 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
     }
   }
 
+  const DIVISION_PREFIX_MAP: Record<string, string> = {
+    'IT': 'IT', 'INFORMATION TECHNOLOGY': 'IT',
+    'ACC/FINANCE': 'ACC', 'ACCOUNTING': 'ACC', 'FINANCE': 'ACC', 'KEUANGAN': 'ACC', 'AKUNTANSI': 'ACC',
+    'OPERASIONAL': 'OPR', 'OPERATIONAL': 'OPR', 'OPERATION': 'OPR',
+    'SALES': 'SLS', 'PENJUALAN': 'SLS',
+    'CUSTOMER SERVICE': 'CS',
+    'HR': 'HR', 'HRD': 'HR', 'HUMAN RESOURCE': 'HR', 'HUMAN RESOURCES': 'HR',
+    'DIREKSI/DIREKTUR': 'DIR', 'DIREKSI': 'DIR', 'DIREKTUR': 'DIR',
+  }
+
+  const getPrefix = (division: string | null | undefined): string => {
+    if (!division) return 'TKT'
+    const upper = division.toUpperCase().trim()
+    if (DIVISION_PREFIX_MAP[upper]) return DIVISION_PREFIX_MAP[upper]
+    for (const [key, prefix] of Object.entries(DIVISION_PREFIX_MAP)) {
+      if (upper.includes(key) || key.includes(upper)) return prefix
+    }
+    return division.substring(0, 3).toUpperCase()
+  }
+
+  const formatId = (t: any): string => {
+    const prefix = getPrefix(t.user_division)
+    const seq = t.ticket_sequence ?? t.id
+    return `${prefix}-${String(seq).padStart(3, '0')}`
+  }
+
+  const formatStatus = (status: string): string => {
+    const map: Record<string, string> = {
+      new: "Baru", in_progress: "Sedang Diproses", resolved: "Selesai", closed: "Ditutup"
+    }
+    return map[status] || status
+  }
+
   // Handle export
   const handleExport = async (format: "excel" | "pdf") => {
     setIsExporting(true)
@@ -212,23 +245,61 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
       })
 
       if (!response.ok) {
-        const data = await response.json()
+        const data = await response.json().catch(() => ({}))
         alert(data.error || "Gagal mengekspor laporan")
         return
       }
 
-      // Download file
-      const blob = await response.blob()
-      const url = window.URL.createObjectURL(blob)
-      const a = document.createElement("a")
-      a.href = url
-      a.download = format === "excel"
-        ? `laporan-tiket-${new Date().toISOString().split("T")[0]}.xlsx`
-        : `laporan-tiket-${new Date().toISOString().split("T")[0]}.pdf`
-      document.body.appendChild(a)
-      a.click()
-      window.URL.revokeObjectURL(url)
-      document.body.removeChild(a)
+      if (format === "pdf") {
+        // Generate PDF client-side
+        const data = await response.json()
+        const ticketList: any[] = data.tickets ?? []
+
+        const { default: jsPDF } = await import("jspdf")
+        const { default: autoTable } = await import("jspdf-autotable")
+
+        const doc = new jsPDF({ orientation: "landscape" })
+
+        doc.setFontSize(16)
+        doc.setFont("helvetica", "bold")
+        doc.text("Laporan Tiket Helpdesk — Super Admin", doc.internal.pageSize.width / 2, 18, { align: "center" })
+
+        doc.setFontSize(10)
+        doc.setFont("helvetica", "normal")
+        doc.text(`Tanggal: ${new Date().toLocaleDateString("id-ID")}`, doc.internal.pageSize.width / 2, 26, { align: "center" })
+        doc.text(`Total Tiket: ${ticketList.length}`, doc.internal.pageSize.width / 2, 32, { align: "center" })
+
+        autoTable(doc, {
+          startY: 40,
+          head: [["No. Tiket", "Judul", "User", "Divisi", "Kategori", "Status", "Tanggal"]],
+          body: ticketList.map((t: any) => [
+            formatId(t),
+            t.title,
+            t.user_name,
+            t.user_division || "-",
+            t.nlp_category || "-",
+            formatStatus(t.status),
+            new Date(t.created_at).toLocaleDateString("id-ID"),
+          ]),
+          styles: { fontSize: 8 },
+          headStyles: { fillColor: [37, 99, 235] },
+          alternateRowStyles: { fillColor: [249, 250, 251] },
+        })
+
+        const filename = `laporan-tiket-super-admin-${new Date().toISOString().split("T")[0]}.pdf`
+        doc.save(filename)
+      } else {
+        // Excel — download as blob
+        const blob = await response.blob()
+        const url = window.URL.createObjectURL(blob)
+        const a = document.createElement("a")
+        a.href = url
+        a.download = `laporan-tiket-${new Date().toISOString().split("T")[0]}.xlsx`
+        document.body.appendChild(a)
+        a.click()
+        window.URL.revokeObjectURL(url)
+        document.body.removeChild(a)
+      }
     } catch (error) {
       console.error("Error exporting:", error)
       alert("Terjadi kesalahan saat mengekspor laporan")

@@ -3,7 +3,6 @@ import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
 import ExcelJS from "exceljs"
-import PDFDocument from "pdfkit"
 
 function parseTargetDivisions(value: string | string[] | null | undefined): string[] {
   if (!value) return []
@@ -14,41 +13,48 @@ function parseTargetDivisions(value: string | string[] | null | undefined): stri
   return t.split(',').map((d) => d.trim()).filter(Boolean)
 }
 
-// Helper function to generate ticket code
-const generateTicketCode = (category: string, ticketId: number): string => {
-  const divisionPrefixes: { [key: string]: string } = {
-    "IT": "IT",
-    "Akuntansi": "ACC",
-    "Finance": "ACC",
-    "Keuangan": "ACC",
-    "Operasional": "OPR",
-    "Sales": "SLS",
-    "Penjualan": "SLS",
-    "Customer Service": "CS",
-    "HR": "HR",
-    "HRD": "HR",
-    "Direksi": "DKT",
-    "Direktur": "DKT",
-  }
-
-  let prefix = "TKT"
-  const categoryLower = category?.toLowerCase() || ""
-
-  for (const [key, value] of Object.entries(divisionPrefixes)) {
-    if (categoryLower === key.toLowerCase() ||
-        categoryLower.includes(key.toLowerCase()) ||
-        key.toLowerCase().includes(categoryLower)) {
-      prefix = value
-      break
-    }
-  }
-
-  return `${prefix}-${String(ticketId).padStart(3, '0')}`
+const DIVISION_PREFIX_MAP: Record<string, string> = {
+  'IT': 'IT',
+  'INFORMATION TECHNOLOGY': 'IT',
+  'ACC/FINANCE': 'ACC',
+  'ACCOUNTING': 'ACC',
+  'FINANCE': 'ACC',
+  'KEUANGAN': 'ACC',
+  'AKUNTANSI': 'ACC',
+  'OPERASIONAL': 'OPR',
+  'OPERATIONAL': 'OPR',
+  'OPERATION': 'OPR',
+  'SALES': 'SLS',
+  'PENJUALAN': 'SLS',
+  'CUSTOMER SERVICE': 'CS',
+  'HR': 'HR',
+  'HRD': 'HR',
+  'HUMAN RESOURCE': 'HR',
+  'HUMAN RESOURCES': 'HR',
+  'DIREKSI/DIREKTUR': 'DIR',
+  'DIREKSI': 'DIR',
+  'DIREKTUR': 'DIR',
 }
 
-// Helper function to format status
+function getDivisionPrefix(division: string | null | undefined): string {
+  if (!division) return 'TKT'
+  const upper = division.toUpperCase().trim()
+  if (DIVISION_PREFIX_MAP[upper]) return DIVISION_PREFIX_MAP[upper]
+  // partial match
+  for (const [key, prefix] of Object.entries(DIVISION_PREFIX_MAP)) {
+    if (upper.includes(key) || key.includes(upper)) return prefix
+  }
+  return division.substring(0, 3).toUpperCase()
+}
+
+function formatTicketId(userDivision: string | null | undefined, sequence: number | null | undefined, fallbackId: number): string {
+  const prefix = getDivisionPrefix(userDivision)
+  const num = sequence ?? fallbackId
+  return `${prefix}-${String(num).padStart(3, '0')}`
+}
+
 const formatStatus = (status: string): string => {
-  const statusMap: { [key: string]: string } = {
+  const statusMap: Record<string, string> = {
     "new": "Baru",
     "in_progress": "Sedang Diproses",
     "resolved": "Selesai",
@@ -69,7 +75,6 @@ export async function GET(request: NextRequest) {
     return NextResponse.json({ error: "Invalid token" }, { status: 401 })
   }
 
-  // Only super_admin can export reports
   if (decoded.role !== "super_admin") {
     return NextResponse.json(
       { error: "Hanya Super Admin yang dapat mengekspor laporan" },
@@ -79,14 +84,13 @@ export async function GET(request: NextRequest) {
 
   try {
     const { searchParams } = new URL(request.url)
-    const format = searchParams.get("format") || "excel" // excel or pdf
+    const format = searchParams.get("format") || "excel"
     const category = searchParams.get("category") || ""
     const division = searchParams.get("division") || ""
     const startDate = searchParams.get("startDate") || ""
     const endDate = searchParams.get("endDate") || ""
     const status = searchParams.get("status") || ""
 
-    // Build query with filters
     let sql = `
       SELECT
         t.id,
@@ -99,7 +103,8 @@ export async function GET(request: NextRequest) {
         t.updated_at,
         u.name as user_name,
         u.email as user_email,
-        u.division as user_division
+        u.division as user_division,
+        (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence
       FROM tickets t
       JOIN users u ON t.id_user = u.id
       WHERE 1=1
@@ -136,7 +141,9 @@ export async function GET(request: NextRequest) {
     const tickets: any[] = await query(sql, params) as any[]
 
     if (format === "pdf") {
-      return generatePDF(tickets, { category, division, startDate, endDate, status })
+      // Return JSON — PDF is generated client-side using jsPDF
+      const filters = { category, division, startDate, endDate, status }
+      return NextResponse.json({ tickets, filters })
     } else {
       return generateExcel(tickets, { category, division, startDate, endDate, status })
     }
@@ -152,53 +159,43 @@ async function generateExcel(
   filters: { category: string; division: string; startDate: string; endDate: string; status: string }
 ) {
   const workbook = new ExcelJS.Workbook()
-  workbook.creator = "Sistem Helpdesk SJPL"
+  workbook.creator = "Sistem Helpdesk"
   workbook.created = new Date()
 
   const worksheet = workbook.addWorksheet("Laporan Tiket")
 
   // Title
-  worksheet.mergeCells("A1:H1")
+  worksheet.mergeCells("A1:J1")
   const titleCell = worksheet.getCell("A1")
   titleCell.value = "LAPORAN TIKET HELPDESK"
   titleCell.font = { bold: true, size: 16 }
   titleCell.alignment = { horizontal: "center" }
 
   // Filter info
-  let filterText = "Filter: "
-  const filterParts = []
+  const filterParts: string[] = []
   if (filters.category) filterParts.push(`Kategori: ${filters.category}`)
   if (filters.division) filterParts.push(`Divisi: ${filters.division}`)
   if (filters.status) filterParts.push(`Status: ${formatStatus(filters.status)}`)
   if (filters.startDate) filterParts.push(`Dari: ${filters.startDate}`)
   if (filters.endDate) filterParts.push(`Sampai: ${filters.endDate}`)
 
-  if (filterParts.length > 0) {
-    filterText += filterParts.join(" | ")
-  } else {
-    filterText += "Semua Data"
-  }
-
-  worksheet.mergeCells("A2:H2")
+  worksheet.mergeCells("A2:J2")
   const filterCell = worksheet.getCell("A2")
-  filterCell.value = filterText
+  filterCell.value = "Filter: " + (filterParts.length > 0 ? filterParts.join(" | ") : "Semua Data")
   filterCell.font = { italic: true, size: 10 }
   filterCell.alignment = { horizontal: "center" }
 
-  // Generated date
-  worksheet.mergeCells("A3:H3")
+  worksheet.mergeCells("A3:J3")
   const dateCell = worksheet.getCell("A3")
   dateCell.value = `Dibuat pada: ${new Date().toLocaleString("id-ID")}`
   dateCell.font = { size: 10 }
   dateCell.alignment = { horizontal: "center" }
 
-  // Empty row
   worksheet.addRow([])
 
-  // Headers
   const headerRow = worksheet.addRow([
     "No",
-    "ID Tiket",
+    "No. Tiket",
     "Judul",
     "Deskripsi",
     "Status",
@@ -225,18 +222,19 @@ async function generateExcel(
     }
   })
 
-  // Data rows
   tickets.forEach((ticket, index) => {
     let targetDivs = ""
     try {
       targetDivs = parseTargetDivisions(ticket.target_divisions).join(", ")
-    } catch (e) {
+    } catch {
       targetDivs = ticket.target_divisions || ""
     }
 
+    const ticketId = formatTicketId(ticket.user_division, ticket.ticket_sequence, ticket.id)
+
     const row = worksheet.addRow([
       index + 1,
-      generateTicketCode(ticket.nlp_category, ticket.id),
+      ticketId,
       ticket.title,
       ticket.description?.substring(0, 100) + (ticket.description?.length > 100 ? "..." : ""),
       formatStatus(ticket.status),
@@ -257,7 +255,6 @@ async function generateExcel(
       cell.alignment = { vertical: "middle", wrapText: true }
     })
 
-    // Status color
     const statusCell = row.getCell(5)
     switch (ticket.status) {
       case "new":
@@ -275,177 +272,30 @@ async function generateExcel(
     }
   })
 
-  // Summary row
   worksheet.addRow([])
   const summaryRow = worksheet.addRow([`Total Tiket: ${tickets.length}`])
   summaryRow.getCell(1).font = { bold: true }
 
-  // Column widths
   worksheet.columns = [
-    { width: 5 },   // No
-    { width: 12 },  // ID Tiket
-    { width: 30 },  // Judul
-    { width: 40 },  // Deskripsi
-    { width: 15 },  // Status
-    { width: 15 },  // Kategori
-    { width: 15 },  // Divisi Pembuat
-    { width: 20 },  // Pembuat
-    { width: 20 },  // Target Divisi
-    { width: 20 }   // Tanggal
+    { width: 5 },
+    { width: 12 },
+    { width: 30 },
+    { width: 40 },
+    { width: 15 },
+    { width: 15 },
+    { width: 18 },
+    { width: 20 },
+    { width: 22 },
+    { width: 20 }
   ]
 
-  // Generate buffer
   const buffer = await workbook.xlsx.writeBuffer()
-
   const filename = `laporan-tiket-${new Date().toISOString().split("T")[0]}.xlsx`
 
   return new NextResponse(buffer, {
     headers: {
       "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
       "Content-Disposition": `attachment; filename="${filename}"`
-    }
-  })
-}
-
-async function generatePDF(
-  tickets: any[],
-  filters: { category: string; division: string; startDate: string; endDate: string; status: string }
-) {
-  return new Promise<NextResponse>((resolve, reject) => {
-    try {
-      const doc = new PDFDocument({
-        margin: 40,
-        size: "A4",
-        layout: "landscape"
-      })
-
-      const chunks: Buffer[] = []
-      doc.on("data", (chunk) => chunks.push(chunk))
-      doc.on("end", () => {
-        const pdfBuffer = Buffer.concat(chunks)
-        const filename = `laporan-tiket-${new Date().toISOString().split("T")[0]}.pdf`
-
-        resolve(new NextResponse(pdfBuffer, {
-          headers: {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": `attachment; filename="${filename}"`
-          }
-        }))
-      })
-
-      // Title
-      doc.fontSize(18).font("Helvetica-Bold").text("LAPORAN TIKET HELPDESK", { align: "center" })
-      doc.moveDown(0.5)
-
-      // Filter info
-      let filterText = "Filter: "
-      const filterParts = []
-      if (filters.category) filterParts.push(`Kategori: ${filters.category}`)
-      if (filters.division) filterParts.push(`Divisi: ${filters.division}`)
-      if (filters.status) filterParts.push(`Status: ${formatStatus(filters.status)}`)
-      if (filters.startDate) filterParts.push(`Dari: ${filters.startDate}`)
-      if (filters.endDate) filterParts.push(`Sampai: ${filters.endDate}`)
-
-      if (filterParts.length > 0) {
-        filterText += filterParts.join(" | ")
-      } else {
-        filterText += "Semua Data"
-      }
-
-      doc.fontSize(10).font("Helvetica").text(filterText, { align: "center" })
-      doc.fontSize(9).text(`Dibuat pada: ${new Date().toLocaleString("id-ID")}`, { align: "center" })
-      doc.moveDown()
-
-      // Table headers
-      const tableTop = doc.y
-      const colWidths = [30, 60, 150, 80, 80, 100, 80, 100]
-      const headers = ["No", "ID Tiket", "Judul", "Status", "Kategori", "Pembuat", "Divisi", "Tanggal"]
-
-      let xPos = 40
-      doc.fontSize(9).font("Helvetica-Bold")
-
-      // Header background
-      doc.rect(40, tableTop - 5, 760, 20).fill("#2563EB")
-      doc.fillColor("white")
-
-      headers.forEach((header, i) => {
-        doc.text(header, xPos + 2, tableTop, { width: colWidths[i] - 4, align: "left" })
-        xPos += colWidths[i]
-      })
-
-      doc.fillColor("black")
-      let yPos = tableTop + 20
-
-      // Table rows
-      doc.font("Helvetica").fontSize(8)
-
-      tickets.forEach((ticket, index) => {
-        // Check if we need a new page
-        if (yPos > 520) {
-          doc.addPage()
-          yPos = 40
-
-          // Re-draw headers on new page
-          xPos = 40
-          doc.fontSize(9).font("Helvetica-Bold")
-          doc.rect(40, yPos - 5, 760, 20).fill("#2563EB")
-          doc.fillColor("white")
-          headers.forEach((header, i) => {
-            doc.text(header, xPos + 2, yPos, { width: colWidths[i] - 4, align: "left" })
-            xPos += colWidths[i]
-          })
-          doc.fillColor("black")
-          doc.font("Helvetica").fontSize(8)
-          yPos += 20
-        }
-
-        // Alternate row color
-        if (index % 2 === 0) {
-          doc.rect(40, yPos - 3, 760, 18).fill("#F3F4F6")
-          doc.fillColor("black")
-        }
-
-        xPos = 40
-        const rowData = [
-          String(index + 1),
-          generateTicketCode(ticket.nlp_category, ticket.id),
-          ticket.title?.substring(0, 35) + (ticket.title?.length > 35 ? "..." : ""),
-          formatStatus(ticket.status),
-          ticket.nlp_category || "-",
-          ticket.user_name?.substring(0, 20) || "-",
-          ticket.user_division || "-",
-          new Date(ticket.created_at).toLocaleDateString("id-ID")
-        ]
-
-        rowData.forEach((data, i) => {
-          doc.text(data, xPos + 2, yPos, { width: colWidths[i] - 4, align: "left" })
-          xPos += colWidths[i]
-        })
-
-        yPos += 18
-      })
-
-      // Summary
-      doc.moveDown(2)
-      doc.fontSize(10).font("Helvetica-Bold")
-      doc.text(`Total Tiket: ${tickets.length}`, 40)
-
-      // Footer
-      const pageCount = doc.bufferedPageRange().count
-      for (let i = 0; i < pageCount; i++) {
-        doc.switchToPage(i)
-        doc.fontSize(8).font("Helvetica")
-        doc.text(
-          `Halaman ${i + 1} dari ${pageCount}`,
-          40,
-          doc.page.height - 30,
-          { align: "center", width: doc.page.width - 80 }
-        )
-      }
-
-      doc.end()
-    } catch (error) {
-      reject(error)
     }
   })
 }
