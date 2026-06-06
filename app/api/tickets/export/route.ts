@@ -187,7 +187,7 @@ async function generateExcel(
 
   worksheet.mergeCells("A3:J3")
   const dateCell = worksheet.getCell("A3")
-  dateCell.value = `Dibuat pada: ${new Date().toLocaleString("id-ID")}`
+  dateCell.value = `Dibuat pada: ${new Date().toLocaleDateString("id-ID")}`
   dateCell.font = { size: 10 }
   dateCell.alignment = { horizontal: "center" }
 
