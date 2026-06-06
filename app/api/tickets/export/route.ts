@@ -242,7 +242,7 @@ async function generateExcel(
       ticket.user_division || "-",
       ticket.user_name,
       targetDivs || "-",
-      new Date(ticket.created_at).toLocaleString("id-ID")
+      new Date(ticket.created_at).toLocaleDateString("id-ID")
     ])
 
     row.eachCell((cell) => {
