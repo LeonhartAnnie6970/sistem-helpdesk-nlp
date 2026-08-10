@@ -18,6 +18,7 @@ async function handler(_request: NextRequest) {
         t.description,
         t.user_division,
         t.target_divisions,
+        (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
         u.name,
         u.division as user_division_name
        FROM tickets t

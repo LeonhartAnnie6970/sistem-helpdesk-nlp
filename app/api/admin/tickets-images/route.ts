@@ -40,6 +40,7 @@ export async function GET(request: NextRequest) {
         t.image_user_url,
         t.description,
         t.user_division,
+        (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
         u.name,
         u.division as user_division_name
        FROM tickets t
