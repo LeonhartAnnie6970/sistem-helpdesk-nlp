@@ -124,11 +124,7 @@ export function AdminNotificationsPanel({
       return
     }
 
-    // Set flag untuk membuka tiket dari notifikasi
-    localStorage.setItem('highlightTicketId', String(ticketId))
-    localStorage.setItem('openFromNotification', 'true')
-
-    // Navigate to ticket (only if valid id)
+    // Navigate to the ticket's route (parent pushes to the right page + ?ticketId=)
     if (onTicketClick) {
       onTicketClick(ticketId)
     }

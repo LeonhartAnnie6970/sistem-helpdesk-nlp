@@ -1,8 +1,9 @@
 "use client"
 
-import React from "react"
+import React, { useEffect, useState } from "react"
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 import Image from "next/image"
+import { ImageOff } from "lucide-react"
 
 interface TicketImagePayload {
   url: string | null
@@ -41,7 +42,12 @@ export function TicketImageModal({
   const imageType = image?.type ?? type
   const open = isOpen ?? Boolean(image)
   const descriptionText = description ?? image?.description ?? ""
-  
+
+  const [imageError, setImageError] = useState(false)
+  useEffect(() => {
+    setImageError(false)
+  }, [url])
+
   if (!url) return null
 
   return (
@@ -53,14 +59,22 @@ export function TicketImageModal({
         </DialogHeader>
 
         <div className="relative w-full aspect-video bg-gray-100 dark:bg-gray-800 rounded-lg overflow-hidden">
-          <Image
-            src={url}
-            alt={title}
-            fill
-            className="object-contain"
-            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-            unoptimized
-          />
+          {imageError ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-gray-400 dark:text-gray-500">
+              <ImageOff className="w-10 h-10" />
+              <p className="text-sm">Gambar tidak dapat dimuat</p>
+            </div>
+          ) : (
+            <Image
+              src={url}
+              alt={title}
+              fill
+              className="object-contain"
+              sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+              unoptimized
+              onError={() => setImageError(true)}
+            />
+          )}
         </div>
 
         {uploader && (

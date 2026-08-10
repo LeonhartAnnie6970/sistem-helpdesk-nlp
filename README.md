@@ -154,58 +154,59 @@ Sistem ini menggunakan metode **Keyword-Based Classification** untuk mengklasifi
 ┌─────────────────────────────────────────────────────────────────┐
 │                    ALUR KLASIFIKASI NLP                         │
 ├─────────────────────────────────────────────────────────────────┤
-│                                                                  │
+│                                                                 │
 │  INPUT: Teks Tiket (Judul + Deskripsi)                          │
 │         "Laptop saya tidak bisa nyala, layar mati"              │
-│                          │                                       │
-│                          ▼                                       │
+│                          │                                      │
+│                          ▼                                      │
 │  ┌─────────────────────────────────────────────┐                │
-│  │        1. TEXT PREPROCESSING                 │                │
-│  │   • Lowercase conversion                     │                │
-│  │   • Remove special characters                │                │
-│  │   • Normalize whitespace                     │                │
-│  │   Output: "laptop saya tidak bisa nyala      │                │
-│  │            layar mati"                       │                │
+│  │        1. TEXT PREPROCESSING                │                │
+│  │   • Lowercase conversion                    │                │
+│  │   • Remove special characters               │                │
+│  │   • Normalize whitespace                    │                │
+│  │   Output: "laptop saya tidak bisa nyala     │                │
+│  │            layar mati"                      │                │
 │  └─────────────────────────────────────────────┘                │
-│                          │                                       │
-│                          ▼                                       │
+│                          │                                      │
+│                          ▼                                      │
 │  ┌─────────────────────────────────────────────┐                │
-│  │     2. KEYWORD MATCHING PER CATEGORY         │                │
-│  │                                              │                │
-│  │   IT Keywords: laptop ✓, mati ✓, layar ✓    │                │
-│  │   HR Keywords: (no match)                    │                │
-│  │   ACC/FINANCE: (no match)                    │                │
-│  │   OPERASIONAL: (no match)                    │                │
-│  │   ...                                        │                │
+│  │     2. KEYWORD MATCHING PER CATEGORY        │                │
+│  │                                             │                │
+│  │   IT Keywords: laptop ✓, mati ✓, layar ✓   │                │
+│  │   HR Keywords: (no match)                   │                │
+│  │   ACC/FINANCE: (no match)                   │                │
+│  │   OPERASIONAL: (no match)                   │                │
+│  │   ...                                       │                │
 │  └─────────────────────────────────────────────┘                │
-│                          │                                       │
-│                          ▼                                       │
+│                          │                                      │
+│                          ▼                                      │
 │  ┌─────────────────────────────────────────────┐                │
-│  │        3. SCORE CALCULATION                  │                │
-│  │                                              │                │
-│  │   • Single word match: +2.0 × weight         │                │
-│  │   • Multi-word phrase: +3.0 × weight         │                │
-│  │   • Partial match:     +1.0 × weight         │                │
-│  │                                              │                │
-│  │   IT Score: 6.0 (laptop=2 + mati=2 + layar=2)│                │
-│  │   Others: 0.0                                │                │
+│  │        3. SCORE CALCULATION                 │                │
+│  │                                             │                │
+│  │   • Single word match: +2.0 × weight        │                │
+│  │   • Multi-word phrase: +3.0 × weight        │                │
+│  │   • Partial match:     +1.0 × weight        │                │
+│  │                                             │                │
+│  │   IT Score: 6.0 (laptop=2 + mati=2 +        │                │
+│  │   layar=2)│                                 │                │  
+│  │   Others: 0.0                               │                │
 │  └─────────────────────────────────────────────┘                │
-│                          │                                       │
-│                          ▼                                       │
+│                          │                                      │
+│                          ▼                                      │
 │  ┌─────────────────────────────────────────────┐                │
-│  │    4. CONFIDENCE CALCULATION                 │                │
-│  │                                              │                │
-│  │   confidence = min(score / 10.0, 1.0)        │                │
-│  │   confidence = min(6.0 / 10.0, 1.0) = 0.60   │                │
+│  │    4. CONFIDENCE CALCULATION                │                │
+│  │                                             │                │
+│  │   confidence = min(score / 10.0, 1.0)       │                │
+│  │   confidence = min(6.0 / 10.0, 1.0) = 0.60  │                │
 │  └─────────────────────────────────────────────┘                │
-│                          │                                       │
-│                          ▼                                       │
-│  OUTPUT: {                                                       │
-│    category: "IT",                                               │
-│    confidence: 0.60,                                             │
+│                          │                                      │
+│                          ▼                                      │
+│  OUTPUT: {                                                      │
+│    category: "IT",                                              │
+│    confidence: 0.60,                                            │
 │    matched_keywords: ["laptop", "mati", "layar"]                │
-│  }                                                               │
-│                                                                  │
+│  }                                                              │
+│                                                                 │
 └─────────────────────────────────────────────────────────────────┘
 ```
 
@@ -251,66 +252,66 @@ Sistem menghitung **confidence score** untuk setiap prediksi:
 ┌──────────────────────────────────────────────────────────────────────────────┐
 │                     ALUR PEMBUATAN TIKET BARU                                │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
-│  ┌─────────┐                                                                  │
+│                                                                              │
+│  ┌─────────┐                                                                 │
 │  │  USER   │  1. Login ke sistem                                             │
-│  │ACC/FIN  │                                                                  │
-│  └────┬────┘                                                                  │
-│       │                                                                       │
-│       │  2. Buat Tiket Baru                                                   │
+│  │ACC/FIN  │                                                                 │
+│  └────┬────┘                                                                 │
+│       │                                                                      │
+│       │  2. Buat Tiket Baru                                                  │
 │       │     Judul: "Laptop rusak, tidak bisa menyala"                        │
 │       │     Deskripsi: "Layar laptop mati total, sudah dicoba restart"       │
 │       │     Lampiran: foto_laptop.jpg (optional)                             │
-│       ▼                                                                       │
+│       ▼                                                                      │
 │  ┌──────────────────────────────────────────────────────────────┐            │
-│  │                     NEXT.JS API                               │            │
-│  │  POST /api/tickets                                            │            │
-│  │  • Validasi token JWT                                         │            │
-│  │  • Simpan lampiran ke storage                                 │            │
-│  │  • Kirim teks ke NLP Service                                  │            │
+│  │                     NEXT.JS API                              │            │
+│  │  POST /api/tickets                                           │            │
+│  │  • Validasi token JWT                                        │            │
+│  │  • Simpan lampiran ke storage                                │            │
+│  │  • Kirim teks ke NLP Service                                 │            │
 │  └──────────────────────────┬───────────────────────────────────┘            │
-│                             │                                                 │
-│                             ▼                                                 │
+│                             │                                                │
+│                             ▼                                                │
 │  ┌──────────────────────────────────────────────────────────────┐            │
-│  │                    NLP SERVICE (Flask)                        │            │
-│  │  POST /classify                                               │            │
-│  │  • Preprocessing teks                                         │            │
-│  │  • Keyword matching                                           │            │
-│  │  • Score calculation                                          │            │
-│  │                                                               │            │
-│  │  Response: {                                                  │            │
-│  │    category: "IT",                                            │            │
-│  │    confidence: 0.75,                                          │            │
-│  │    matched_keywords: ["laptop", "mati", "layar", "restart"]   │            │
-│  │  }                                                            │            │
+│  │                    NLP SERVICE (Flask)                       │            │
+│  │  POST /classify                                              │            │
+│  │  • Preprocessing teks                                        │            │
+│  │  • Keyword matching                                          │            │
+│  │  • Score calculation                                         │            │
+│  │                                                              │            │
+│  │  Response: {                                                 │            │
+│  │    category: "IT",                                           │            │
+│  │    confidence: 0.75,                                         │            │
+│  │    matched_keywords: ["laptop", "mati", "layar", "restart"]  │            │
+│  │  }                                                           │            │
 │  └──────────────────────────┬───────────────────────────────────┘            │
-│                             │                                                 │
-│                             ▼                                                 │
+│                             │                                                │
+│                             ▼                                                │
 │  ┌──────────────────────────────────────────────────────────────┐            │
-│  │                    DATABASE (MySQL)                           │            │
-│  │                                                               │            │
-│  │  INSERT INTO tickets:                                         │            │
+│  │                    DATABASE (MySQL)                          │            │
+│  │                                                              │            │
+│  │  INSERT INTO tickets:                                        │            │
 │  │  • id_user: 5 (pembuat tiket)                                │            │
 │  │  • title: "Laptop rusak, tidak bisa menyala"                 │            │
 │  │  • description: "Layar laptop mati total..."                 │            │
-│  │  • status: "new"                                              │            │
-│  │  • nlp_category: "IT"                                         │            │
-│  │  • nlp_confidence: 0.75                                       │            │
-│  │  • target_divisions: ["IT"]                                   │            │
-│  │  • user_division: "ACC/FINANCE"                               │            │
+│  │  • status: "new"                                             │            │
+│  │  • nlp_category: "IT"                                        │            │
+│  │  • nlp_confidence: 0.75                                      │            │
+│  │  • target_divisions: ["IT"]                                  │            │
+│  │  • user_division: "ACC/FINANCE"                              │            │
 │  └──────────────────────────┬───────────────────────────────────┘            │
-│                             │                                                 │
-│                             ▼                                                 │
+│                             │                                                │
+│                             ▼                                                │
 │  ┌──────────────────────────────────────────────────────────────┐            │
-│  │                 NOTIFICATION SYSTEM                           │            │
-│  │                                                               │            │
-│  │  Kirim notifikasi ke:                                         │            │
-│  │  ✅ Admin IT (target division)                                │            │
-│  │  ✅ User IT (semua user di divisi target)                     │            │
-│  │  ✅ Admin ACC/FINANCE (source division)                       │            │
-│  │  ✅ Super Admin (semua tiket)                                 │            │
-│  └──────────────────────────────────────────────────────────────┘            │
-│                                                                               │
+│  │                 NOTIFICATION SYSTEM                          │            │
+│  │                                                              │            │
+│  │  Kirim notifikasi ke:                                        │            │
+│  │  ✅ Admin IT (target division)                               │            │
+│  │  ✅ User IT (semua user di divisi target)                    │            │
+│  │  ✅ Admin ACC/FINANCE (source division)                      │            │
+│  │  ✅ Super Admin (semua tiket)                                │            │
+│  └─────────────────────────────────────────────────────────────┘             │
+│                                                                              │
 └──────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -318,9 +319,9 @@ Sistem menghitung **confidence score** untuk setiap prediksi:
 
 ```
 ┌──────────────────────────────────────────────────────────────────────────────┐
-│                      ALUR RESPONS TIKET                                       │
+│                      ALUR RESPONS TIKET                                      │
 ├──────────────────────────────────────────────────────────────────────────────┤
-│                                                                               │
+│                                                                              │
 │  ┌─────────┐    1. Terima Notifikasi                                         │
 │  │ ADMIN IT│───────────────────────────────┐                                 │
 │  └────┬────┘                               │                                 │
@@ -330,60 +331,60 @@ Sistem menghitung **confidence score** untuk setiap prediksi:
 │       │                          │  • List tiket masuk │                     │
 │       │                          │  • Filter by status │                     │
 │       │                          └──────────┬──────────┘                     │
-│       │                                     │                                 │
-│       │  3. Lihat Detail & Tanggapi         ▼                                 │
+│       │                                     │                                │
+│       │  3. Lihat Detail & Tanggapi         ▼                                │
 │       │                          ┌─────────────────────┐                     │
 │       │                          │  Ticket Detail Modal│                     │
 │       │                          │  • Info tiket       │                     │
 │       │                          │  • Riwayat komentar │                     │
 │       │                          │  • Form respons     │                     │
 │       │                          └──────────┬──────────┘                     │
-│       │                                     │                                 │
-│       │  4. Tambah Komentar + Update Status │                                 │
-│       │     "Sedang dalam pengecekan"       │                                 │
-│       │     Status: New → In Progress       │                                 │
-│       │                                     ▼                                 │
+│       │                                     │                                │
+│       │  4. Tambah Komentar + Update Status │                                │
+│       │     "Sedang dalam pengecekan"       │                                │
+│       │     Status: New → In Progress       │                                │
+│       │                                     ▼                                │
 │       │                          ┌─────────────────────┐                     │
 │       │                          │  POST /api/tickets/ │                     │
 │       │                          │  [id]/comments      │                     │
 │       │                          └──────────┬──────────┘                     │
-│       │                                     │                                 │
-│       │                                     ▼                                 │
+│       │                                     │                                │
+│       │                                     ▼                                │
 │       │                          ┌─────────────────────┐                     │
 │       │                          │  Database Update    │                     │
 │       │                          │  • Insert comment   │                     │
 │       │                          │  • Update status    │                     │
 │       │                          │  • Create notif     │                     │
 │       │                          └──────────┬──────────┘                     │
-│       │                                     │                                 │
-│       │                                     ▼                                 │
+│       │                                     │                                │
+│       │                                     ▼                                │
 │       │                          ┌─────────────────────┐                     │
 │       │                          │  Notifikasi ke:     │                     │
 │       │                          │  • Pembuat tiket    │                     │
 │       │                          │  • Pihak terkait    │                     │
 │       │                          └─────────────────────┘                     │
-│       │                                                                       │
-└───────┴───────────────────────────────────────────────────────────────────────┘
+│       │                                                                      │
+└───────┴──────────────────────────────────────────────────────────────────────┘
 ```
 
 ### 3. Status Flow Tiket
 
 ```
 ┌────────────────────────────────────────────────────────────────────────────┐
-│                         STATUS FLOW TIKET                                   │
+│                         STATUS FLOW TIKET                                  │
 ├────────────────────────────────────────────────────────────────────────────┤
-│                                                                             │
-│    ┌─────────┐      ┌─────────────┐      ┌──────────┐      ┌────────┐     │
-│    │   NEW   │ ───▶ │ IN_PROGRESS │ ───▶ │ RESOLVED │ ───▶ │ CLOSED │     │
-│    │  (Baru) │      │  (Diproses) │      │ (Selesai)│      │(Ditutup)│    │
-│    └─────────┘      └─────────────┘      └──────────┘      └────────┘     │
+│                                                                            │
+│    ┌─────────┐      ┌─────────────┐      ┌──────────┐      ┌────────┐      │
+│    │   NEW   │ ───▶ │ IN_PROGRESS │ ───▶ │ RESOLVED │ ───▶ │ CLOSED │      │
+│    │  (Baru) │      │  (Diproses) │      │ (Selesai)│      │(Ditutup)│     │
+│    └─────────┘      └─────────────┘      └──────────┘      └────────┘      │
 │         │                  │                   │                │          │
 │         │                  │                   │                │          │
-│    Tiket baru         Admin/User          Masalah           Tiket         │
-│    dibuat             mulai proses        terselesaikan     ditutup       │
-│                                                                             │
-│    Warna: BIRU       Warna: KUNING       Warna: HIJAU     Warna: ABU      │
-│                                                                             │
+│    Tiket baru         Admin/User          Masalah           Tiket          │
+│    dibuat             mulai proses        terselesaikan     ditutup        │
+│                                                                            │
+│    Warna: BIRU       Warna: KUNING       Warna: HIJAU     Warna: ABU       │
+│                                                                            │
 └────────────────────────────────────────────────────────────────────────────┘
 ```
 
@@ -447,42 +448,42 @@ Tema terang dan gelap yang dapat diubah sesuai preferensi pengguna.
 
 ```
 ┌─────────────────────────────────────────────────────────────────────────────┐
-│                            DATABASE SCHEMA                                   │
+│                            DATABASE SCHEMA                                  │
 ├─────────────────────────────────────────────────────────────────────────────┤
-│                                                                              │
+│                                                                             │
 │  ┌─────────────────┐       ┌─────────────────────────────────────┐          │
-│  │     USERS       │       │              TICKETS                 │          │
+│  │     USERS       │       │              TICKETS                │          │
 │  ├─────────────────┤       ├─────────────────────────────────────┤          │
 │  │ id (PK)         │──┐    │ id (PK)                             │          │
 │  │ name            │  │    │ id_user (FK) ─────────────────────┐ │          │
-│  │ email (UNIQUE)  │  └───▶│ title                              │ │          │
-│  │ password        │       │ description                        │ │          │
-│  │ role            │       │ status                              │ │          │
-│  │ division        │       │ nlp_category                        │ │          │
-│  │ token           │       │ nlp_confidence                      │ │          │
-│  │ created_at      │       │ target_divisions (JSON)             │ │          │
-│  └─────────────────┘       │ image_url                           │ │          │
-│          │                 │ created_at                          │ │          │
-│          │                 │ updated_at                          │ │          │
+│  │ email (UNIQUE)  │  └───▶│ title                             │ │          │
+│  │ password        │       │ description                       │ │          │
+│  │ role            │       │ status                            │ │          │
+│  │ division        │       │ nlp_category                      │ │          │
+│  │ token           │       │ nlp_confidence                    │ │          │
+│  │ created_at      │       │ target_divisions (JSON)           │ │          │
+│  └─────────────────┘       │ image_url                         │ │          │
+│          │                 │ created_at                        │ │          │
+│          │                 │ updated_at                        │ │          │
 │          │                 └─────────────────────────────────────┘          │
-│          │                              │                                    │
-│          │                              │                                    │
+│          │                              │                                   │
+│          │                              │                                   │
 │          │    ┌─────────────────────────┴──────────────────────────┐        │
-│          │    │                                                     │        │
-│          │    ▼                                                     ▼        │
+│          │    │                                                    │        │
+│          │    ▼                                                    ▼        │
 │  ┌─────────────────────────┐             ┌───────────────────────────────┐  │
-│  │   TICKET_COMMENTS       │             │        NOTIFICATIONS           │  │
+│  │   TICKET_COMMENTS       │             │        NOTIFICATIONS          │  │
 │  ├─────────────────────────┤             ├───────────────────────────────┤  │
-│  │ id (PK)                 │             │ id (PK)                        │  │
-│  │ ticket_id (FK) ─────────┘             │ user_id (FK)                   │  │
-│  │ user_id (FK)            │             │ ticket_id (FK)                 │  │
-│  │ comment                 │             │ type                           │  │
-│  │ old_status              │             │ message                        │  │
-│  │ new_status              │             │ reason                         │  │
-│  │ image_url               │             │ is_read                        │  │
-│  │ created_at              │             │ created_at                     │  │
+│  │ id (PK)                 │             │ id (PK)                       │  │
+│  │ ticket_id (FK) ─────────┘             │ user_id (FK)                  │  │
+│  │ user_id (FK)            │             │ ticket_id (FK)                │  │
+│  │ comment                 │             │ type                          │  │
+│  │ old_status              │             │ message                       │  │
+│  │ new_status              │             │ reason                        │  │
+│  │ image_url               │             │ is_read                       │  │
+│  │ created_at              │             │ created_at                    │  │
 │  └─────────────────────────┘             └───────────────────────────────┘  │
-│                                                                              │
+│                                                                             │
 │  ┌───────────────────────────────────┐                                      │
 │  │   CATEGORY_DIVISION_MAPPING       │                                      │
 │  ├───────────────────────────────────┤                                      │

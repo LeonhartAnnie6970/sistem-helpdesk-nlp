@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { TicketImageModal } from "./ticket-image-modal"
 import { ImageGallerySkeleton } from "@/components/ui/skeleton"
 import { formatTicketId } from "@/lib/utils"
-import { Hash, User, Building2, ImageIcon } from "lucide-react"
+import { Hash, User, Building2, ImageIcon, ImageOff } from "lucide-react"
 import { motion } from "framer-motion"
 
 interface TicketWithImage {
@@ -21,6 +21,7 @@ interface TicketWithImage {
   created_at: string
   user_division: string
   user_division_name: string
+  ticket_sequence?: number
 }
 
 export function TicketImagesGallery() {
@@ -36,6 +37,7 @@ export function TicketImagesGallery() {
     category?: string
     userDivision?: string
   } | null>(null)
+  const [brokenImageIds, setBrokenImageIds] = useState<Set<number>>(new Set())
 
   useEffect(() => {
     fetchTicketsWithImages()
@@ -142,13 +144,21 @@ export function TicketImagesGallery() {
                   }
                   className="relative w-full aspect-video overflow-hidden block"
                 >
-                  <Image
-                    src={ticket.image_user_url}
-                    alt={ticket.title}
-                    fill
-                    className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
-                    unoptimized
-                  />
+                  {brokenImageIds.has(ticket.id) ? (
+                    <div className="absolute inset-0 flex flex-col items-center justify-center gap-1 bg-gray-100 dark:bg-gray-900 text-gray-400 dark:text-gray-500">
+                      <ImageOff className="w-6 h-6" />
+                      <p className="text-xs">Gambar tidak tersedia</p>
+                    </div>
+                  ) : (
+                    <Image
+                      src={ticket.image_user_url}
+                      alt={ticket.title}
+                      fill
+                      className="object-cover transition-transform duration-300 ease-in-out group-hover:scale-105"
+                      unoptimized
+                      onError={() => setBrokenImageIds((prev) => new Set(prev).add(ticket.id))}
+                    />
+                  )}
                   <div className="absolute inset-0 bg-black/0 group-hover:bg-black/10 transition-colors duration-300" />
                 </button>
 

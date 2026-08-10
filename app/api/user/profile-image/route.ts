@@ -7,6 +7,7 @@ import { put } from "@vercel/blob"
 import { writeFile, mkdir } from "fs/promises"
 import path from "path"
 import { existsSync } from "fs"
+import { getUploadDriver } from "@/lib/upload-driver"
 
 export async function POST(req: NextRequest) {
   try {
@@ -48,7 +49,7 @@ export async function POST(req: NextRequest) {
     let returnedFilename: string | null = null
 
     const blobToken = process.env.BLOB_PROFILE_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN
-    const useBlobStorage = !!blobToken
+    const useBlobStorage = getUploadDriver() === "blob" && !!blobToken
 
     if (useBlobStorage) {
       try {

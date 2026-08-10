@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { verifyToken } from "@/lib/auth"
-import { classify } from "@/lib/nlp-classifier"
+import { classify, classifyUrgency } from "@/lib/nlp-classifier"
 
 export async function POST(request: NextRequest) {
   const token = request.headers.get("authorization")?.replace("Bearer ", "")
@@ -22,7 +22,13 @@ export async function POST(request: NextRequest) {
     }
 
     const result = classify(text)
-    return NextResponse.json(result)
+    const urgencyResult = classifyUrgency(text)
+    return NextResponse.json({
+      ...result,
+      urgency: urgencyResult.urgency,
+      urgency_confidence: urgencyResult.confidence,
+      urgency_matched_keywords: urgencyResult.matched_keywords,
+    })
   } catch (error) {
     console.error("NLP classify error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

@@ -2,6 +2,7 @@
 import { type NextRequest, NextResponse } from "next/server"
 import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
+import { getSlaHours, isValidUrgency } from "@/lib/urgency"
 
 function parseTargetDivisions(value: string | string[] | null | undefined): string[] {
   if (!value) return []
@@ -118,17 +119,20 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         console.error("Failed to parse target_divisions:", e)
       }
 
+      // Tiket lintas-divisi yang masih pending/rejected belum boleh dilihat
+      // oleh divisi tujuan - hanya oleh divisi asal (dan pembuatnya sendiri)
+      const isApprovedOrNotRequired = ticket.approval_status === 'approved' || ticket.approval_status === 'not_required'
       const hasAccess = ticket.id_user === decoded.userId ||
-                        targetDivisions.includes(userDivision) ||
-                        ticket.user_division === userDivision
+                        ticket.user_division === userDivision ||
+                        (targetDivisions.includes(userDivision) && isApprovedOrNotRequired)
 
       if (!hasAccess) {
         return NextResponse.json({ error: "Forbidden - ticket not accessible" }, { status: 403 })
       }
     } else if (decoded.role === "admin") {
       // Admin can see tickets:
-      // 1. Targeted to their division (check in target_divisions JSON array)
-      // 2. Created FROM their division
+      // 1. Targeted to their division (check in target_divisions JSON array) - once approved
+      // 2. Created FROM their division (always, to review/approve/reject)
       const adminInfo: any = await query(
         "SELECT division FROM users WHERE id = ?",
         [decoded.userId]
@@ -143,8 +147,9 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
         console.error("Failed to parse target_divisions:", e)
       }
 
-      const hasAccess = targetDivisions.includes(adminDivision) ||
-                        ticket.user_division === adminDivision
+      const isApprovedOrNotRequired = ticket.approval_status === 'approved' || ticket.approval_status === 'not_required'
+      const hasAccess = ticket.user_division === adminDivision ||
+                        (targetDivisions.includes(adminDivision) && isApprovedOrNotRequired)
 
       if (!hasAccess) {
         return NextResponse.json({ error: "Forbidden - ticket not for your division" }, { status: 403 })
@@ -182,7 +187,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 })
     }
 
-    const { status, category, imageAdminUrl, admin_notes } = bodyData
+    const { status, category, imageAdminUrl, admin_notes, urgency } = bodyData
 
     // Only admin and super_admin can update tickets
     if (decoded.role !== "admin" && decoded.role !== "super_admin") {
@@ -195,7 +200,7 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
       const adminDivision = (adminInfo as any)[0]?.division
 
       const ticketInfo = await query(
-        `SELECT t.target_divisions, u.division as user_division FROM tickets t
+        `SELECT t.target_divisions, t.approval_status, u.division as user_division FROM tickets t
          JOIN users u ON t.id_user = u.id
          WHERE t.id = ?`,
         [id]
@@ -216,8 +221,10 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
         console.error("Failed to parse target_divisions:", e)
       }
 
-      // Admin can update if ticket is targeted to their division OR from their division
-      const hasAccess = targetDivisions.includes(adminDivision) || ticketUserDivision === adminDivision
+      // Admin can update if ticket is targeted to their division OR from their division,
+      // and the ticket has already cleared (or never needed) origin-division approval
+      const isApprovedOrNotRequired = ticketData?.approval_status === 'approved' || ticketData?.approval_status === 'not_required'
+      const hasAccess = (targetDivisions.includes(adminDivision) || ticketUserDivision === adminDivision) && isApprovedOrNotRequired
 
       if (!hasAccess) {
         return NextResponse.json({ error: "You can only update tickets for your division" }, { status: 403 })
@@ -226,13 +233,27 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
 
     // Check if ticket is already closed - prevent any updates
     const currentTicketInfo: any = await query(
-      `SELECT status, id_user FROM tickets WHERE id = ?`,
+      `SELECT status, id_user, approval_status, urgency, approved_at, created_at FROM tickets WHERE id = ?`,
       [id]
     )
 
     if (currentTicketInfo[0]?.status === "closed") {
       return NextResponse.json(
         { error: "Tiket sudah ditutup dan tidak dapat diubah lagi" },
+        { status: 403 }
+      )
+    }
+
+    if (currentTicketInfo[0]?.approval_status === "pending") {
+      return NextResponse.json(
+        { error: "Tiket masih menunggu persetujuan admin divisi asal" },
+        { status: 403 }
+      )
+    }
+
+    if (currentTicketInfo[0]?.approval_status === "rejected") {
+      return NextResponse.json(
+        { error: "Tiket ini telah ditolak dan tidak dapat diproses lagi" },
         { status: 403 }
       )
     }
@@ -268,6 +289,19 @@ export async function PATCH(request: NextRequest, { params }: { params: Promise<
     if (admin_notes !== undefined) {
       updates.push("admin_notes = ?")
       values.push(admin_notes)
+    }
+    if (urgency !== undefined) {
+      if (!isValidUrgency(urgency)) {
+        return NextResponse.json({ error: "Urgensi tidak valid" }, { status: 400 })
+      }
+      updates.push("urgency = ?")
+      values.push(urgency)
+
+      // SLA sudah berjalan (tiket approved/not_required) -> hitung ulang deadline
+      // dari titik mulai yang sama (approved_at kalau ada, kalau tidak created_at),
+      // pakai urgensi baru. Dihitung di SQL supaya konsisten timezone dengan kolom lain.
+      updates.push("deadline_at = DATE_ADD(COALESCE(approved_at, created_at), INTERVAL ? HOUR)")
+      values.push(getSlaHours(urgency))
     }
 
     if (updates.length === 0) {

@@ -7,9 +7,10 @@ import { Textarea } from "@/components/ui/textarea"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import { Send, User, Clock, MessageSquare, Image as ImageIcon, Building2 } from "lucide-react"
+import { Send, User, Clock, MessageSquare, Image as ImageIcon, ImageOff, Building2, ShieldCheck, ShieldX, ShieldQuestion } from "lucide-react"
 import { format } from "date-fns"
 import { formatTicketId } from "@/lib/utils"
+import { URGENCY_LEVELS, URGENCY_META, getDeadlineInfo, type Urgency } from "@/lib/urgency"
 
 interface Comment {
   id: number
@@ -35,6 +36,10 @@ interface Ticket {
   category: string
   nlp_category?: string
   status: string
+  approval_status?: 'not_required' | 'pending' | 'approved' | 'rejected'
+  rejection_reason?: string | null
+  urgency?: Urgency
+  deadline_at?: string | null
   target_divisions: string // JSON array string
   created_at: string
   user_name: string
@@ -60,24 +65,124 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
   const [loading, setLoading] = useState(false)
   const [submitting, setSubmitting] = useState(false)
   const [currentUserId, setCurrentUserId] = useState<number | null>(null)
+  const [currentUserRole, setCurrentUserRole] = useState<string>("")
+  const [currentUserDivision, setCurrentUserDivision] = useState<string>("")
+  const [rejectReason, setRejectReason] = useState("")
+  const [showRejectForm, setShowRejectForm] = useState(false)
+  const [approving, setApproving] = useState(false)
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set())
+  const [editingUrgency, setEditingUrgency] = useState(false)
+  const [urgencyDraft, setUrgencyDraft] = useState<Urgency>("medium")
+  const [savingUrgency, setSavingUrgency] = useState(false)
 
   useEffect(() => {
-    // Get current user ID from localStorage
+    // Get current user info from localStorage
     const userId = localStorage.getItem("userId")
     if (userId) {
       setCurrentUserId(parseInt(userId))
     }
+    setCurrentUserRole(localStorage.getItem("role") || "")
+    setCurrentUserDivision(localStorage.getItem("division") || "")
   }, [])
 
   useEffect(() => {
     if (isOpen && ticketId) {
       fetchTicketDetails()
       fetchComments()
+      setShowRejectForm(false)
+      setRejectReason("")
+      setBrokenImages(new Set())
+      setEditingUrgency(false)
     }
   }, [isOpen, ticketId])
 
+  const canEditUrgency = currentUserRole === "admin" || currentUserRole === "super_admin"
+
+  const handleSaveUrgency = async () => {
+    if (!ticket) return
+    try {
+      setSavingUrgency(true)
+      const token = localStorage.getItem("token")
+      const response = await fetch(`/api/tickets/${ticket.id}`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ urgency: urgencyDraft }),
+      })
+
+      if (!response.ok) {
+        const data = await response.json()
+        alert(data.error || "Gagal mengubah urgensi tiket")
+        return
+      }
+
+      setEditingUrgency(false)
+      fetchTicketDetails()
+      if (onUpdate) onUpdate()
+    } catch (error) {
+      console.error("Error saving urgency:", error)
+      alert("Terjadi kesalahan saat mengubah urgensi tiket")
+    } finally {
+      setSavingUrgency(false)
+    }
+  }
+
+  const markImageBroken = (key: string) => {
+    setBrokenImages((prev) => new Set(prev).add(key))
+  }
+
   // Check if current user is the ticket creator
   const isTicketCreator = ticket && currentUserId ? ticket.id_user === currentUserId : false
+
+  // Only the origin division's admin (or a super_admin) may approve/reject a pending ticket
+  const canReviewApproval = ticket && ticket.approval_status === "pending" && (
+    currentUserRole === "super_admin" ||
+    (currentUserRole === "admin" && currentUserDivision === ticket.user_division)
+  )
+
+  const handleApprovalAction = async (action: "approve" | "reject") => {
+    if (!ticket) return
+
+    if (action === "reject" && !rejectReason.trim()) {
+      alert("Mohon isi alasan penolakan")
+      return
+    }
+
+    try {
+      setApproving(true)
+      const token = localStorage.getItem("token")
+      const response = await fetch(`/api/tickets/${ticket.id}/approval`, {
+        method: "PATCH",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify(
+          action === "approve" ? { action } : { action, reason: rejectReason.trim() }
+        ),
+      })
+
+      const data = await response.json()
+
+      if (!response.ok) {
+        alert(data.error || "Gagal memproses persetujuan tiket")
+        return
+      }
+
+      setShowRejectForm(false)
+      setRejectReason("")
+      fetchTicketDetails()
+      fetchComments()
+      if (onUpdate) onUpdate()
+    } catch (error) {
+      console.error("Error processing approval:", error)
+      alert("Terjadi kesalahan saat memproses persetujuan tiket")
+    } finally {
+      setApproving(false)
+    }
+  }
 
   const fetchTicketDetails = async () => {
     try {
@@ -192,6 +297,26 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
     )
   }
 
+  const getApprovalBadge = (approvalStatus?: string) => {
+    if (!approvalStatus || approvalStatus === "not_required") return null
+
+    const config: { [key: string]: { color: string; label: string; icon: any } } = {
+      pending: { color: "bg-amber-500", label: "Menunggu Persetujuan", icon: ShieldQuestion },
+      approved: { color: "bg-emerald-600", label: "Disetujui", icon: ShieldCheck },
+      rejected: { color: "bg-red-600", label: "Ditolak", icon: ShieldX },
+    }
+    const cfg = config[approvalStatus]
+    if (!cfg) return null
+    const Icon = cfg.icon
+
+    return (
+      <Badge className={`${cfg.color} text-white gap-1`}>
+        <Icon className="w-3 h-3" />
+        {cfg.label}
+      </Badge>
+    )
+  }
+
   const getRoleBadge = (role: string) => {
     const roleColors: { [key: string]: string } = {
       user: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200",
@@ -235,8 +360,14 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                     <h3 className="text-lg font-semibold text-black dark:text-white mb-2">
                       {ticket.title}
                     </h3>
-                    <div className="flex flex-wrap gap-2 mb-3">
+                    <div className="flex flex-wrap items-center gap-2 mb-3">
                       {getStatusBadge(ticket.status)}
+                      {getApprovalBadge(ticket.approval_status)}
+                      {ticket.urgency && !editingUrgency && (
+                        <Badge className={URGENCY_META[ticket.urgency].color}>
+                          {URGENCY_META[ticket.urgency].label}
+                        </Badge>
+                      )}
                       {/* Divisi Tujuan dari NLP */}
                       {(ticket.nlp_category || ticket.category) && (
                         <Badge className="bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 gap-1">
@@ -244,7 +375,42 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                           {ticket.nlp_category || ticket.category}
                         </Badge>
                       )}
+                      {canEditUrgency && !editingUrgency && (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setUrgencyDraft(ticket.urgency || "medium")
+                            setEditingUrgency(true)
+                          }}
+                          className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                        >
+                          Ubah urgensi
+                        </button>
+                      )}
                     </div>
+
+                    {editingUrgency && (
+                      <div className="flex items-center gap-2 mb-3">
+                        <Select value={urgencyDraft} onValueChange={(v) => setUrgencyDraft(v as Urgency)}>
+                          <SelectTrigger className="w-40 bg-white dark:bg-black border-gray-300 dark:border-gray-600">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {URGENCY_LEVELS.map((level) => (
+                              <SelectItem key={level} value={level}>
+                                {URGENCY_META[level].label}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Button size="sm" onClick={handleSaveUrgency} disabled={savingUrgency}>
+                          {savingUrgency ? "Menyimpan..." : "Simpan"}
+                        </Button>
+                        <Button size="sm" variant="outline" onClick={() => setEditingUrgency(false)} disabled={savingUrgency}>
+                          Batal
+                        </Button>
+                      </div>
+                    )}
                   </div>
                 </div>
 
@@ -257,6 +423,18 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                     <Clock className="w-4 h-4" />
                     <span>{format(new Date(ticket.created_at), "dd MMM yyyy, HH:mm")}</span>
                   </div>
+                  {(() => {
+                    const deadlineInfo = getDeadlineInfo(ticket.deadline_at, ticket.status)
+                    if (!deadlineInfo) return null
+                    return (
+                      <div className={`flex items-center gap-2 text-sm ${deadlineInfo.overdue ? "text-red-600 dark:text-red-400 font-medium" : "text-gray-600 dark:text-gray-300"}`}>
+                        <Clock className="w-4 h-4" />
+                        <span>
+                          Deadline: {format(new Date(ticket.deadline_at!), "dd MMM yyyy, HH:mm")} ({deadlineInfo.label})
+                        </span>
+                      </div>
+                    )
+                  })()}
                 </div>
 
                 <div className="mt-4 p-4 bg-gray-50 dark:bg-gray-800 rounded-lg">
@@ -273,11 +451,19 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                     <p className="text-sm font-medium text-gray-700 dark:text-gray-200 mb-2">
                       Lampiran:
                     </p>
-                    <img
-                      src={ticket.image_user_url}
-                      alt="Ticket attachment"
-                      className="max-w-md rounded-lg border border-gray-200 dark:border-gray-700"
-                    />
+                    {brokenImages.has("ticket") ? (
+                      <div className="flex items-center gap-2 max-w-md rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-sm text-gray-400 dark:text-gray-500">
+                        <ImageOff className="w-5 h-5" />
+                        Gambar tidak dapat dimuat
+                      </div>
+                    ) : (
+                      <img
+                        src={ticket.image_user_url}
+                        alt="Ticket attachment"
+                        className="max-w-md rounded-lg border border-gray-200 dark:border-gray-700"
+                        onError={() => markImageBroken("ticket")}
+                      />
+                    )}
                   </div>
                 )}
               </CardContent>
@@ -358,11 +544,19 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                                 Bukti Foto:
                               </span>
                             </div>
-                            <img
-                              src={comment.attachment_path}
-                              alt="Comment attachment"
-                              className="max-w-sm rounded-lg border border-gray-200 dark:border-gray-700"
-                            />
+                            {brokenImages.has(`comment-${comment.id}`) ? (
+                              <div className="flex items-center gap-2 max-w-sm rounded-lg border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 p-4 text-sm text-gray-400 dark:text-gray-500">
+                                <ImageOff className="w-5 h-5" />
+                                Gambar tidak dapat dimuat
+                              </div>
+                            ) : (
+                              <img
+                                src={comment.attachment_path}
+                                alt="Comment attachment"
+                                className="max-w-sm rounded-lg border border-gray-200 dark:border-gray-700"
+                                onError={() => markImageBroken(`comment-${comment.id}`)}
+                              />
+                            )}
                           </div>
                         )}
                       </CardContent>
@@ -372,8 +566,102 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
               </div>
             </div>
 
-            {/* Add Comment Form - Disabled if ticket is closed */}
+            {/* Approval Panel - shown while ticket is pending/rejected for cross-division routing */}
+            {ticket.approval_status === "pending" && (
+              <Card className="bg-amber-50 dark:bg-amber-950/20 border-amber-300 dark:border-amber-800">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3">
+                    <ShieldQuestion className="w-6 h-6 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+                    <div className="flex-1">
+                      <h4 className="text-lg font-semibold text-amber-800 dark:text-amber-300 mb-1">
+                        Menunggu Persetujuan
+                      </h4>
+                      <p className="text-sm text-amber-700 dark:text-amber-400">
+                        Tiket ini ditujukan ke divisi lain dan menunggu persetujuan admin divisi{" "}
+                        <strong>{ticket.user_division}</strong> sebelum diteruskan ke divisi tujuan.
+                      </p>
+
+                      {canReviewApproval && (
+                        <div className="mt-4 space-y-3">
+                          {!showRejectForm ? (
+                            <div className="flex gap-2">
+                              <Button
+                                onClick={() => handleApprovalAction("approve")}
+                                disabled={approving}
+                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                              >
+                                {approving ? "Memproses..." : "Setujui Tiket"}
+                              </Button>
+                              <Button
+                                variant="outline"
+                                onClick={() => setShowRejectForm(true)}
+                                disabled={approving}
+                                className="border-red-300 text-red-600 hover:bg-red-50 dark:border-red-800 dark:text-red-400 dark:hover:bg-red-950/30"
+                              >
+                                Tolak Tiket
+                              </Button>
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              <Textarea
+                                value={rejectReason}
+                                onChange={(e) => setRejectReason(e.target.value)}
+                                placeholder="Tulis alasan penolakan..."
+                                className="bg-white dark:bg-black border-gray-300 dark:border-gray-600"
+                                rows={3}
+                              />
+                              <div className="flex gap-2">
+                                <Button
+                                  onClick={() => handleApprovalAction("reject")}
+                                  disabled={approving}
+                                  className="bg-red-600 hover:bg-red-700 text-white"
+                                >
+                                  {approving ? "Memproses..." : "Konfirmasi Tolak"}
+                                </Button>
+                                <Button
+                                  variant="outline"
+                                  onClick={() => { setShowRejectForm(false); setRejectReason("") }}
+                                  disabled={approving}
+                                >
+                                  Batal
+                                </Button>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {ticket.approval_status === "rejected" && (
+              <Card className="bg-red-50 dark:bg-red-950/20 border-red-300 dark:border-red-800">
+                <CardContent className="p-6">
+                  <div className="flex items-start gap-3">
+                    <ShieldX className="w-6 h-6 text-red-600 dark:text-red-400 flex-shrink-0 mt-0.5" />
+                    <div>
+                      <h4 className="text-lg font-semibold text-red-800 dark:text-red-300 mb-1">
+                        Tiket Ditolak
+                      </h4>
+                      <p className="text-sm text-red-700 dark:text-red-400">
+                        Tiket ini ditolak oleh admin divisi {ticket.user_division} dan tidak diteruskan.
+                      </p>
+                      {ticket.rejection_reason && (
+                        <p className="text-sm text-red-700 dark:text-red-400 mt-2">
+                          <strong>Alasan:</strong> {ticket.rejection_reason}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Add Comment Form - Disabled if ticket is closed, pending, or rejected */}
             {/* Check both ticket.status and comments history for closed status */}
+            {ticket.approval_status !== "pending" && ticket.approval_status !== "rejected" && (
             <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
               <CardContent className="p-6">
                 {(ticket.status === "closed" || comments.some(c => c.new_status === "closed")) ? (
@@ -483,6 +771,7 @@ export function TicketDetailModal({ isOpen, onClose, ticketId, onUpdate }: Ticke
                 )}
               </CardContent>
             </Card>
+            )}
           </div>
         ) : (
           <div className="flex items-center justify-center py-8">

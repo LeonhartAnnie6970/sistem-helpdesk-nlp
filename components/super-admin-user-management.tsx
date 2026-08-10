@@ -44,7 +44,7 @@ import {
   CheckCircle2,
   XCircle
 } from 'lucide-react'
-import { useToast } from "@/components/ui/use-toast"
+import { showToast } from "@/lib/utils"
 
 interface User {
   id: number
@@ -75,7 +75,6 @@ const ROLES = [
 ]
 
 export function SuperAdminUserManagement() {
-  const { toast } = useToast()
   const [users, setUsers] = useState<User[]>([])
   const [filteredUsers, setFilteredUsers] = useState<User[]>([])
   const [loading, setLoading] = useState(true)
@@ -122,19 +121,11 @@ export function SuperAdminUserManagement() {
         const data = await response.json()
         setUsers(data.users || [])
       } else {
-        toast({
-          title: "Error",
-          description: "Failed to fetch users",
-          variant: "destructive"
-        })
+        showToast.error("Error", "Failed to fetch users")
       }
     } catch (error) {
       console.error("Error fetching users:", error)
-      toast({
-        title: "Error",
-        description: "Failed to fetch users",
-        variant: "destructive"
-      })
+      showToast.error("Error", "Failed to fetch users")
     } finally {
       setLoading(false)
     }
@@ -227,27 +218,16 @@ export function SuperAdminUserManagement() {
       const data = await response.json()
 
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User created successfully"
-        })
+        showToast.success("Success", "User created successfully")
         setIsAddDialogOpen(false)
         resetForm()
         fetchUsers()
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to create user",
-          variant: "destructive"
-        })
+        showToast.error("Error", data.error || "Failed to create user")
       }
     } catch (error) {
       console.error("Error creating user:", error)
-      toast({
-        title: "Error",
-        description: "Failed to create user",
-        variant: "destructive"
-      })
+      showToast.error("Error", "Failed to create user")
     } finally {
       setSubmitting(false)
     }
@@ -274,27 +254,16 @@ export function SuperAdminUserManagement() {
       const data = await response.json()
 
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User updated successfully"
-        })
+        showToast.success("Success", "User updated successfully")
         setIsEditDialogOpen(false)
         resetForm()
         fetchUsers()
       } else {
-        toast({
-          title: "Error",
-          description: data.error || "Failed to update user",
-          variant: "destructive"
-        })
+        showToast.error("Error", data.error || "Failed to update user")
       }
     } catch (error) {
       console.error("Error updating user:", error)
-      toast({
-        title: "Error",
-        description: "Failed to update user",
-        variant: "destructive"
-      })
+      showToast.error("Error", "Failed to update user")
     } finally {
       setSubmitting(false)
     }
@@ -312,28 +281,17 @@ export function SuperAdminUserManagement() {
       })
 
       if (response.ok) {
-        toast({
-          title: "Success",
-          description: "User deleted successfully"
-        })
+        showToast.success("Success", "User deleted successfully")
         setIsDeleteDialogOpen(false)
         resetForm()
         fetchUsers()
       } else {
         const data = await response.json()
-        toast({
-          title: "Error",
-          description: data.error || "Failed to delete user",
-          variant: "destructive"
-        })
+        showToast.error("Error", data.error || "Failed to delete user")
       }
     } catch (error) {
       console.error("Error deleting user:", error)
-      toast({
-        title: "Error",
-        description: "Failed to delete user",
-        variant: "destructive"
-      })
+      showToast.error("Error", "Failed to delete user")
     } finally {
       setSubmitting(false)
     }

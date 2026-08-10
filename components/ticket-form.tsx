@@ -8,7 +8,9 @@
   import { Input } from "@/components/ui/input"
   import { Textarea } from "@/components/ui/textarea"
   import { Badge } from "@/components/ui/badge"
+  import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
   import { ImageUpload } from "./image-upload"
+  import { URGENCY_LEVELS, URGENCY_META, type Urgency } from "@/lib/urgency"
 
   interface TicketFormProps {
     onSuccess?: () => void
@@ -25,6 +27,8 @@
     const [classifyingText, setClassifyingText] = useState(false)
     const [imageUserUrl, setImageUserUrl] = useState<string | null>(null)
     const [imageUserPreview, setImageUserPreview] = useState<string | null>(null)
+    const [urgency, setUrgency] = useState<Urgency>("medium")
+    const [urgencyTouched, setUrgencyTouched] = useState(false)
 
     const debounceTimerRef = useRef<NodeJS.Timeout | null>(null)
 
@@ -50,13 +54,16 @@
         if (response.ok) {
           const data = await response.json()
           setPredictedCategory(data.category)
+          if (!urgencyTouched && data.urgency) {
+            setUrgency(data.urgency)
+          }
         }
       } catch (err) {
         console.error("Classification error:", err)
       } finally {
         setClassifyingText(false)
       }
-    }, [])
+    }, [urgencyTouched])
 
     // Auto-classify when title or description changes (with debounce)
     useEffect(() => {
@@ -114,6 +121,7 @@
             title,
             description,
             imageUserUrl: imageUserUrl || null,
+            urgency,
           }),
         })
 
@@ -130,6 +138,8 @@
         setImageUserUrl(null)
         setImageUserPreview(null)
         setPredictedCategory(null)
+        setUrgency("medium")
+        setUrgencyTouched(false)
 
         if (onSuccess) {
           onSuccess()
@@ -194,6 +204,32 @@
                 {classifyingText && <span className="text-xs text-gray-600 dark:text-gray-400 ml-2">Menganalisis...</span>}
               </div>
             )}
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium text-black dark:text-white">
+                Tingkat Urgensi
+                {!urgencyTouched && <span className="text-xs text-gray-500 dark:text-gray-400 font-normal ml-2">(saran otomatis, bisa diubah)</span>}
+              </label>
+              <Select
+                value={urgency}
+                onValueChange={(value) => {
+                  setUrgency(value as Urgency)
+                  setUrgencyTouched(true)
+                }}
+                disabled={isLoading}
+              >
+                <SelectTrigger className="bg-white dark:bg-black text-black dark:text-white border-gray-300 dark:border-gray-600">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {URGENCY_LEVELS.map((level) => (
+                    <SelectItem key={level} value={level}>
+                      {URGENCY_META[level].label}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
 
             <ImageUpload
               label="Bukti Laporan"

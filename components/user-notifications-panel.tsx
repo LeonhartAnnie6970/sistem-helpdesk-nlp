@@ -1,7 +1,7 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { X, CheckCheck, Bell, FileText, Image as ImageIcon, CheckCircle, Clock } from 'lucide-react'
+import { X, CheckCheck, Bell, FileText, Image as ImageIcon, CheckCircle, Clock, ShieldCheck, ShieldX } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 
@@ -10,7 +10,7 @@ interface Notification {
   ticket_id: number
   ticket_title: string
   message: string
-  type: 'status_update' | 'super_admin_note' | 'admin_note' | 'super_admin_image' | 'admin_image' | 'ticket_resolved'
+  type: 'status_update' | 'super_admin_note' | 'admin_note' | 'super_admin_image' | 'admin_image' | 'ticket_resolved' | 'ticket_approved' | 'ticket_rejected'
   is_read: boolean
   created_at: string
 }
@@ -86,16 +86,8 @@ export function UserNotificationsPanel({ token, onTicketClick, onClose, onNotifi
     const ticketId = rawTicketId !== null && rawTicketId !== undefined && rawTicketId !== "" ? Number(rawTicketId) : null
 
     if (ticketId !== null && !Number.isNaN(ticketId)) {
-      // Jika ada callback onTicketClick, gunakan itu (navigasi tanpa reload)
-      if (onTicketClick) {
-        onTicketClick(ticketId)
-        if (onClose) onClose()
-      } else {
-        // Fallback: navigasi dengan reload halaman
-        localStorage.setItem('openIncomingTickets', 'true')
-        localStorage.setItem('highlightTicketId', String(ticketId))
-        window.location.href = '/dashboard?tab=my-tickets&view=incoming'
-      }
+      onTicketClick?.(ticketId)
+      onClose?.()
     } else {
       console.warn('Notification has no valid ticket id:', notification)
     }
@@ -111,6 +103,10 @@ export function UserNotificationsPanel({ token, onTicketClick, onClose, onNotifi
         return <ImageIcon className="w-4 h-4 text-green-500" />
       case 'ticket_resolved':
         return <CheckCircle className="w-4 h-4 text-green-600" />
+      case 'ticket_approved':
+        return <ShieldCheck className="w-4 h-4 text-emerald-600" />
+      case 'ticket_rejected':
+        return <ShieldX className="w-4 h-4 text-red-600" />
       default:
         return <Clock className="w-4 h-4" />
     }
@@ -126,6 +122,10 @@ export function UserNotificationsPanel({ token, onTicketClick, onClose, onNotifi
         return 'bg-purple-50 dark:bg-purple-950/50 border-l-4 border-l-purple-500'
       case 'admin_image':
         return 'bg-green-50 dark:bg-green-950/50 border-l-4 border-l-green-500'
+      case 'ticket_approved':
+        return 'bg-emerald-50 dark:bg-emerald-950/50 border-l-4 border-l-emerald-500'
+      case 'ticket_rejected':
+        return 'bg-red-50 dark:bg-red-950/50 border-l-4 border-l-red-500'
       default:
         return ''
     }

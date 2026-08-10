@@ -60,6 +60,23 @@ export function parseTargetDivisions(value: string | string[] | null | undefined
 }
 
 /**
+ * Meta (label + warna badge) untuk approval_status tiket lintas divisi.
+ * Return null untuk 'not_required' / kosong agar tidak menambah noise di UI.
+ */
+export function getApprovalStatusMeta(approvalStatus?: string | null): { label: string; className: string } | null {
+  switch (approvalStatus) {
+    case 'pending':
+      return { label: 'Menunggu Persetujuan', className: 'bg-amber-500 text-white' }
+    case 'approved':
+      return { label: 'Disetujui', className: 'bg-emerald-600 text-white' }
+    case 'rejected':
+      return { label: 'Ditolak', className: 'bg-red-600 text-white' }
+    default:
+      return null
+  }
+}
+
+/**
  * Format ticket ID dengan prefix divisi
  * @param ticketId - ID ticket numeric dari database
  * @param division - Nama divisi (contoh: "ACC/FINANCE", "Operasional", "HR")

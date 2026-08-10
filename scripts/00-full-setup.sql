@@ -50,7 +50,12 @@ CREATE TABLE tickets (
     title VARCHAR(255) NOT NULL,
     description TEXT NOT NULL,
     category VARCHAR(100) DEFAULT NULL,
-    status ENUM('new', 'in_progress', 'resolved') DEFAULT 'new',
+    status ENUM('new', 'in_progress', 'resolved', 'closed') DEFAULT 'new',
+
+    approval_status ENUM('not_required', 'pending', 'approved', 'rejected') DEFAULT 'not_required',
+    approved_by INT DEFAULT NULL,
+    approved_at TIMESTAMP NULL DEFAULT NULL,
+    rejection_reason TEXT DEFAULT NULL,
 
     image_user_url VARCHAR(500) DEFAULT NULL,
     image_admin_url VARCHAR(500) DEFAULT NULL,
@@ -65,6 +70,9 @@ CREATE TABLE tickets (
     nlp_confidence DECIMAL(5,2) DEFAULT 0.00,
     nlp_keywords TEXT DEFAULT NULL,
 
+    urgency ENUM('low', 'medium', 'high', 'critical') DEFAULT 'medium',
+    deadline_at TIMESTAMP NULL DEFAULT NULL,
+
     is_nlp_overridden BOOLEAN DEFAULT FALSE,
     original_nlp_division VARCHAR(100) DEFAULT NULL,
     override_reason TEXT DEFAULT NULL,
@@ -76,8 +84,12 @@ CREATE TABLE tickets (
 
     FOREIGN KEY (id_user) REFERENCES users(id) ON DELETE CASCADE,
     FOREIGN KEY (overridden_by) REFERENCES users(id) ON DELETE SET NULL,
+    FOREIGN KEY (approved_by) REFERENCES users(id) ON DELETE SET NULL,
 
     INDEX idx_status (status),
+    INDEX idx_approval_status (approval_status),
+    INDEX idx_urgency (urgency),
+    INDEX idx_deadline_at (deadline_at),
     INDEX idx_user_division (user_division),
     INDEX idx_nlp_category (nlp_category),
     INDEX idx_created_at (created_at DESC),
@@ -94,7 +106,7 @@ CREATE TABLE notifications (
     id_user INT NOT NULL,
     title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    notification_reason ENUM('user_division', 'nlp_category', 'super_admin') DEFAULT NULL,
+    notification_reason ENUM('user_division', 'nlp_category', 'super_admin', 'approval_pending') DEFAULT NULL,
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 
@@ -115,7 +127,7 @@ CREATE TABLE user_notifications (
     id_ticket INT NOT NULL,
     ticket_title VARCHAR(255) NOT NULL,
     message TEXT NOT NULL,
-    type ENUM('status_update', 'admin_note', 'admin_image', 'ticket_resolved', 'new_ticket') DEFAULT 'status_update',
+    type ENUM('status_update', 'admin_note', 'admin_image', 'ticket_resolved', 'new_ticket', 'ticket_approved', 'ticket_rejected') DEFAULT 'status_update',
     is_read BOOLEAN DEFAULT FALSE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
 

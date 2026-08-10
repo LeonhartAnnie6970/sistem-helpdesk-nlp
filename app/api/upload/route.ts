@@ -1,6 +1,9 @@
 import { put } from "@vercel/blob"
 import { type NextRequest, NextResponse } from "next/server"
 import jwt from "jsonwebtoken"
+import fs from "fs/promises"
+import path from "path"
+import { getUploadDriver } from "@/lib/upload-driver"
 
 export async function POST(req: NextRequest) {
   try {
@@ -46,9 +49,50 @@ export async function POST(req: NextRequest) {
     const safeFilename = originalFilename.replace(/\s+/g, "_")
     const blobFilename = `${type}_${decoded.userId}_${timestamp}_${safeFilename}`
 
+    const uploadDriver = getUploadDriver()
+
+if (uploadDriver === "local") {
+
+    const bytes = await file.arrayBuffer();
+    const buffer = Buffer.from(bytes);
+
+//     const folderMap: Record<string, string> = {
+//     user_report: "user_reports",
+//     admin_resolution: "admin_resolution",
+// };
+
+// const uploadDir = path.join(
+//     process.cwd(),
+//     "public",
+//     "uploads",
+//     folderMap[type]
+// );
+
+    const uploadDir = path.join(
+    process.cwd(),
+    "public",
+    "uploads"
+);
+
+    await fs.mkdir(uploadDir, {
+        recursive: true,
+    });
+
+    const filePath = path.join(uploadDir, blobFilename);
+
+    await fs.writeFile(filePath, buffer);
+
+    return NextResponse.json({
+        success: true,
+        url: `/uploads/${blobFilename}`,
+        filename: originalFilename,
+    });
+
+}
+
     const blob = await put(blobFilename, file, {
       access: "public",
-      token: process.env.BLOB_PUBLIC_READ_WRITE_TOKEN,
+      token: process.env.BLOB_PROFILE_READ_WRITE_TOKEN,
     })
 
     return NextResponse.json({

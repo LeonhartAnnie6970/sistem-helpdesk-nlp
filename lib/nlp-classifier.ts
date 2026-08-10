@@ -1,3 +1,5 @@
+import type { Urgency } from "./urgency"
+
 type CategoryConfig = {
   keywords: string[]
   weight: number
@@ -216,6 +218,73 @@ export function classify(text: string): ClassifyResult {
     matched_keywords: bestData.matched.slice(0, 10),
     all_scores: allScores,
     method: "keyword_matching",
+  }
+}
+
+// ============================================================
+// Klasifikasi urgensi tiket - keyword-scoring dengan pola yang sama
+// seperti klasifikasi kategori di atas.
+// ============================================================
+
+const URGENCY_KEYWORDS: Record<Urgency, CategoryConfig> = {
+  critical: {
+    keywords: [
+      "down", "mati total", "tidak bisa diakses sama sekali", "seluruh kantor", "semua user", "semua karyawan",
+      "kebakaran", "kebocoran data", "data hilang", "data loss", "diretas", "hacked", "security breach",
+      "kritis", "critical", "darurat", "emergency", "fatal", "lumpuh",
+    ],
+    weight: 1.2,
+  },
+  high: {
+    keywords: [
+      "urgent", "mendesak", "segera", "asap", "penting", "tidak bisa kerja",
+      "blocking", "menghambat pekerjaan", "stuck", "terhambat", "high priority", "prioritas tinggi",
+      "deadline", "besok", "hari ini",
+    ],
+    weight: 1.0,
+  },
+  low: {
+    keywords: [
+      "tanya", "pertanyaan", "info", "informasi", "request", "permintaan", "kapan-kapan",
+      "tidak mendesak", "santai", "low priority", "prioritas rendah", "sekedar", "usul", "saran",
+    ],
+    weight: 1.0,
+  },
+  medium: {
+    keywords: ["tolong", "mohon", "bantuan", "perlu", "butuh"],
+    weight: 0.3,
+  },
+}
+
+export type UrgencyClassifyResult = {
+  urgency: Urgency
+  confidence: number
+  matched_keywords: string[]
+}
+
+export function classifyUrgency(text: string): UrgencyClassifyResult {
+  if (!text?.trim()) {
+    return { urgency: "medium", confidence: 0, matched_keywords: [] }
+  }
+
+  const results: Record<string, { score: number; matched: string[] }> = {}
+  for (const [level, config] of Object.entries(URGENCY_KEYWORDS)) {
+    const [score, matched] = calculateScore(text, config.keywords, config.weight)
+    results[level] = { score, matched }
+  }
+
+  const [bestLevel, bestData] = Object.entries(results).reduce((a, b) =>
+    b[1].score > a[1].score ? b : a
+  )
+
+  if (bestData.score === 0) {
+    return { urgency: "medium", confidence: 0, matched_keywords: [] }
+  }
+
+  return {
+    urgency: bestLevel as Urgency,
+    confidence: Math.round(Math.min(bestData.score / 6, 1) * 100) / 100,
+    matched_keywords: bestData.matched.slice(0, 10),
   }
 }
 

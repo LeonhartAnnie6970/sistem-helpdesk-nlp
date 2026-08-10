@@ -313,6 +313,125 @@ export async function createTicketNotifications(
 }
 
 /**
+ * Notify only the origin division's admins + super admins that a
+ * cross-division ticket is waiting for their approval before it gets
+ * routed to the target division(s).
+ */
+export async function createOriginApprovalRequestNotifications(
+  ticketId: number,
+  userId: number,
+  userDivision: string,
+  nlpCategory: string,
+  title: string,
+  userName: string,
+  targetDivisions: string[]
+): Promise<number> {
+  try {
+    const originAdmins = await query(
+      `SELECT id, name FROM users WHERE role = 'admin' AND division = ? AND is_active = TRUE`,
+      [userDivision]
+    ) as Array<{ id: number; name: string }>
+
+    const superAdmins = await query(
+      `SELECT id, name FROM users WHERE role = 'super_admin' AND is_active = TRUE`
+    ) as Array<{ id: number; name: string }>
+
+    const targetLabel = targetDivisions.join(', ')
+    const message = `Tiket baru dari ${userName} menunggu persetujuan Anda untuk diteruskan ke divisi ${targetLabel} (Kategori: ${nlpCategory})`
+
+    let notificationCount = 0
+
+    for (const admin of [...(originAdmins || []), ...(superAdmins || [])]) {
+      await query(
+        `INSERT INTO notifications
+         (id_admin, id_ticket, id_user, title, message, notification_reason, is_read)
+         VALUES (?, ?, ?, ?, ?, 'approval_pending', FALSE)`,
+        [admin.id, ticketId, userId, title, message]
+      )
+      notificationCount++
+    }
+
+    console.log(`[Routing] Created ${notificationCount} approval-request notifications for ticket ${ticketId}`)
+
+    return notificationCount
+  } catch (error) {
+    console.error('[Routing] Error creating approval-request notifications:', error)
+    return 0
+  }
+}
+
+/**
+ * Called after a cross-division ticket gets approved by the origin
+ * division's admin. Notifies the target division's admins + users,
+ * which were withheld while the ticket was pending approval.
+ */
+export async function createApprovalGrantedNotifications(
+  ticketId: number,
+  userId: number,
+  userDivision: string,
+  nlpCategory: string,
+  title: string,
+  userName: string
+): Promise<number> {
+  try {
+    const routing = await getTicketRoutingDivisions(userDivision, nlpCategory)
+    const targetDivisions = routing.nlpDivisions.filter(d => d !== userDivision)
+
+    let notificationCount = 0
+
+    // Admins of target divisions
+    for (const division of targetDivisions) {
+      const admins = await query(
+        `SELECT id, name FROM users WHERE role = 'admin' AND division = ? AND is_active = TRUE`,
+        [division]
+      ) as Array<{ id: number; name: string }>
+
+      for (const admin of admins || []) {
+        await query(
+          `INSERT INTO notifications
+           (id_admin, id_ticket, id_user, title, message, notification_reason, is_read)
+           VALUES (?, ?, ?, ?, ?, 'nlp_category', FALSE)`,
+          [
+            admin.id,
+            ticketId,
+            userId,
+            title,
+            `Tiket baru dari ${userName} (${userDivision}) telah disetujui dan diteruskan ke divisi Anda - Kategori: ${nlpCategory}`
+          ]
+        )
+        notificationCount++
+      }
+    }
+
+    // Users of target divisions
+    const users = await getUsersForTicket(userDivision, nlpCategory, userId)
+    for (const user of users) {
+      await query(
+        `INSERT INTO user_notifications
+         (id_user, id_ticket, ticket_title, message, type, is_read)
+         VALUES (?, ?, ?, ?, ?, ?)`,
+        [
+          user.id,
+          ticketId,
+          title,
+          `Tiket baru untuk divisi ${user.division} dari ${userName} (${userDivision}) - Kategori: ${nlpCategory}`,
+          'new_ticket',
+          false
+        ]
+      )
+      notificationCount++
+    }
+
+    console.log(`[Routing] Created ${notificationCount} post-approval notifications for ticket ${ticketId}`)
+
+    return notificationCount
+  } catch (error) {
+    console.error('[Routing] Error creating post-approval notifications:', error)
+    return 0
+  }
+}
+
+/**
  * Check if user is super admin and should receive all tickets
  */
 export async function isSuperAdmin(userId: number): Promise<boolean> {

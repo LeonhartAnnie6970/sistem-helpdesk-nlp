@@ -1,6 +1,8 @@
 "use client"
 
 import { useState } from "react"
+import Link from "next/link"
+import { usePathname } from "next/navigation"
 import {
   LayoutDashboard,
   Ticket,
@@ -19,8 +21,6 @@ import { cn } from "@/lib/utils"
 
 interface SidebarProps {
   role: "admin" | "user" | "super_admin"
-  activeTab: string
-  onTabChange: (tab: string) => void
   onLogout: () => void
   onOpenProfile: () => void
   onOpenNotifications: () => void
@@ -31,8 +31,6 @@ interface SidebarProps {
 
 export function Sidebar({
   role,
-  activeTab,
-  onTabChange,
   onLogout,
   onOpenProfile,
   onOpenNotifications,
@@ -40,6 +38,7 @@ export function Sidebar({
   collapsed: externalCollapsed,
   onCollapsedChange
 }: SidebarProps) {
+  const pathname = usePathname()
   const [internalCollapsed, setInternalCollapsed] = useState(false)
 
   // Use external collapsed state if provided, otherwise use internal state
@@ -55,21 +54,21 @@ export function Sidebar({
   }
 
   const adminMenuItems = [
-    { id: "analytics", label: "Analytics", icon: BarChart3 },
-    { id: "tickets", label: "Kelola Tiket", icon: Ticket },
-    { id: "create-ticket", label: "Buat Tiket", icon: FileText },
+    { href: "/admin/dashboard/analytics", label: "Analytics", icon: BarChart3 },
+    { href: "/admin/dashboard/tickets", label: "Kelola Tiket", icon: Ticket },
+    { href: "/admin/dashboard/create-ticket", label: "Buat Tiket", icon: FileText },
   ]
 
   const userMenuItems = [
-    { id: "dashboard", label: "Dashboard", icon: LayoutDashboard },
-    { id: "my-tickets", label: "Tiket Saya", icon: FileText },
+    { href: "/dashboard", label: "Dashboard", icon: LayoutDashboard },
+    { href: "/dashboard/my-tickets", label: "Tiket Saya", icon: FileText },
   ]
 
   const superAdminMenuItems = [
-    { id: "monitoring", label: "Division Monitoring", icon: Shield },
-    { id: "tickets", label: "All Tickets", icon: Ticket },
-    { id: "users", label: "User Management", icon: Users },
-    { id: "create-ticket", label: "Buat Tiket", icon: FileText },
+    { href: "/super-admin/dashboard/monitoring", label: "Division Monitoring", icon: Shield },
+    { href: "/super-admin/dashboard/tickets", label: "All Tickets", icon: Ticket },
+    { href: "/super-admin/dashboard/users", label: "User Management", icon: Users },
+    { href: "/super-admin/dashboard/create-ticket", label: "Buat Tiket", icon: FileText },
   ]
 
   const menuItems =
@@ -111,11 +110,12 @@ export function Sidebar({
       <nav className="flex-1 overflow-y-auto p-4 space-y-2">
         {menuItems.map((item) => {
           const Icon = item.icon
-          const isActive = activeTab === item.id
+          const isActive = pathname === item.href
 
           return (
             <Button
-              key={item.id}
+              key={item.href}
+              asChild
               variant={isActive ? "default" : "ghost"}
               className={cn(
                 "w-full justify-start",
@@ -124,10 +124,11 @@ export function Sidebar({
                   : "text-blue-200 hover:text-white hover:bg-blue-800/50",
                 collapsed && "justify-center px-2"
               )}
-              onClick={() => onTabChange(item.id)}
             >
-              <Icon className={cn("w-5 h-5", !collapsed && "mr-3")} />
-              {!collapsed && <span>{item.label}</span>}
+              <Link href={item.href}>
+                <Icon className={cn("w-5 h-5", !collapsed && "mr-3")} />
+                {!collapsed && <span>{item.label}</span>}
+              </Link>
             </Button>
           )
         })}

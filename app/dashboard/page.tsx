@@ -1,382 +1,86 @@
 "use client"
 
-export const dynamic = 'force-dynamic'
-
-import { useEffect, useState, Suspense } from "react"
-import { useRouter, useSearchParams } from 'next/navigation'
-import { Sidebar } from "@/components/dashboard-sidebar"
-import { TicketForm } from "@/components/ticket-form"
+import { useRouter } from "next/navigation"
 import { OutgoingTickets } from "@/components/outgoing-tickets"
 import { IncomingTickets } from "@/components/incoming-tickets"
-import { ThemeProvider } from "@/components/theme-provider"
-import { UserProfileModal } from "@/components/user-profile-modal"
-import { UserNotificationsPanel } from "@/components/user-notifications-panel"
-import { TicketDetailModal } from "@/components/ticket-detail-modal"
-import { Button } from "@/components/ui/button"
-import { Plus, X, ArrowUpRight, ArrowDownLeft } from 'lucide-react'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { cn } from "@/lib/utils"
-import { useSession } from "@/hooks/useSession"
+import { Plus } from "lucide-react"
+import { useUserDashboard } from "./dashboard-context"
 
-function DashboardContent() {
+export default function UserDashboardOverviewPage() {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const { getSessionData, logout, checkSession, updateActivity } = useSession()
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
-  const [refreshTrigger, setRefreshTrigger] = useState(0)
-  const [isProfileOpen, setIsProfileOpen] = useState(false)
-  const [showNotifications, setShowNotifications] = useState(false)
-  const [token, setToken] = useState("")
-  const [activeTab, setActiveTab] = useState("dashboard")
-  const [activeTicketTab, setActiveTicketTab] = useState("outgoing")
-  const [notificationCount, setNotificationCount] = useState(0)
-  const [showNewTicketForm, setShowNewTicketForm] = useState(false)
-  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
-  const [selectedTicketId, setSelectedTicketId] = useState<number | null>(null)
-  const [isTicketModalOpen, setIsTicketModalOpen] = useState(false)
-
-  useEffect(() => {
-    // Check session validity first
-    const session = getSessionData()
-
-    if (!session.isAuthenticated) {
-      if (session.isExpired) {
-        logout("Sesi Anda telah berakhir. Silakan login kembali.")
-      } else {
-        router.replace("/login")
-      }
-      return
-    }
-
-    const storedToken = session.token!
-    setToken(storedToken)
-
-    // Replace current history state to prevent back navigation to login
-    // This ensures that pressing back button won't go to login page
-    window.history.replaceState(null, '', window.location.href)
-
-    // Check URL parameters untuk navigate ke tab tertentu
-    const tab = searchParams.get('tab')
-    const view = searchParams.get('view')
-
-    if (tab === 'my-tickets') {
-      setActiveTab('my-tickets')
-      if (view === 'incoming') {
-        setActiveTicketTab('incoming')
-      }
-    }
-
-    // Check localStorage flag dari notifikasi
-    const openIncoming = localStorage.getItem('openIncomingTickets')
-    if (openIncoming === 'true') {
-      setActiveTab('my-tickets')
-      setActiveTicketTab('incoming')
-      localStorage.removeItem('openIncomingTickets')
-    }
-
-    fetch("/api/user/profile", {
-      headers: { Authorization: `Bearer ${storedToken}` },
-    })
-      .then(res => res.json())
-      .then(data => {
-        if (data.role === "admin") {
-          router.replace("/admin/dashboard")
-          return
-        }
-
-        if (data.role === "super_admin") {
-          router.replace("/super-admin/dashboard")
-          return
-        }
-
-        // user biasa
-        setIsAuthenticated(true)
-        updateActivity() // Update activity timestamp
-        fetchNotificationCount(storedToken)
-
-        // Poll for notifications every 30 seconds and check session
-        const interval = setInterval(() => {
-          if (checkSession()) {
-            fetchNotificationCount(storedToken)
-          }
-        }, 30000)
-
-        return () => clearInterval(interval)
-      })
-      .catch(() => {
-        logout()
-      })
-  }, [router, searchParams, getSessionData, logout, checkSession, updateActivity])
-
-
-  const fetchNotificationCount = async (token: string) => {
-    try {
-      const response = await fetch("/api/user/notifications", {
-        headers: { Authorization: `Bearer ${token}` },
-      })
-      const data = await response.json()
-      setNotificationCount(data.unreadCount || 0)
-    } catch (error) {
-      console.error("Error fetching notification count:", error)
-    }
-  }
-
-  const handleLogout = () => {
-    logout()
-  }
-
-  const handleTicketSuccess = () => {
-    setRefreshTrigger((prev) => prev + 1)
-    setShowNewTicketForm(false)
-  }
-
-  const handleOpenNotifications = () => {
-    setShowNotifications(!showNotifications)
-  }
-
-  // Handler untuk klik notifikasi - buka detail ticket langsung
-  const handleNotificationTicketClick = (ticketId: number) => {
-    setSelectedTicketId(ticketId)
-    setIsTicketModalOpen(true)
-    setActiveTab("my-tickets")
-    setActiveTicketTab("outgoing") // Default ke outgoing, modal akan menampilkan detail
-  }
-
-  const handleCloseTicketModal = () => {
-    setIsTicketModalOpen(false)
-    setSelectedTicketId(null)
-  }
-
-  const handleTicketUpdate = () => {
-    setRefreshTrigger((prev) => prev + 1)
-  }
-
-  if (!isAuthenticated) {
-    return <div className="flex items-center justify-center min-h-screen">Loading...</div>
-  }
+  const { refreshTrigger } = useUserDashboard()
 
   return (
-    <div className="flex h-screen bg-white dark:bg-black">
-      {/* Sidebar */}
-      <Sidebar
-        role="user"
-        activeTab={activeTab}
-        onTabChange={setActiveTab}
-        onLogout={handleLogout}
-        onOpenProfile={() => setIsProfileOpen(true)}
-        onOpenNotifications={handleOpenNotifications}
-        notificationCount={notificationCount}
-        collapsed={sidebarCollapsed}
-        onCollapsedChange={setSidebarCollapsed}
-      />
-
-      {/* Main Content */}
-      <main className={cn(
-        "flex-1 overflow-y-auto transition-all duration-300 bg-white dark:bg-black",
-        sidebarCollapsed ? "ml-16" : "ml-64"
-      )}>
-        {/* Top Bar - Minimal Header */}
-        <header className="sticky top-0 z-30 border-b border-gray-200 dark:border-gray-700 bg-white dark:bg-black">
-          <div className="flex items-center justify-between px-6 py-4">
-            <div>
-              <h1 className="text-2xl font-bold text-black dark:text-white">
-                {activeTab === "dashboard" ? "Dashboard" : "Tiket Saya"}
-              </h1>
-              <p className="text-sm text-gray-600 dark:text-gray-300 mt-1">
-                {activeTab === "dashboard"
-                  ? "Selamat datang di helpdesk system"
-                  : "Kelola dan monitor ticket Anda"}
-              </p>
+    <div className="space-y-6">
+      {/* Welcome Section */}
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black">
+          <CardTitle className="text-black dark:text-white">Selamat Datang! 👋</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-300">
+            Gunakan sistem ini untuk melaporkan masalah atau pertanyaan Anda
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4 bg-white dark:bg-black">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Buat Tiket Baru - Biru */}
+            <div
+              className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-1 cursor-pointer"
+              onClick={() => router.push("/dashboard/my-tickets?new=1")}
+            >
+              <div className="relative z-10 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-xl flex items-center justify-center">
+                  <Plus className="w-6 h-6 text-white" />
+                </div>
+                <p className="font-semibold text-white text-lg">Buat Tiket Baru</p>
+                <p className="text-sm text-white/80 mt-1">Laporkan masalah Anda</p>
+              </div>
+              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full" />
+              <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-white/5 rounded-full" />
             </div>
 
-            {activeTab === "my-tickets" && (
-              showNewTicketForm ? (
-                <Button onClick={() => setShowNewTicketForm(false)} className="bg-red-600 hover:bg-red-700 text-white">
-                  <X className="w-4 h-4 mr-2" />
-                  Tutup
-                </Button>
-              ) : (
-                <Button onClick={() => setShowNewTicketForm(true)} className="bg-blue-600 hover:bg-blue-700 text-white">
-                  <Plus className="w-4 h-4 mr-2" />
-                  Buat Tiket Baru
-                </Button>
-              )
-            )}
+            {/* Lihat Tiket Saya - Hijau */}
+            <div
+              className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-1 cursor-pointer"
+              onClick={() => router.push("/dashboard/my-tickets")}
+            >
+              <div className="relative z-10 text-center">
+                <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-xl flex items-center justify-center">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+                  </svg>
+                </div>
+                <p className="font-semibold text-white text-lg">Lihat Tiket Saya</p>
+                <p className="text-sm text-white/80 mt-1">Monitor status ticket</p>
+              </div>
+              <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full" />
+              <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-white/5 rounded-full" />
+            </div>
           </div>
-        </header>
+        </CardContent>
+      </Card>
 
-        {/* Content Area */}
-        <div className="p-6 space-y-6 bg-white dark:bg-black">
-          {activeTab === "dashboard" && (
-            <div className="space-y-6">
-              {/* Welcome Section */}
-              <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                <CardHeader className="bg-white dark:bg-black">
-                  <CardTitle className="text-black dark:text-white">Selamat Datang! 👋</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">
-                    Gunakan sistem ini untuk melaporkan masalah atau pertanyaan Anda
-                  </CardDescription>
-                </CardHeader>
-                <CardContent className="space-y-4 bg-white dark:bg-black">
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {/* Buat Tiket Baru - Biru */}
-                    <div
-                      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-blue-500 to-blue-600 p-6 shadow-lg shadow-blue-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 hover:-translate-y-1 cursor-pointer"
-                      onClick={() => {
-                        setActiveTab("my-tickets")
-                        setShowNewTicketForm(true)
-                      }}
-                    >
-                      <div className="relative z-10 text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-xl flex items-center justify-center">
-                          <Plus className="w-6 h-6 text-white" />
-                        </div>
-                        <p className="font-semibold text-white text-lg">Buat Tiket Baru</p>
-                        <p className="text-sm text-white/80 mt-1">Laporkan masalah Anda</p>
-                      </div>
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full" />
-                      <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-white/5 rounded-full" />
-                    </div>
+      {/* Recent Tickets Preview */}
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black">
+          <CardTitle className="text-black dark:text-white">Tiket Keluar Terbaru</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-300">Ticket yang baru saja Anda buat</CardDescription>
+        </CardHeader>
+        <CardContent className="bg-white dark:bg-black">
+          <OutgoingTickets refreshTrigger={refreshTrigger} />
+        </CardContent>
+      </Card>
 
-                    {/* Lihat Tiket Saya - Hijau */}
-                    <div
-                      className="relative overflow-hidden rounded-xl bg-gradient-to-br from-emerald-500 to-emerald-600 p-6 shadow-lg shadow-emerald-500/20 transition-all duration-300 hover:shadow-xl hover:shadow-emerald-500/30 hover:-translate-y-1 cursor-pointer"
-                      onClick={() => setActiveTab("my-tickets")}
-                    >
-                      <div className="relative z-10 text-center">
-                        <div className="w-12 h-12 mx-auto mb-3 bg-white/20 rounded-xl flex items-center justify-center">
-                          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                          </svg>
-                        </div>
-                        <p className="font-semibold text-white text-lg">Lihat Tiket Saya</p>
-                        <p className="text-sm text-white/80 mt-1">Monitor status ticket</p>
-                      </div>
-                      <div className="absolute -right-6 -bottom-6 w-24 h-24 bg-white/10 rounded-full" />
-                      <div className="absolute -right-10 -bottom-10 w-32 h-32 bg-white/5 rounded-full" />
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              {/* Recent Tickets Preview */}
-              <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                <CardHeader className="bg-white dark:bg-black">
-                  <CardTitle className="text-black dark:text-white">Tiket Keluar Terbaru</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">Ticket yang baru saja Anda buat</CardDescription>
-                </CardHeader>
-                <CardContent className="bg-white dark:bg-black">
-                  <OutgoingTickets refreshTrigger={refreshTrigger} />
-                </CardContent>
-              </Card>
-
-              {/* Incoming Tickets Preview */}
-              <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                <CardHeader className="bg-white dark:bg-black">
-                  <CardTitle className="text-black dark:text-white">Tiket Masuk Terbaru</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">Ticket dari divisi lain untuk Anda</CardDescription>
-                </CardHeader>
-                <CardContent className="bg-white dark:bg-black">
-                  <IncomingTickets refreshTrigger={refreshTrigger} />
-                </CardContent>
-              </Card>
-            </div>
-          )}
-
-          {activeTab === "my-tickets" && (
-            <div className="space-y-6">
-              {/* New Ticket Form */}
-              {showNewTicketForm && (
-                <TicketForm onSuccess={handleTicketSuccess} />
-              )}
-
-              {/* Tickets List with Tabs */}
-              <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
-                <CardHeader className="bg-white dark:bg-black">
-                  <CardTitle className="text-black dark:text-white">Tiket</CardTitle>
-                  <CardDescription className="text-gray-600 dark:text-gray-300">Kelola tiket Anda dan tiket divisi</CardDescription>
-                </CardHeader>
-                <CardContent className="bg-white dark:bg-black">
-                  <Tabs value={activeTicketTab} onValueChange={setActiveTicketTab} className="w-full">
-                    <TabsList className="grid w-full grid-cols-2 mb-4 h-12 p-1 bg-gray-100 dark:bg-gray-800 rounded-xl">
-                      <TabsTrigger
-                        value="outgoing"
-                        className="data-[state=active]:bg-blue-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-400 rounded-lg border-2 border-transparent data-[state=active]:border-blue-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
-                      >
-                        <ArrowUpRight className="w-4 h-4 mr-2" />
-                        Tiket Keluar
-                      </TabsTrigger>
-                      <TabsTrigger
-                        value="incoming"
-                        className="data-[state=active]:bg-green-500 data-[state=active]:text-white data-[state=active]:shadow-md data-[state=inactive]:bg-transparent data-[state=inactive]:text-gray-600 dark:data-[state=inactive]:text-gray-400 rounded-lg border-2 border-transparent data-[state=active]:border-green-600 hover:bg-gray-200 dark:hover:bg-gray-700 transition-all duration-200 font-medium"
-                      >
-                        <ArrowDownLeft className="w-4 h-4 mr-2" />
-                        Tiket Masuk
-                      </TabsTrigger>
-                    </TabsList>
-
-                    <TabsContent value="outgoing" className="mt-0">
-                      <OutgoingTickets refreshTrigger={refreshTrigger} />
-                    </TabsContent>
-
-                    <TabsContent value="incoming" className="mt-0">
-                      <IncomingTickets refreshTrigger={refreshTrigger} />
-                    </TabsContent>
-                  </Tabs>
-                </CardContent>
-              </Card>
-            </div>
-          )}
-        </div>
-      </main>
-
-      {/* Notification Panel - Positioned from sidebar */}
-      {showNotifications && (
-        <div className="fixed inset-0 bg-black/20 z-50" onClick={() => setShowNotifications(false)}>
-          <div
-            className={cn(
-              "fixed top-16 w-96 max-h-[calc(100vh-80px)] bg-white dark:bg-black border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg overflow-hidden transition-all duration-300",
-              sidebarCollapsed ? "left-16" : "left-64"
-            )}
-            onClick={(e) => e.stopPropagation()}
-          >
-            <UserNotificationsPanel
-              token={token}
-              onTicketClick={handleNotificationTicketClick}
-              onClose={() => setShowNotifications(false)}
-              onNotificationRead={() => fetchNotificationCount(token)}
-            />
-          </div>
-        </div>
-      )}
-
-      {/* Modals */}
-      <UserProfileModal
-        isOpen={isProfileOpen}
-        onClose={() => setIsProfileOpen(false)}
-        token={token}
-      />
-
-      {/* Ticket Detail Modal - untuk membuka dari notifikasi */}
-      {selectedTicketId && (
-        <TicketDetailModal
-          ticketId={selectedTicketId}
-          isOpen={isTicketModalOpen}
-          onClose={handleCloseTicketModal}
-          onUpdate={handleTicketUpdate}
-        />
-      )}
+      {/* Incoming Tickets Preview */}
+      <Card className="bg-white dark:bg-black border-gray-200 dark:border-gray-700">
+        <CardHeader className="bg-white dark:bg-black">
+          <CardTitle className="text-black dark:text-white">Tiket Masuk Terbaru</CardTitle>
+          <CardDescription className="text-gray-600 dark:text-gray-300">Ticket dari divisi lain untuk Anda</CardDescription>
+        </CardHeader>
+        <CardContent className="bg-white dark:bg-black">
+          <IncomingTickets refreshTrigger={refreshTrigger} />
+        </CardContent>
+      </Card>
     </div>
-  )
-}
-
-export default function DashboardPage() {
-  return (
-    <ThemeProvider>
-      <Suspense fallback={<div className="flex items-center justify-center min-h-screen">Loading...</div>}>
-        <DashboardContent />
-      </Suspense>
-    </ThemeProvider>
   )
 }

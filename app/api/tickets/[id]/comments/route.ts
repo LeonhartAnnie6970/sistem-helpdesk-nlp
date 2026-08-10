@@ -7,6 +7,7 @@ import { put } from "@vercel/blob"
 import { writeFile, mkdir } from "fs/promises"
 import { existsSync } from "fs"
 import path from "path"
+import { getUploadDriver } from "@/lib/upload-driver"
 
 function parseTargetDivisions(value: string | string[] | null | undefined): string[] {
   if (!value) return []
@@ -152,17 +153,18 @@ export async function GET(
         console.error("Failed to parse target_divisions:", e)
       }
 
+      const isApprovedOrNotRequired = ticket.approval_status === 'approved' || ticket.approval_status === 'not_required'
       const hasAccess = ticket.id_user === decoded.userId ||
-                        targetDivisions.includes(userDivision) ||
-                        ticket.user_division === userDivision
+                        ticket.user_division === userDivision ||
+                        (targetDivisions.includes(userDivision) && isApprovedOrNotRequired)
 
       if (!hasAccess) {
         return NextResponse.json({ error: "Access denied - ticket not accessible" }, { status: 403 })
       }
     } else if (decoded.role === "admin") {
       // Admin can see tickets:
-      // 1. Targeted to their division (check in target_divisions JSON array)
-      // 2. Created FROM their division
+      // 1. Targeted to their division (check in target_divisions JSON array) - once approved
+      // 2. Created FROM their division (always, to review/approve/reject)
       const adminInfo: any = await query(
         "SELECT division FROM users WHERE id = ?",
         [decoded.userId]
@@ -177,8 +179,9 @@ export async function GET(
         console.error("Failed to parse target_divisions:", e)
       }
 
-      const hasAccess = targetDivisions.includes(adminDivision) ||
-                        ticket.user_division === adminDivision
+      const isApprovedOrNotRequired = ticket.approval_status === 'approved' || ticket.approval_status === 'not_required'
+      const hasAccess = ticket.user_division === adminDivision ||
+                        (targetDivisions.includes(adminDivision) && isApprovedOrNotRequired)
 
       if (!hasAccess) {
         return NextResponse.json({ error: "Access denied - ticket not for your division" }, { status: 403 })
@@ -256,6 +259,22 @@ export async function POST(
       console.log(`[Comment POST] Rejected - ticket ${ticketId} is closed`)
       return NextResponse.json(
         { error: "Tiket sudah ditutup dan tidak dapat menerima tanggapan lagi" },
+        { status: 403 }
+      )
+    }
+
+    // Cross-division ticket still waiting for / denied origin-division approval
+    // cannot receive responses yet (approve/reject happens via a dedicated endpoint)
+    if (ticket.approval_status === "pending") {
+      return NextResponse.json(
+        { error: "Tiket masih menunggu persetujuan admin divisi asal" },
+        { status: 403 }
+      )
+    }
+
+    if (ticket.approval_status === "rejected") {
+      return NextResponse.json(
+        { error: "Tiket ini telah ditolak dan tidak dapat menerima tanggapan lagi" },
         { status: 403 }
       )
     }
@@ -344,7 +363,7 @@ export async function POST(
 
       const blobToken = process.env.BLOB_PUBLIC_READ_WRITE_TOKEN || process.env.BLOB_PROFILE_READ_WRITE_TOKEN || process.env.BLOB_READ_WRITE_TOKEN
 
-      if (blobToken) {
+      if (getUploadDriver() === "blob" && blobToken) {
         // Upload to Vercel Blob with 8s timeout
         try {
           const abortController = new AbortController()

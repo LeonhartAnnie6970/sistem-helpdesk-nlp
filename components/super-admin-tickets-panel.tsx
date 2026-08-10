@@ -1,7 +1,8 @@
 "use client"
 
 import { useEffect, useState } from "react"
-import { parseTargetDivisions } from "@/lib/utils"
+import { parseTargetDivisions, getApprovalStatusMeta } from "@/lib/utils"
+import { URGENCY_META, getDeadlineInfo, type Urgency } from "@/lib/urgency"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -46,6 +47,9 @@ interface Ticket {
   title: string
   description: string
   status: string
+  approval_status?: string
+  urgency?: Urgency
+  deadline_at?: string | null
   user_division: string
   nlp_category: string
   target_divisions: string
@@ -545,6 +549,21 @@ export function SuperAdminTicketsPanel({ token, onTicketClick, refreshTrigger }:
                           <div className="flex items-center gap-2">
                             <h3 className="font-semibold">{ticket.title}</h3>
                             {getStatusBadge(ticket.status)}
+                            {getApprovalStatusMeta(ticket.approval_status) && (
+                              <Badge className={getApprovalStatusMeta(ticket.approval_status)!.className}>
+                                {getApprovalStatusMeta(ticket.approval_status)!.label}
+                              </Badge>
+                            )}
+                            {ticket.urgency && (
+                              <Badge className={URGENCY_META[ticket.urgency].color}>
+                                {URGENCY_META[ticket.urgency].label}
+                              </Badge>
+                            )}
+                            {getDeadlineInfo(ticket.deadline_at, ticket.status)?.overdue && (
+                              <Badge className="bg-red-700 text-white">
+                                {getDeadlineInfo(ticket.deadline_at, ticket.status)!.label}
+                              </Badge>
+                            )}
                           </div>
 
                           <p className="text-sm text-muted-foreground line-clamp-2">

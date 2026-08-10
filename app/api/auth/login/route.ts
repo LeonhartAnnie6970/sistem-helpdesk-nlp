@@ -11,7 +11,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Find user with is_active check
-    const users = await query("SELECT id, password, role, is_active FROM users WHERE email = ?", [email])
+    const users = await query("SELECT id, name, password, role, division, is_active FROM users WHERE email = ?", [email])
 
     if (!Array.isArray(users) || users.length === 0) {
       return NextResponse.json({ error: "Invalid credentials" }, { status: 401 })
@@ -37,7 +37,14 @@ export async function POST(request: NextRequest) {
 
     const token = generateToken(user.id, user.role)
 
-    return NextResponse.json({ message: "Login successful", token, userId: user.id, role: user.role }, { status: 200 })
+    return NextResponse.json({
+      message: "Login successful",
+      token,
+      userId: user.id,
+      role: user.role,
+      userName: user.name,
+      division: user.division,
+    }, { status: 200 })
   } catch (error) {
     console.error("Login error:", error)
     return NextResponse.json({ error: "Internal server error" }, { status: 500 })

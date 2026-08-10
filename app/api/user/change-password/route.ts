@@ -29,9 +29,9 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: "Password tidak cocok" }, { status: 400 })
     }
 
-    const userResult = await query("SELECT password FROM users WHERE id = ?", [decoded.userId])
+    const userResult: any = await query("SELECT password FROM users WHERE id = ?", [decoded.userId])
 
-    if (!userResult || userResult.length === 0) {
+    if (!Array.isArray(userResult) || userResult.length === 0) {
       return NextResponse.json({ error: "User tidak ditemukan" }, { status: 404 })
     }
 

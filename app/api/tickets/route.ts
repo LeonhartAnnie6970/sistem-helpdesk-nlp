@@ -3,9 +3,11 @@ import { query } from "@/lib/db"
 import { verifyToken } from "@/lib/auth"
 import {
   getTicketRoutingDivisions,
-  createTicketNotifications
+  createTicketNotifications,
+  createOriginApprovalRequestNotifications
 } from "@/lib/ticket-routing"
-import { classify } from "@/lib/nlp-classifier"
+import { classify, classifyUrgency } from "@/lib/nlp-classifier"
+import { getSlaHours, isValidUrgency } from "@/lib/urgency"
 
 
 // app/api/tickets/route.ts (GET method - updated)
@@ -97,6 +99,8 @@ export async function GET(request: NextRequest) {
         )
       } else {
         // Query dengan JSON_CONTAINS untuk cek target_divisions
+        // Tiket lintas-divisi yang masih 'pending' approval hanya terlihat
+        // oleh admin divisi ASAL (untuk approve/reject), belum oleh admin divisi tujuan
         tickets = await query(
           `SELECT
             t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
@@ -107,7 +111,7 @@ export async function GET(request: NextRequest) {
           JOIN users u ON t.id_user = u.id
           WHERE
             t.user_division = ?
-            OR JSON_CONTAINS(t.target_divisions, ?, '$')
+            OR (JSON_CONTAINS(t.target_divisions, ?, '$') AND t.approval_status IN ('not_required', 'approved'))
           ORDER BY t.created_at DESC`,
           [adminDivision, JSON.stringify(adminDivision)]
         )
@@ -172,6 +176,8 @@ export async function GET(request: NextRequest) {
         // Query untuk mendapatkan:
         // 1. Ticket yang dibuat user sendiri
         // 2. Ticket yang ditargetkan ke divisi user (untuk incoming)
+        // Tiket lintas-divisi yang masih 'pending' approval hanya terlihat oleh
+        // rekan sedivisi (untuk transparansi), belum oleh divisi tujuan
         tickets = await query(
           `SELECT
             t.*, (SELECT COUNT(*) FROM tickets t2 WHERE t2.id <= t.id) AS ticket_sequence,
@@ -180,9 +186,10 @@ export async function GET(request: NextRequest) {
             u.division AS user_division_name
           FROM tickets t
           JOIN users u ON t.id_user = u.id
-          WHERE t.id_user = ? OR JSON_CONTAINS(t.target_divisions, ?, '$')
+          WHERE t.id_user = ?
+             OR (JSON_CONTAINS(t.target_divisions, ?, '$') AND (t.user_division = ? OR t.approval_status IN ('not_required', 'approved')))
           ORDER BY t.created_at DESC`,
-          [decoded.userId, JSON.stringify(userDivision)]
+          [decoded.userId, JSON.stringify(userDivision), userDivision]
         )
 
         console.log('[GET /api/tickets] User division:', userDivision)
@@ -243,17 +250,20 @@ export async function POST(request: NextRequest) {
     let title: string
     let description: string
     let imageUserUrl: string | null = null
+    let requestedUrgency: string | null = null
 
     if (contentType.includes("application/json")) {
       const body = await request.json()
       title = body.title
       description = body.description
       imageUserUrl = body.imageUserUrl || null
+      requestedUrgency = body.urgency || null
     } else if (contentType.includes("multipart/form-data")) {
       const formData = await request.formData()
       title = formData.get("title") as string
       description = formData.get("description") as string
       imageUserUrl = formData.get("imageUserUrl") as string | null
+      requestedUrgency = formData.get("urgency") as string | null
     } else {
       return NextResponse.json({ error: "Invalid content type" }, { status: 400 })
     }
@@ -264,7 +274,7 @@ export async function POST(request: NextRequest) {
 
     // Get user info
     const userInfo = await query(
-      "SELECT name, division FROM users WHERE id = ?",
+      "SELECT name, division, role FROM users WHERE id = ?",
       [decoded.userId]
     )
 
@@ -275,6 +285,7 @@ export async function POST(request: NextRequest) {
     const user = (userInfo as any)[0]
     const userDivision = user.division || 'GENERAL'
     const userName = user.name
+    const creatorRole = user.role
 
     // NLP Classification
     let nlpCategory: string = 'General'
@@ -293,14 +304,45 @@ export async function POST(request: NextRequest) {
       // Continue dengan default category
     }
 
+    // Urgency: pakai pilihan user kalau valid, kalau tidak fallback ke saran NLP
+    let urgency: string = 'medium'
+    try {
+      if (requestedUrgency && isValidUrgency(requestedUrgency)) {
+        urgency = requestedUrgency
+      } else {
+        urgency = classifyUrgency(`${title} ${description}`).urgency
+      }
+    } catch (urgencyError) {
+      console.error("[Tickets] Urgency classification error:", urgencyError)
+    }
+
     // Get routing divisions
     const routing = await getTicketRoutingDivisions(userDivision, nlpCategory)
+
+    // Divisi tujuan selain divisi asal pembuat tiket -> lintas divisi
+    const crossDivisionTargets = routing.nlpDivisions.filter(d => d !== userDivision)
+
+    // Approval hanya berlaku untuk tiket dari role 'user' yang lintas divisi.
+    // Tiket dibuat admin/super_admin, atau yang tidak lintas divisi, langsung jalan.
+    const approvalStatus: 'pending' | 'not_required' =
+      creatorRole === 'user' && crossDivisionTargets.length > 0 ? 'pending' : 'not_required'
+
+    // Jam SLA baru mulai begitu tiket benar-benar jalan (tidak perlu approval,
+    // atau langsung dari admin/super_admin). Kalau masih 'pending', deadline
+    // baru dihitung nanti saat di-approve.
+    // Dihitung pakai DATE_ADD(NOW(), ...) di SQL (bukan Date di JS) supaya
+    // konsisten dengan timezone server DB - hindari selisih jam kalau
+    // timezone server aplikasi & database berbeda.
+    const isImmediate = approvalStatus === 'not_required'
+    const slaHours = getSlaHours(urgency)
 
     console.log('[Tickets] Routing info:', {
       userId: decoded.userId,
       userDivision,
       nlpCategory,
-      allDivisions: routing.allDivisions
+      urgency,
+      allDivisions: routing.allDivisions,
+      approvalStatus
     })
 
     // Insert ticket dengan routing info
@@ -315,8 +357,11 @@ export async function POST(request: NextRequest) {
         target_divisions,
         nlp_confidence,
         nlp_keywords,
-        status
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'new')`,
+        urgency,
+        deadline_at,
+        status,
+        approval_status
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ${isImmediate ? 'DATE_ADD(NOW(), INTERVAL ? HOUR)' : 'NULL'}, 'new', ?)`,
       [
         decoded.userId,
         title,
@@ -327,36 +372,56 @@ export async function POST(request: NextRequest) {
         JSON.stringify(routing.allDivisions), // Save as JSON array
         nlpConfidence,
         nlpKeywords,
+        urgency,
+        ...(isImmediate ? [slaHours] : []),
+        approvalStatus,
       ]
     )
 
     const ticketId = (result as any).insertId
 
-    // Create notifications untuk semua admin yang relevan
-    try {
-      const notificationCount = await createTicketNotifications(
-        ticketId,
-        decoded.userId,
-        userDivision,
-        nlpCategory,
-        title,
-        userName
-      )
+    // Ambil deadline_at final untuk disertakan di response
+    const deadlineRow: any = await query(`SELECT deadline_at FROM tickets WHERE id = ?`, [ticketId])
+    const deadlineAt = deadlineRow?.[0]?.deadline_at ?? null
 
-      console.log(`[Tickets] Created ticket ${ticketId} with ${notificationCount} notifications`)
+    // Create notifications untuk pihak yang relevan
+    try {
+      const notificationCount = approvalStatus === 'pending'
+        ? await createOriginApprovalRequestNotifications(
+            ticketId,
+            decoded.userId,
+            userDivision,
+            nlpCategory,
+            title,
+            userName,
+            crossDivisionTargets
+          )
+        : await createTicketNotifications(
+            ticketId,
+            decoded.userId,
+            userDivision,
+            nlpCategory,
+            title,
+            userName
+          )
+
+      console.log(`[Tickets] Created ticket ${ticketId} with ${notificationCount} notifications (approval: ${approvalStatus})`)
     } catch (notificationError) {
       console.error("[Tickets] Error creating notifications:", notificationError)
       // Don't fail ticket creation if notification fails
     }
 
-    return NextResponse.json({ 
-      message: "Ticket created", 
+    return NextResponse.json({
+      message: "Ticket created",
       ticketId,
       routing: {
         userDivision,
         nlpCategory,
         targetDivisions: routing.allDivisions
-      }
+      },
+      approvalStatus,
+      urgency,
+      deadlineAt
     }, { status: 201 })
 
   } catch (error) {

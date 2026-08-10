@@ -5,13 +5,17 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge"
 import { ArrowDownLeft, Hash } from "lucide-react"
 import { TicketDetailModal } from "@/components/ticket-detail-modal"
-import { formatTicketId } from "@/lib/utils"
+import { formatTicketId, getApprovalStatusMeta } from "@/lib/utils"
+import { URGENCY_META, getDeadlineInfo, type Urgency } from "@/lib/urgency"
 
 interface Ticket {
   id: number
   title: string
   description: string
   status: string
+  approval_status?: string
+  urgency?: Urgency
+  deadline_at?: string | null
   created_at: string
   user_division: string
   user_division_name: string
@@ -20,6 +24,7 @@ interface Ticket {
   nlp_confidence: number
   name: string
   id_user: number
+  ticket_sequence?: number
 }
 
 interface IncomingTicketsProps {
@@ -114,26 +119,6 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
       console.log('[IncomingTickets] Incoming tickets:', incoming)
 
       setTickets(incoming)
-
-      // Jika ada highlightTicketId dari notifikasi, coba buka modal tiket tersebut
-      try {
-        const rawHighlight = localStorage.getItem('highlightTicketId')
-        if (rawHighlight) {
-          const highlightId = Number(rawHighlight)
-          if (!Number.isNaN(highlightId)) {
-            const found = incoming.find((t: any) => Number(t.id) === highlightId)
-            if (found) {
-              setSelectedTicketId(highlightId)
-              setIsModalOpen(true)
-            } else {
-              console.warn('[IncomingTickets] Highlight ticket id not found in incoming tickets:', highlightId)
-            }
-          }
-          localStorage.removeItem('highlightTicketId')
-        }
-      } catch (e) {
-        console.error('[IncomingTickets] Error handling highlightTicketId:', e)
-      }
     } catch (err) {
       console.error('[IncomingTickets] Fetch error:', err)
       setError("An error occurred while fetching tickets")
@@ -250,6 +235,21 @@ export function IncomingTickets({ refreshTrigger }: IncomingTicketsProps) {
                     <Badge className={getStatusColor(ticket.status)}>
                       {getStatusLabel(ticket.status)}
                     </Badge>
+                    {getApprovalStatusMeta(ticket.approval_status) && (
+                      <Badge className={getApprovalStatusMeta(ticket.approval_status)!.className}>
+                        {getApprovalStatusMeta(ticket.approval_status)!.label}
+                      </Badge>
+                    )}
+                    {ticket.urgency && (
+                      <Badge className={URGENCY_META[ticket.urgency].color}>
+                        {URGENCY_META[ticket.urgency].label}
+                      </Badge>
+                    )}
+                    {getDeadlineInfo(ticket.deadline_at, ticket.status)?.overdue && (
+                      <Badge className="bg-red-700 text-white">
+                        {getDeadlineInfo(ticket.deadline_at, ticket.status)!.label}
+                      </Badge>
+                    )}
                   </div>
                   <CardTitle className="text-lg text-black dark:text-white">
                     {ticket.title}
